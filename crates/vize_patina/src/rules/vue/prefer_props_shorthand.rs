@@ -97,7 +97,7 @@ impl Rule for PreferPropsShorthand {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::PreferPropsShorthand;
     use crate::linter::Linter;
     use crate::rule::RuleRegistry;
 

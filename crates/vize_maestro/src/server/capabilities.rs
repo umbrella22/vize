@@ -1,4 +1,5 @@
 //! LSP server capabilities declaration.
+#![allow(clippy::disallowed_methods)]
 
 use tower_lsp::lsp_types::*;
 

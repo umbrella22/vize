@@ -1,0 +1,242 @@
+//! Control flow transformation (v-if, v-for).
+//!
+//! Handles `IfNode` and `ForNode` from the template AST.
+
+use vize_carton::Box;
+
+use crate::ir::{BlockIRNode, ForIRNode, IfIRNode, NegativeBranch, OperationNode};
+use vize_atelier_core::{ExpressionNode, ForNode, IfNode, SimpleExpressionNode, SourceLocation};
+
+use super::{context::TransformContext, transform_children};
+
+/// Transform IfNode (from compiler-core v-if transform)
+pub(crate) fn transform_if_node<'a>(
+    ctx: &mut TransformContext<'a>,
+    if_node: &IfNode<'a>,
+    block: &mut BlockIRNode<'a>,
+) {
+    if if_node.branches.is_empty() {
+        return;
+    }
+
+    // Allocate ID for the if node itself
+    let if_id = ctx.next_id();
+
+    // First branch is the v-if condition
+    let first_branch = &if_node.branches[0];
+
+    // Get condition from first branch
+    let condition = if let Some(ref cond) = first_branch.condition {
+        match cond {
+            ExpressionNode::Simple(simple) => {
+                let cond_node = SimpleExpressionNode::new(
+                    simple.content.clone(),
+                    simple.is_static,
+                    simple.loc.clone(),
+                );
+                Box::new_in(cond_node, ctx.allocator)
+            }
+            ExpressionNode::Compound(compound) => {
+                let cond_node = SimpleExpressionNode::new(
+                    compound.loc.source.clone(),
+                    false,
+                    compound.loc.clone(),
+                );
+                Box::new_in(cond_node, ctx.allocator)
+            }
+        }
+    } else {
+        // No condition means v-else, which shouldn't be the first branch
+        let cond_node = SimpleExpressionNode::new("true", false, SourceLocation::STUB);
+        Box::new_in(cond_node, ctx.allocator)
+    };
+
+    // Consume an ID for the positive branch block
+    let _positive_branch_id = ctx.next_id();
+
+    // Transform first branch children
+    let positive = transform_children(ctx, &first_branch.children);
+
+    // Handle remaining branches (v-else-if, v-else)
+    let negative = if if_node.branches.len() > 1 {
+        Some(transform_remaining_branches(ctx, &if_node.branches[1..]))
+    } else {
+        None
+    };
+
+    let ir_if = IfIRNode {
+        id: if_id,
+        condition,
+        positive,
+        negative,
+        once: false,
+        parent: None,
+        anchor: None,
+    };
+
+    block
+        .operation
+        .push(OperationNode::If(Box::new_in(ir_if, ctx.allocator)));
+    block.returns.push(if_id);
+}
+
+/// Transform remaining if branches (v-else-if, v-else)
+pub(crate) fn transform_remaining_branches<'a>(
+    ctx: &mut TransformContext<'a>,
+    branches: &[vize_atelier_core::IfBranchNode<'a>],
+) -> NegativeBranch<'a> {
+    if branches.is_empty() {
+        // This shouldn't happen, but return an empty block just in case
+        return NegativeBranch::Block(BlockIRNode::new(ctx.allocator));
+    }
+
+    let branch = &branches[0];
+
+    if let Some(ref cond) = branch.condition {
+        // v-else-if: create nested IfIRNode
+        // Note: v-else-if is inline, so it doesn't consume its own ID
+
+        let condition = match cond {
+            ExpressionNode::Simple(simple) => {
+                let cond_node = SimpleExpressionNode::new(
+                    simple.content.clone(),
+                    simple.is_static,
+                    simple.loc.clone(),
+                );
+                Box::new_in(cond_node, ctx.allocator)
+            }
+            ExpressionNode::Compound(compound) => {
+                let cond_node = SimpleExpressionNode::new(
+                    compound.loc.source.clone(),
+                    false,
+                    compound.loc.clone(),
+                );
+                Box::new_in(cond_node, ctx.allocator)
+            }
+        };
+
+        // Consume ID for positive branch block
+        let _positive_branch_id = ctx.next_id();
+
+        let positive = transform_children(ctx, &branch.children);
+
+        let negative = if branches.len() > 1 {
+            // Consume ID for negative branch callback block
+            let _negative_block_id = ctx.next_id();
+            Some(transform_remaining_branches(ctx, &branches[1..]))
+        } else {
+            None
+        };
+
+        let nested_if = IfIRNode {
+            id: 0, // Not used for inline v-else-if
+            condition,
+            positive,
+            negative,
+            once: false,
+            parent: None,
+            anchor: None,
+        };
+
+        NegativeBranch::If(Box::new_in(nested_if, ctx.allocator))
+    } else {
+        // v-else: consume ID for the else branch block
+        let _else_branch_id = ctx.next_id();
+        NegativeBranch::Block(transform_children(ctx, &branch.children))
+    }
+}
+
+/// Transform ForNode (from compiler-core v-for transform)
+pub(crate) fn transform_for_node<'a>(
+    ctx: &mut TransformContext<'a>,
+    for_node: &ForNode<'a>,
+    block: &mut BlockIRNode<'a>,
+) {
+    // Get source expression
+    let source = match &for_node.source {
+        ExpressionNode::Simple(simple) => {
+            let source_node = SimpleExpressionNode::new(
+                simple.content.clone(),
+                simple.is_static,
+                simple.loc.clone(),
+            );
+            Box::new_in(source_node, ctx.allocator)
+        }
+        ExpressionNode::Compound(compound) => {
+            let source_node =
+                SimpleExpressionNode::new(compound.loc.source.clone(), false, compound.loc.clone());
+            Box::new_in(source_node, ctx.allocator)
+        }
+    };
+
+    // Get value alias
+    let value = for_node.value_alias.as_ref().map(|v| match v {
+        ExpressionNode::Simple(simple) => {
+            let val_node = SimpleExpressionNode::new(
+                simple.content.clone(),
+                simple.is_static,
+                simple.loc.clone(),
+            );
+            Box::new_in(val_node, ctx.allocator)
+        }
+        ExpressionNode::Compound(compound) => {
+            let val_node =
+                SimpleExpressionNode::new(compound.loc.source.clone(), false, compound.loc.clone());
+            Box::new_in(val_node, ctx.allocator)
+        }
+    });
+
+    // Get key alias
+    let key = for_node.key_alias.as_ref().map(|k| match k {
+        ExpressionNode::Simple(simple) => {
+            let key_node = SimpleExpressionNode::new(
+                simple.content.clone(),
+                simple.is_static,
+                simple.loc.clone(),
+            );
+            Box::new_in(key_node, ctx.allocator)
+        }
+        ExpressionNode::Compound(compound) => {
+            let key_node =
+                SimpleExpressionNode::new(compound.loc.source.clone(), false, compound.loc.clone());
+            Box::new_in(key_node, ctx.allocator)
+        }
+    });
+
+    // Get index alias
+    let index = for_node.object_index_alias.as_ref().map(|i| match i {
+        ExpressionNode::Simple(simple) => {
+            let idx_node = SimpleExpressionNode::new(
+                simple.content.clone(),
+                simple.is_static,
+                simple.loc.clone(),
+            );
+            Box::new_in(idx_node, ctx.allocator)
+        }
+        ExpressionNode::Compound(compound) => {
+            let idx_node =
+                SimpleExpressionNode::new(compound.loc.source.clone(), false, compound.loc.clone());
+            Box::new_in(idx_node, ctx.allocator)
+        }
+    });
+
+    // Transform children as render block
+    let render = transform_children(ctx, &for_node.children);
+
+    let ir_for = ForIRNode {
+        id: ctx.next_id(),
+        source,
+        value,
+        key,
+        index,
+        key_prop: None, // TODO: Handle key prop from element
+        render,
+        once: false,
+        component: false,
+        only_child: for_node.children.len() == 1,
+    };
+
+    block
+        .operation
+        .push(OperationNode::For(Box::new_in(ir_for, ctx.allocator)));
+}

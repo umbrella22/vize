@@ -8,9 +8,11 @@ use std::fs;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::Instant;
+use vize_carton::ToCompactString;
 use vize_patina::{format_results, format_summary, HelpLevel, Linter, OutputFormat};
 
 #[derive(Args)]
+#[allow(clippy::disallowed_types)]
 pub struct LintArgs {
     /// Glob pattern(s) to match .vue files
     #[arg(default_value = "./**/*.vue")]
@@ -99,7 +101,7 @@ pub fn run(args: LintArgs) {
                 }
             };
 
-            let filename = path.to_string_lossy().to_string();
+            let filename = path.to_string_lossy().to_compact_string();
             let result = linter.lint_sfc(&source, &filename);
 
             error_count.fetch_add(result.error_count, Ordering::Relaxed);
@@ -123,7 +125,7 @@ pub fn run(args: LintArgs) {
         let lint_results: Vec<_> = results.iter().map(|(_, _, r)| r).cloned().collect();
         let sources: Vec<_> = results
             .iter()
-            .map(|(f, s, _)| (f.clone(), s.clone()))
+            .map(|(f, s, _)| (f.clone(), vize_carton::String::from(s.as_str())))
             .collect();
 
         let output = format_results(&lint_results, &sources, format);

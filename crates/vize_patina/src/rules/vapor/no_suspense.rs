@@ -54,7 +54,7 @@ impl Rule for NoSuspense {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::NoSuspense;
     use crate::linter::Linter;
     use crate::rule::RuleRegistry;
 

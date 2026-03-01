@@ -129,7 +129,8 @@ pub fn generate_virtual_ts_with_croquis(
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::{VirtualTsConfig, VirtualTsGenerator};
+    use crate::analysis::BindingMetadata;
     use crate::script_parser::parse_script_setup;
     use vize_carton::CompactString;
     use vize_relief::BindingType;

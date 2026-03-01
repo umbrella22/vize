@@ -108,7 +108,7 @@ impl Rule for NoUnsafeUrl {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::NoUnsafeUrl;
     use crate::linter::Linter;
     use crate::rule::RuleRegistry;
 

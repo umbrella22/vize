@@ -4,6 +4,9 @@ use crate::ast::RuntimeHelper;
 use crate::options::CodegenOptions;
 
 use super::helpers::default_helper_alias;
+use vize_carton::FxHashSet;
+use vize_carton::String;
+use vize_carton::ToCompactString;
 
 /// Code generation context using byte buffer for performance
 pub struct CodegenContext {
@@ -25,11 +28,11 @@ pub struct CodegenContext {
     /// Pure annotation for tree-shaking
     pub(super) pure: bool,
     /// Helpers used during codegen
-    pub(super) used_helpers: std::collections::HashSet<RuntimeHelper>,
+    pub(super) used_helpers: FxHashSet<RuntimeHelper>,
     /// Cache index for v-once
     pub(super) cache_index: usize,
     /// Slot parameters (identifiers that should not be prefixed with _ctx.)
-    pub(super) slot_params: std::collections::HashSet<String>,
+    pub(super) slot_params: FxHashSet<String>,
     /// When true, skip `is` prop in generate_props (used for dynamic components)
     pub(super) skip_is_prop: bool,
     /// When true, skip scope_id attribute in props (used for component/slot elements)
@@ -56,13 +59,13 @@ impl CodegenContext {
             indent_level: 0,
             ssr: options.ssr,
             helper_alias: default_helper_alias,
-            runtime_global_name: options.runtime_global_name.to_string(),
-            runtime_module_name: options.runtime_module_name.to_string(),
+            runtime_global_name: options.runtime_global_name.to_compact_string(),
+            runtime_module_name: options.runtime_module_name.to_compact_string(),
             options,
             pure: false,
-            used_helpers: std::collections::HashSet::new(),
+            used_helpers: FxHashSet::default(),
             cache_index: 0,
-            slot_params: std::collections::HashSet::new(),
+            slot_params: FxHashSet::default(),
             skip_is_prop: false,
             skip_scope_id: false,
             skip_normalize: false,
@@ -173,6 +176,22 @@ impl CodegenContext {
         }
     }
 
+    /// Push string to buffer (alias for `push`, compatible with `appends!`/`append!` macros)
+    #[inline]
+    #[allow(dead_code)]
+    pub fn push_str(&mut self, code: &str) {
+        self.code.extend_from_slice(code.as_bytes());
+    }
+
+    /// Push formatted line (format_args! + newline with indentation)
+    #[inline]
+    #[allow(dead_code)]
+    pub fn push_line_fmt(&mut self, args: std::fmt::Arguments<'_>) {
+        use std::fmt::Write as _;
+        self.write_fmt(args).unwrap();
+        self.newline();
+    }
+
     /// Get the generated code as a String
     pub fn into_code(self) -> String {
         // SAFETY: We only push valid UTF-8 strings
@@ -183,5 +202,13 @@ impl CodegenContext {
     pub fn code_as_str(&self) -> &str {
         // SAFETY: We only push valid UTF-8 strings
         unsafe { std::str::from_utf8_unchecked(&self.code) }
+    }
+}
+
+impl std::fmt::Write for CodegenContext {
+    #[inline]
+    fn write_str(&mut self, s: &str) -> std::fmt::Result {
+        self.code.extend_from_slice(s.as_bytes());
+        Ok(())
     }
 }

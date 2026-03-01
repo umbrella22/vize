@@ -95,7 +95,7 @@ impl Rule for UseVOnExact {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::UseVOnExact;
     use crate::linter::Linter;
     use crate::rule::RuleRegistry;
 

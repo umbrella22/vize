@@ -75,7 +75,7 @@ impl Rule for NoVHtml {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::NoVHtml;
     use crate::linter::Linter;
     use crate::rule::RuleRegistry;
 

@@ -163,7 +163,7 @@ impl ScriptRule for PreferUseTemplateRef {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::PreferUseTemplateRef;
     use crate::rules::script::ScriptLinter;
 
     fn create_linter() -> ScriptLinter {

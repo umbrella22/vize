@@ -30,7 +30,7 @@ pub struct SsrCompilerOptions {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::SsrCompilerOptions;
 
     #[test]
     fn test_default_options() {

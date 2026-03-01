@@ -1,4 +1,11 @@
 //! CrossFileAnalyzer WASM bindings.
+//!
+//! FFI boundary code: uses std types for JavaScript interop.
+#![allow(
+    clippy::disallowed_types,
+    clippy::disallowed_methods,
+    clippy::disallowed_macros
+)]
 
 use super::{to_js_value, utf8_byte_to_char_offset};
 use vize_carton::Bump;
@@ -27,7 +34,7 @@ pub fn analyze_cross_file_wasm(files: JsValue, options: JsValue) -> Result<JsVal
         let path = js_sys::Reflect::get(&file_obj, &JsValue::from_str("path"))
             .ok()
             .and_then(|v| v.as_string())
-            .unwrap_or_else(|| format!("file_{}.vue", i));
+            .unwrap_or_else(|| format!("file_{i}.vue"));
         let source = js_sys::Reflect::get(&file_obj, &JsValue::from_str("source"))
             .ok()
             .and_then(|v| v.as_string())
@@ -55,7 +62,7 @@ pub fn analyze_cross_file_wasm(files: JsValue, options: JsValue) -> Result<JsVal
         if is_vue {
             // Parse SFC to extract script and template content
             let parse_opts = SfcParseOptions {
-                filename: path.clone(),
+                filename: path.clone().into(),
                 ..Default::default()
             };
             if let Ok(descriptor) = parse_sfc(source, parse_opts) {

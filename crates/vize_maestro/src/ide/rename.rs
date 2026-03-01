@@ -4,6 +4,7 @@
 //! - Template bindings (variables, functions, etc.)
 //! - Script identifiers
 //! - CSS variables in v-bind()
+#![allow(clippy::disallowed_types, clippy::disallowed_methods)]
 
 use std::collections::HashMap;
 
@@ -115,7 +116,7 @@ impl RenameService {
         let mut occurrences = Vec::new();
 
         let options = vize_atelier_sfc::SfcParseOptions {
-            filename: ctx.uri.path().to_string(),
+            filename: ctx.uri.path().to_string().into(),
             ..Default::default()
         };
 
@@ -408,7 +409,7 @@ impl RenameService {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::RenameService;
 
     #[test]
     fn test_get_word_at_offset() {

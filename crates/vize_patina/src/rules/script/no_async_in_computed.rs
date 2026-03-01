@@ -98,7 +98,7 @@ impl ScriptRule for NoAsyncInComputed {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::NoAsyncInComputed;
     use crate::rules::script::ScriptLinter;
 
     fn create_linter() -> ScriptLinter {

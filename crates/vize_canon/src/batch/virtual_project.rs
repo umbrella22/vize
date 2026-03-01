@@ -2,7 +2,6 @@
 //!
 //! This module manages the virtual TypeScript project in `node_modules/.vize/canon/`.
 
-use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
 use super::error::{TsgoError, TsgoResult};
@@ -11,6 +10,9 @@ use super::source_map::CompositeSourceMap;
 use super::virtual_ts::VirtualTsGenerator;
 use super::SfcBlockType;
 use oxc_span::SourceType;
+use vize_carton::cstr;
+use vize_carton::FxHashMap;
+use vize_carton::String;
 
 /// A virtual file in the project.
 #[derive(Debug)]
@@ -45,7 +47,7 @@ pub struct VirtualProject {
     virtual_root: PathBuf,
 
     /// Virtual files.
-    virtual_files: HashMap<PathBuf, VirtualFile>,
+    virtual_files: FxHashMap<PathBuf, VirtualFile>,
 
     /// Virtual TypeScript generator.
     generator: VirtualTsGenerator,
@@ -65,7 +67,7 @@ impl VirtualProject {
         Ok(Self {
             project_root: project_root.to_path_buf(),
             virtual_root,
-            virtual_files: HashMap::new(),
+            virtual_files: FxHashMap::default(),
             generator: VirtualTsGenerator::new(),
             rewriter: ImportRewriter::new(),
         })
@@ -96,7 +98,7 @@ impl VirtualProject {
         let file_name = virtual_path
             .file_name()
             .and_then(|n| n.to_str())
-            .map(|n| format!("{}.ts", n))
+            .map(|n| cstr!("{n}.ts"))
             .ok_or_else(|| TsgoError::PathError {
                 path: path.to_path_buf(),
             })?;
@@ -192,7 +194,7 @@ impl VirtualProject {
             "exclude": []
         });
 
-        Ok(serde_json::to_string_pretty(&config)?)
+        Ok(serde_json::to_string_pretty(&config)?.into())
     }
 
     /// Extract paths configuration from original tsconfig.json.
@@ -305,7 +307,7 @@ impl VirtualProject {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::VirtualProject;
     use std::fs;
     use tempfile::TempDir;
 

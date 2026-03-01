@@ -298,7 +298,8 @@ impl ReactivityTracker {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::{ReactiveKind, ReactivityLossKind, ReactivityTracker};
+    use vize_carton::CompactString;
 
     #[test]
     fn test_reactivity_tracker() {

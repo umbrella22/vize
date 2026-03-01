@@ -13,6 +13,7 @@ static LAYOUT: Mutex<Option<LayoutEngine>> = Mutex::new(None);
 
 /// Initialize layout engine.
 #[napi(js_name = "initLayout")]
+#[allow(clippy::disallowed_macros)]
 pub fn init_layout() -> Result<()> {
     let mut guard = LAYOUT
         .lock()
@@ -24,6 +25,7 @@ pub fn init_layout() -> Result<()> {
 
 /// Create a new layout node.
 #[napi(js_name = "createLayoutNode")]
+#[allow(clippy::disallowed_macros)]
 pub fn create_layout_node(style: Option<FlexStyleNapi>) -> Result<i64> {
     let mut guard = LAYOUT
         .lock()
@@ -40,6 +42,7 @@ pub fn create_layout_node(style: Option<FlexStyleNapi>) -> Result<i64> {
 
 /// Create a new leaf layout node with measured size.
 #[napi(js_name = "createLayoutLeaf")]
+#[allow(clippy::disallowed_macros)]
 pub fn create_layout_leaf(width: f64, height: f64, style: Option<FlexStyleNapi>) -> Result<i64> {
     let mut guard = LAYOUT
         .lock()
@@ -56,6 +59,7 @@ pub fn create_layout_leaf(width: f64, height: f64, style: Option<FlexStyleNapi>)
 
 /// Set layout root node.
 #[napi(js_name = "setLayoutRoot")]
+#[allow(clippy::disallowed_macros)]
 pub fn set_layout_root(id: i64) -> Result<()> {
     let mut guard = LAYOUT
         .lock()
@@ -71,6 +75,7 @@ pub fn set_layout_root(id: i64) -> Result<()> {
 
 /// Add child to parent node.
 #[napi(js_name = "addLayoutChild")]
+#[allow(clippy::disallowed_macros)]
 pub fn add_layout_child(parent: i64, child: i64) -> Result<()> {
     let mut guard = LAYOUT
         .lock()
@@ -86,6 +91,7 @@ pub fn add_layout_child(parent: i64, child: i64) -> Result<()> {
 
 /// Remove child from parent node.
 #[napi(js_name = "removeLayoutChild")]
+#[allow(clippy::disallowed_macros)]
 pub fn remove_layout_child(parent: i64, child: i64) -> Result<()> {
     let mut guard = LAYOUT
         .lock()
@@ -101,6 +107,7 @@ pub fn remove_layout_child(parent: i64, child: i64) -> Result<()> {
 
 /// Update node style.
 #[napi(js_name = "setLayoutStyle")]
+#[allow(clippy::disallowed_macros)]
 pub fn set_layout_style(id: i64, style: FlexStyleNapi) -> Result<()> {
     let mut guard = LAYOUT
         .lock()
@@ -117,6 +124,7 @@ pub fn set_layout_style(id: i64, style: FlexStyleNapi) -> Result<()> {
 
 /// Remove a node.
 #[napi(js_name = "removeLayoutNode")]
+#[allow(clippy::disallowed_macros)]
 pub fn remove_layout_node(id: i64) -> Result<()> {
     let mut guard = LAYOUT
         .lock()
@@ -132,6 +140,7 @@ pub fn remove_layout_node(id: i64) -> Result<()> {
 
 /// Compute layout.
 #[napi(js_name = "computeLayout")]
+#[allow(clippy::disallowed_macros)]
 pub fn compute_layout(width: i32, height: i32) -> Result<()> {
     let mut guard = LAYOUT
         .lock()
@@ -147,6 +156,7 @@ pub fn compute_layout(width: i32, height: i32) -> Result<()> {
 
 /// Get layout result for a node.
 #[napi(js_name = "getLayout")]
+#[allow(clippy::disallowed_macros)]
 pub fn get_layout(id: i64) -> Result<Option<LayoutResultNapi>> {
     let guard = LAYOUT
         .lock()
@@ -167,6 +177,7 @@ pub fn get_layout(id: i64) -> Result<Option<LayoutResultNapi>> {
 
 /// Get all layout results.
 #[napi(js_name = "getAllLayouts")]
+#[allow(clippy::disallowed_macros)]
 pub fn get_all_layouts() -> Result<Vec<LayoutResultNapi>> {
     let guard = LAYOUT
         .lock()
@@ -193,6 +204,7 @@ pub fn get_all_layouts() -> Result<Vec<LayoutResultNapi>> {
 
 /// Clear layout engine.
 #[napi(js_name = "clearLayout")]
+#[allow(clippy::disallowed_macros)]
 pub fn clear_layout() -> Result<()> {
     let mut guard = LAYOUT
         .lock()

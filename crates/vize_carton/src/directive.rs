@@ -108,7 +108,7 @@ pub fn parse_level_severity(payload: &str) -> Option<DirectiveSeverity> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::{parse_level_severity, parse_vize_directive, DirectiveKind, DirectiveSeverity};
 
     #[test]
     fn test_parse_todo() {

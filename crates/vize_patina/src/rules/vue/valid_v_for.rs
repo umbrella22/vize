@@ -152,7 +152,7 @@ impl Rule for ValidVFor {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::ValidVFor;
     use crate::linter::Linter;
     use crate::rule::RuleRegistry;
 

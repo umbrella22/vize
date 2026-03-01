@@ -87,7 +87,7 @@ impl Rule for ValidVElse {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::ValidVElse;
     use crate::linter::Linter;
     use crate::rule::RuleRegistry;
 

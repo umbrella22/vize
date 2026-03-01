@@ -84,7 +84,7 @@ impl Rule for NoMultiSpaces {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::NoMultiSpaces;
     use crate::linter::Linter;
     use crate::rule::RuleRegistry;
 

@@ -7,6 +7,7 @@ use oxc_allocator::Allocator;
 use oxc_ast::ast::{ExportDefaultDeclarationKind, Statement};
 use oxc_parser::Parser;
 use oxc_span::{GetSpan, SourceType};
+use vize_carton::{String, ToCompactString};
 
 /// Rewrite `export default` to a const declaration with the given name.
 /// Returns (rewritten_code, has_default_export)
@@ -22,7 +23,7 @@ pub fn rewrite_default(input: &str, as_name: &str, is_ts: bool) -> (String, bool
 
     if !ret.errors.is_empty() {
         // If parsing fails, return original code
-        return (input.to_string(), false);
+        return (input.to_compact_string(), false);
     }
 
     let program = ret.program;
@@ -39,7 +40,7 @@ pub fn rewrite_default(input: &str, as_name: &str, is_ts: bool) -> (String, bool
 
     if !has_default {
         // No default export - append empty object
-        let mut output = input.to_string();
+        let mut output = input.to_compact_string();
         output.push_str("\nconst ");
         output.push_str(as_name);
         output.push_str(" = {}");
@@ -47,7 +48,7 @@ pub fn rewrite_default(input: &str, as_name: &str, is_ts: bool) -> (String, bool
     }
 
     // Find and rewrite the default export
-    let mut output = String::new();
+    let mut output = String::default();
     let mut last_end = 0;
 
     for stmt in program.body.iter() {
@@ -297,7 +298,7 @@ pub fn rewrite_default(input: &str, as_name: &str, is_ts: bool) -> (String, bool
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::rewrite_default;
 
     #[test]
     fn test_rewrite_default_object() {

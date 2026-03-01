@@ -84,7 +84,7 @@ impl Rule for NoInlineStyle {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::NoInlineStyle;
     use crate::linter::Linter;
     use crate::rule::RuleRegistry;
 

@@ -42,6 +42,8 @@
 use crate::context::LintContext;
 use crate::diagnostic::{LintDiagnostic, Severity};
 use crate::rule::{Rule, RuleCategory, RuleMeta};
+use vize_carton::String;
+use vize_carton::ToCompactString;
 use vize_croquis::builtins::is_builtin_component;
 use vize_relief::ast::{ElementNode, RootNode};
 
@@ -183,7 +185,11 @@ fn collect_components<'a>(root: &RootNode<'a>, result: &mut Vec<(String, u32, u3
     fn visit_element<'a>(element: &ElementNode<'a>, result: &mut Vec<(String, u32, u32)>) {
         let start = element.loc.start.offset;
         let tag_str = element.tag.as_str();
-        result.push((tag_str.to_string(), start, start + tag_str.len() as u32));
+        result.push((
+            tag_str.to_compact_string(),
+            start,
+            start + tag_str.len() as u32,
+        ));
 
         for child in element.children.iter() {
             if let vize_relief::ast::TemplateChildNode::Element(el) = child {
@@ -217,7 +223,7 @@ fn pascal_to_kebab(s: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::{pascal_to_kebab, RequireComponentRegistration};
 
     #[test]
     fn test_pascal_to_kebab() {

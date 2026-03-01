@@ -99,7 +99,7 @@ impl Rule for ComponentNameInTemplateCasing {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::ComponentNameInTemplateCasing;
     use crate::linter::Linter;
     use crate::rule::RuleRegistry;
 

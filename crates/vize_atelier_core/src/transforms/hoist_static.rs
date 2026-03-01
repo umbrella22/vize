@@ -2,7 +2,7 @@
 //!
 //! Hoists static nodes to reduce runtime overhead.
 
-use vize_carton::{Box, Bump, Vec};
+use vize_carton::{Box, Bump, String, Vec};
 
 use crate::ast::*;
 use crate::transform::TransformContext;
@@ -324,7 +324,7 @@ fn create_children_expression<'a>(
 
     // For multiple text children, combine them
     let mut all_text = true;
-    let mut text_content = String::new();
+    let mut text_content = String::default();
 
     for child in children.iter() {
         match child {
@@ -477,7 +477,8 @@ pub fn count_dynamic_children(children: &[TemplateChildNode<'_>]) -> usize {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::{get_static_type, is_static_node, StaticType};
+    use crate::ast::{PropNode, TemplateChildNode};
     use crate::parser::parse;
     use bumpalo::Bump;
 

@@ -106,7 +106,7 @@ impl Rule for AnchorIsValid {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::AnchorIsValid;
     use crate::linter::Linter;
     use crate::rule::RuleRegistry;
 

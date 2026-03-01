@@ -3,6 +3,8 @@
 //! Reads `vize.config.json` from the current working directory.
 //! Also provides JSON Schema generation for editor autocompletion.
 
+#![allow(clippy::disallowed_types)]
+
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 
@@ -134,7 +136,7 @@ pub const VIZE_CONFIG_SCHEMA: &str = r#"{
 
 #[cfg(all(test, feature = "glyph"))]
 mod tests {
-    use super::*;
+    use super::load_config;
 
     #[test]
     fn load_config_returns_defaults_when_no_file() {

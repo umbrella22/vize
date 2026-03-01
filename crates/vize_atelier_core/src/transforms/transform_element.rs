@@ -248,8 +248,10 @@ pub enum ChildrenType {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::{resolve_element_type, ElementType};
+    use crate::ast::TemplateChildNode;
     use crate::parser::parse;
+    use crate::transform::TransformContext;
     use bumpalo::Bump;
 
     #[test]

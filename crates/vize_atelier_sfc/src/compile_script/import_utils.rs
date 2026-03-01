@@ -8,9 +8,11 @@ use oxc_ast::ast::{ImportDeclarationSpecifier, Statement};
 use oxc_parser::Parser;
 use oxc_span::SourceType;
 
+use vize_carton::ToCompactString;
+
 /// Process import statement to remove TypeScript type-only imports using OXC
 /// Returns None if the entire import should be removed, Some(processed) otherwise
-pub fn process_import_for_types(import: &str) -> Option<String> {
+pub fn process_import_for_types(import: &str) -> Option<vize_carton::String> {
     let import = import.trim();
 
     // Parse the import statement with OXC
@@ -50,8 +52,8 @@ pub fn process_import_for_types(import: &str) -> Option<String> {
                         let source = decl.source.value.as_str();
 
                         // Separate default/namespace imports from named imports
-                        let mut default_part: Option<String> = None;
-                        let mut named_parts: Vec<String> = Vec::new();
+                        let mut default_part: Option<vize_carton::String> = None;
+                        let mut named_parts: Vec<vize_carton::String> = Vec::new();
 
                         for spec in &value_specifiers {
                             match spec {
@@ -59,10 +61,11 @@ pub fn process_import_for_types(import: &str) -> Option<String> {
                                     let imported = s.imported.name().as_str();
                                     let local = s.local.name.as_str();
                                     if imported == local {
-                                        named_parts.push(imported.to_string());
+                                        named_parts.push(imported.to_compact_string());
                                     } else {
-                                        let mut name =
-                                            String::with_capacity(imported.len() + local.len() + 4);
+                                        let mut name = vize_carton::String::with_capacity(
+                                            imported.len() + local.len() + 4,
+                                        );
                                         name.push_str(imported);
                                         name.push_str(" as ");
                                         name.push_str(local);
@@ -70,11 +73,12 @@ pub fn process_import_for_types(import: &str) -> Option<String> {
                                     }
                                 }
                                 ImportDeclarationSpecifier::ImportDefaultSpecifier(s) => {
-                                    default_part = Some(s.local.name.to_string());
+                                    default_part = Some(s.local.name.to_compact_string());
                                 }
                                 ImportDeclarationSpecifier::ImportNamespaceSpecifier(s) => {
                                     let local = s.local.name.as_str();
-                                    let mut name = String::with_capacity(local.len() + 5);
+                                    let mut name =
+                                        vize_carton::String::with_capacity(local.len() + 5);
                                     name.push_str("* as ");
                                     name.push_str(local);
                                     default_part = Some(name);
@@ -82,7 +86,7 @@ pub fn process_import_for_types(import: &str) -> Option<String> {
                             }
                         }
 
-                        let mut new_import = String::with_capacity(source.len() + 30);
+                        let mut new_import = vize_carton::String::with_capacity(source.len() + 30);
                         new_import.push_str("import ");
                         if let Some(ref def) = default_part {
                             new_import.push_str(def);
@@ -92,7 +96,13 @@ pub fn process_import_for_types(import: &str) -> Option<String> {
                         }
                         if !named_parts.is_empty() {
                             new_import.push_str("{ ");
-                            new_import.push_str(&named_parts.join(", "));
+                            // [CompactString].join() returns std String, convert back
+                            let joined = named_parts
+                                .iter()
+                                .map(|s| s.as_str())
+                                .collect::<Vec<_>>()
+                                .join(", ");
+                            new_import.push_str(&joined);
                             new_import.push_str(" }");
                         }
                         new_import.push_str(" from '");
@@ -106,11 +116,13 @@ pub fn process_import_for_types(import: &str) -> Option<String> {
     }
 
     // Regular import or parse failed, return as-is
-    Some(import.to_string() + "\n")
+    let mut result = import.to_compact_string();
+    result.push('\n');
+    Some(result)
 }
 
 /// Extract all identifiers from an import statement (including default imports)
-pub fn extract_import_identifiers(import: &str) -> Vec<String> {
+pub fn extract_import_identifiers(import: &str) -> Vec<vize_carton::String> {
     let import = import.trim();
     let mut identifiers = Vec::new();
 
@@ -134,14 +146,14 @@ pub fn extract_import_identifiers(import: &str) -> Vec<String> {
                             ImportDeclarationSpecifier::ImportSpecifier(s) => {
                                 // Skip type-only specifiers
                                 if !s.import_kind.is_type() {
-                                    identifiers.push(s.local.name.to_string());
+                                    identifiers.push(s.local.name.to_compact_string());
                                 }
                             }
                             ImportDeclarationSpecifier::ImportDefaultSpecifier(s) => {
-                                identifiers.push(s.local.name.to_string());
+                                identifiers.push(s.local.name.to_compact_string());
                             }
                             ImportDeclarationSpecifier::ImportNamespaceSpecifier(s) => {
-                                identifiers.push(s.local.name.to_string());
+                                identifiers.push(s.local.name.to_compact_string());
                             }
                         }
                     }
@@ -155,7 +167,7 @@ pub fn extract_import_identifiers(import: &str) -> Vec<String> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::process_import_for_types;
 
     #[test]
     fn test_default_import_with_type_named_import() {

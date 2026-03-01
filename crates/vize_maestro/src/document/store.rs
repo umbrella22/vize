@@ -1,4 +1,5 @@
 //! Document store implementation using Rope for efficient text operations.
+#![allow(clippy::disallowed_types, clippy::disallowed_methods)]
 
 use dashmap::DashMap;
 use ropey::Rope;
@@ -156,8 +157,8 @@ impl DocumentStore {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use tower_lsp::lsp_types::{Position, Range};
+    use super::{Document, DocumentStore};
+    use tower_lsp::lsp_types::{Position, Range, TextDocumentContentChangeEvent, Url};
 
     fn test_uri() -> Url {
         Url::parse("file:///test.vue").unwrap()

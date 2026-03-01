@@ -100,7 +100,7 @@ impl Rule for HeadingHasContent {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::HeadingHasContent;
     use crate::linter::Linter;
     use crate::rule::RuleRegistry;
 

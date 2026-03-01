@@ -20,6 +20,8 @@ pub use type_checker::{BatchTypeChecker, TypeCheckResult, TypeChecker};
 pub use virtual_project::{OriginalPosition, VirtualFile, VirtualProject};
 pub use virtual_ts::VirtualTsGenerator;
 
+use vize_carton::String;
+
 /// SFC block type.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SfcBlockType {

@@ -153,7 +153,7 @@ impl Rule for AttributeOrder {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::AttributeOrder;
     use crate::linter::Linter;
     use crate::rule::RuleRegistry;
 

@@ -35,6 +35,8 @@
 //! </style>
 //! ```
 
+#![allow(clippy::disallowed_macros)]
+
 use crate::context::LintContext;
 use crate::diagnostic::{LintDiagnostic, Severity};
 use crate::rule::{Rule, RuleCategory, RuleMeta};

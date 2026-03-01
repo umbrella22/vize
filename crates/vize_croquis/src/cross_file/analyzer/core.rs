@@ -407,9 +407,11 @@ impl CrossFileAnalyzer {
 
         // Check by filename
         for entry in self.registry.iter() {
-            if entry.filename.as_str() == specifier
-                || entry.filename.as_str() == format!("{}.vue", specifier)
-            {
+            if entry.filename.as_str() == specifier || {
+                #[allow(clippy::disallowed_macros)]
+                let vue_name = format!("{}.vue", specifier);
+                entry.filename.as_str() == vue_name
+            } {
                 return Some(entry.id);
             }
         }

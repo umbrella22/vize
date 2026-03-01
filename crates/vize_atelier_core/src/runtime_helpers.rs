@@ -70,7 +70,7 @@ pub fn get_vnode_block_helper(ssr: bool, is_component: bool) -> RuntimeHelper {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::{get_vnode_block_helper, get_vnode_helper, RuntimeHelper, RuntimeHelpers};
 
     #[test]
     fn test_helpers() {

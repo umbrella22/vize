@@ -244,7 +244,8 @@ impl ProvideInjectTracker {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::{InjectPattern, ProvideInjectTracker, ProvideKey};
+    use vize_carton::CompactString;
 
     #[test]
     fn test_provide_inject() {

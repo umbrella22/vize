@@ -4,14 +4,12 @@
 //! - Lint fixes from vize_patina
 //! - Quick fixes for common issues
 //! - Refactoring actions
+#![allow(clippy::disallowed_types, clippy::disallowed_methods)]
 
-use std::collections::HashMap;
-
+use super::IdeContext;
 use tower_lsp::lsp_types::{
     CodeAction, CodeActionKind, CodeActionOrCommand, Position, Range, TextEdit, WorkspaceEdit,
 };
-
-use super::IdeContext;
 
 /// Code action service for providing quick fixes and refactorings.
 pub struct CodeActionService;
@@ -32,8 +30,9 @@ impl CodeActionService {
         let mut actions = Vec::new();
 
         // Parse SFC to get template
+        #[allow(clippy::disallowed_methods)]
         let options = vize_atelier_sfc::SfcParseOptions {
-            filename: ctx.uri.path().to_string(),
+            filename: ctx.uri.path().to_string().into(),
             ..Default::default()
         };
 
@@ -100,13 +99,15 @@ impl CodeActionService {
                                 character: edit_end_col,
                             },
                         },
-                        new_text: edit.new_text.clone(),
+                        #[allow(clippy::disallowed_methods)]
+                        new_text: edit.new_text.to_string(),
                     }
                 })
                 .collect();
 
             // Create workspace edit
-            let mut changes = HashMap::new();
+            #[allow(clippy::disallowed_types)]
+            let mut changes = std::collections::HashMap::new();
             changes.insert(ctx.uri.clone(), edits);
 
             let workspace_edit = WorkspaceEdit {
@@ -116,6 +117,7 @@ impl CodeActionService {
             };
 
             // Create code action
+            #[allow(clippy::disallowed_macros)]
             let action = CodeAction {
                 title: format!("Fix: {}", fix.message),
                 kind: Some(CodeActionKind::QUICKFIX),
@@ -135,8 +137,9 @@ impl CodeActionService {
 
     /// Get all available fixes for a document (for "fix all" actions).
     pub fn get_all_fixes(ctx: &IdeContext) -> Option<WorkspaceEdit> {
+        #[allow(clippy::disallowed_methods)]
         let options = vize_atelier_sfc::SfcParseOptions {
-            filename: ctx.uri.path().to_string(),
+            filename: ctx.uri.path().to_string().into(),
             ..Default::default()
         };
 
@@ -169,7 +172,8 @@ impl CodeActionService {
                                 character: edit_end_col,
                             },
                         },
-                        new_text: edit.new_text.clone(),
+                        #[allow(clippy::disallowed_methods)]
+                        new_text: edit.new_text.to_string(),
                     });
                 }
             }
@@ -199,7 +203,8 @@ impl CodeActionService {
             }
         }
 
-        let mut changes = HashMap::new();
+        #[allow(clippy::disallowed_types)]
+        let mut changes = std::collections::HashMap::new();
         changes.insert(ctx.uri.clone(), filtered_edits);
 
         Some(WorkspaceEdit {
@@ -243,7 +248,8 @@ fn ranges_overlap(a: &Range, b: &Range) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::{offset_to_line_col, ranges_overlap};
+    use tower_lsp::lsp_types::{Position, Range};
 
     #[test]
     fn test_ranges_overlap() {

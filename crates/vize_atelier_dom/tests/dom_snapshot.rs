@@ -22,7 +22,7 @@ fn get_compiled(src: &str) -> String {
 // =============================================================================
 
 mod static_element {
-    use super::*;
+    use super::get_compiled;
 
     #[test]
     fn simple_div() {
@@ -45,7 +45,7 @@ mod static_element {
 // =============================================================================
 
 mod interpolation {
-    use super::*;
+    use super::get_compiled;
 
     #[test]
     fn simple_interpolation() {
@@ -63,7 +63,7 @@ mod interpolation {
 // =============================================================================
 
 mod v_if {
-    use super::*;
+    use super::get_compiled;
 
     #[test]
     fn simple_v_if() {
@@ -97,7 +97,7 @@ mod v_if {
 // =============================================================================
 
 mod v_for {
-    use super::*;
+    use super::get_compiled;
 
     #[test]
     fn simple_v_for() {
@@ -112,7 +112,7 @@ mod v_for {
 // =============================================================================
 
 mod v_bind {
-    use super::*;
+    use super::get_compiled;
 
     #[test]
     fn dynamic_id() {
@@ -144,7 +144,7 @@ mod v_bind {
 // =============================================================================
 
 mod v_on {
-    use super::*;
+    use super::get_compiled;
 
     #[test]
     fn click_handler() {
@@ -157,7 +157,7 @@ mod v_on {
 // =============================================================================
 
 mod v_model {
-    use super::*;
+    use super::get_compiled;
 
     #[test]
     fn input_text() {
@@ -170,7 +170,7 @@ mod v_model {
 // =============================================================================
 
 mod v_show {
-    use super::*;
+    use super::get_compiled;
 
     #[test]
     fn simple_v_show() {
@@ -195,7 +195,7 @@ mod v_show {
 // =============================================================================
 
 mod component {
-    use super::*;
+    use super::get_compiled;
 
     #[test]
     fn simple_component() {

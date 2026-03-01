@@ -434,7 +434,8 @@ impl MacroTracker {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::{MacroKind, MacroTracker};
+    use vize_carton::CompactString;
 
     #[test]
     fn test_macro_tracker() {

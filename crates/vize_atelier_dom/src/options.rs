@@ -206,7 +206,7 @@ pub mod event_modifiers {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::{element_checks, event_modifiers, DomCompilerOptions};
 
     #[test]
     fn test_default_options() {

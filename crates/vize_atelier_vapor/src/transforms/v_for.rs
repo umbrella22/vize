@@ -2,7 +2,7 @@
 //!
 //! Transforms v-for directive into ForIRNode.
 
-use vize_carton::{Box, Bump};
+use vize_carton::{Box, Bump, String, ToCompactString};
 
 use crate::ir::{BlockIRNode, ForIRNode, OperationNode};
 use vize_atelier_core::{
@@ -116,22 +116,22 @@ pub fn parse_for_alias(content: &str) -> (Option<String>, Option<String>, Option
         let value = parts
             .first()
             .filter(|s| !s.is_empty())
-            .map(|s| s.to_string());
+            .map(|s| s.to_compact_string());
         let key = parts
             .get(1)
             .filter(|s| !s.is_empty())
-            .map(|s| s.to_string());
+            .map(|s| s.to_compact_string());
         let index = parts
             .get(2)
             .filter(|s| !s.is_empty())
-            .map(|s| s.to_string());
+            .map(|s| s.to_compact_string());
 
         return (value, key, index);
     }
 
     // Single value pattern
     if !content.is_empty() {
-        return (Some(content.to_string()), None, None);
+        return (Some(content.to_compact_string()), None, None);
     }
 
     (None, None, None)
@@ -139,12 +139,13 @@ pub fn parse_for_alias(content: &str) -> (Option<String>, Option<String>, Option
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::parse_for_alias;
+    use vize_carton::ToCompactString;
 
     #[test]
     fn test_parse_for_alias_simple() {
         let (value, key, index) = parse_for_alias("item");
-        assert_eq!(value, Some("item".to_string()));
+        assert_eq!(value, Some("item".to_compact_string()));
         assert_eq!(key, None);
         assert_eq!(index, None);
     }
@@ -152,16 +153,16 @@ mod tests {
     #[test]
     fn test_parse_for_alias_with_index() {
         let (value, key, index) = parse_for_alias("(item, index)");
-        assert_eq!(value, Some("item".to_string()));
-        assert_eq!(key, Some("index".to_string()));
+        assert_eq!(value, Some("item".to_compact_string()));
+        assert_eq!(key, Some("index".to_compact_string()));
         assert_eq!(index, None);
     }
 
     #[test]
     fn test_parse_for_alias_with_key_and_index() {
         let (value, key, index) = parse_for_alias("(value, key, index)");
-        assert_eq!(value, Some("value".to_string()));
-        assert_eq!(key, Some("key".to_string()));
-        assert_eq!(index, Some("index".to_string()));
+        assert_eq!(value, Some("value".to_compact_string()));
+        assert_eq!(key, Some("key".to_compact_string()));
+        assert_eq!(index, Some("index".to_compact_string()));
     }
 }

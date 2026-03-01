@@ -47,6 +47,8 @@ npm-debug.log*
 # Playwright test outputs
 tests/app/results/
 tests/app/screenshots/
+playground/e2e/vrt/test-results/
+playground/playwright-report/
 
 # Vize local data (snapshots, cache, etc.)
 .vize/

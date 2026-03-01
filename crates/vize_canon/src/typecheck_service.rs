@@ -5,10 +5,14 @@
 
 use crate::tsgo_bridge::{TsgoBridge, TsgoBridgeError};
 use std::path::Path;
+#[allow(clippy::disallowed_types)]
 use std::sync::Arc;
+use vize_carton::cstr;
+use vize_carton::String;
 use vize_croquis::virtual_ts::{generate_virtual_ts, VirtualTsOutput};
 
 /// Type check service for Vue SFCs.
+#[allow(clippy::disallowed_types)]
 pub struct TypeCheckService {
     /// The tsgo bridge.
     bridge: Arc<TsgoBridge>,
@@ -87,6 +91,7 @@ pub struct SfcRelatedInfo {
 
 impl TypeCheckService {
     /// Create a new type check service.
+    #[allow(clippy::disallowed_types)]
     pub async fn new() -> Result<Self, TsgoBridgeError> {
         let bridge = TsgoBridge::new();
         bridge.spawn().await?;
@@ -113,7 +118,7 @@ impl TypeCheckService {
 
         // Parse SFC
         let parse_opts = SfcParseOptions {
-            filename: filename.to_string(),
+            filename: filename.into(),
             ..Default::default()
         };
 
@@ -121,11 +126,11 @@ impl TypeCheckService {
             Ok(d) => d,
             Err(e) => {
                 result.diagnostics.push(SfcDiagnostic {
-                    message: format!("Failed to parse SFC: {}", e.message),
+                    message: cstr!("Failed to parse SFC: {}", e.message),
                     severity: SfcDiagnosticSeverity::Error,
                     start: 0,
                     end: 0,
-                    code: Some("parse-error".to_string()),
+                    code: Some("parse-error".into()),
                     related: Vec::new(),
                 });
                 result.error_count = 1;
@@ -182,7 +187,7 @@ impl TypeCheckService {
 
         // Check with tsgo
         if !virtual_ts_output.content.is_empty() {
-            let virtual_uri = format!("vize-virtual://{}.ts", filename);
+            let virtual_uri = cstr!("vize-virtual://{filename}.ts");
 
             // Open virtual document
             self.bridge
@@ -219,11 +224,11 @@ impl TypeCheckService {
                 }
 
                 result.diagnostics.push(SfcDiagnostic {
-                    message: diag.message,
+                    message: diag.message.into(),
                     severity,
                     start,
                     end,
-                    code: diag.code.map(|c| format!("TS{}", c)),
+                    code: diag.code.map(|c| cstr!("TS{c}")),
                     related: diag
                         .related_information
                         .unwrap_or_default()
@@ -240,8 +245,8 @@ impl TypeCheckService {
                                 template_offset,
                             );
                             SfcRelatedInfo {
-                                message: r.message,
-                                filename: Some(r.location.uri),
+                                message: r.message.into(),
+                                filename: Some(r.location.uri.into()),
                                 start: rel_start,
                                 end: rel_end,
                             }
@@ -314,7 +319,7 @@ fn map_position_to_sfc(
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::{SfcDiagnosticSeverity, TypeCheckServiceOptions};
 
     #[test]
     fn test_sfc_diagnostic_severity() {

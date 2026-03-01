@@ -26,9 +26,13 @@
 //! </template>
 //! ```
 
+#![allow(clippy::disallowed_macros)]
+
 use crate::context::LintContext;
 use crate::diagnostic::Severity;
 use crate::rule::{Rule, RuleCategory, RuleMeta};
+use vize_carton::String;
+use vize_carton::ToCompactString;
 use vize_croquis::naming::is_pascal_case;
 use vize_relief::ast::RootNode;
 use vize_relief::BindingType;
@@ -116,7 +120,7 @@ impl Rule for NoUnusedComponents {
                             || vize_croquis::naming::names_match(used.as_str(), name)
                     })
                 })
-                .map(|(name, _)| name.to_string())
+                .map(|(name, _)| name.to_compact_string())
                 .collect()
         };
 
@@ -140,7 +144,8 @@ impl Rule for NoUnusedComponents {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::NoUnusedComponents;
+    use crate::rule::{Rule, RuleCategory};
 
     #[test]
     fn test_meta() {

@@ -14,320 +14,45 @@
 //!
 //! ```text
 //! Vue SFC (.vue)
-//!     │
-//!     ▼
-//! ┌─────────────────────────────────────┐
-//! │  vize_atelier_sfc::parse_sfc        │
-//! └─────────────────────────────────────┘
-//!     │
-//!     ▼
-//! ┌─────────────────────────────────────┐
-//! │  vize_croquis::Analyzer             │
-//! │  - Script analysis (bindings)       │
-//! │  - Template analysis (scopes)       │
-//! │  - Macro tracking (defineProps)     │
-//! └─────────────────────────────────────┘
-//!     │
-//!     ▼
-//! ┌─────────────────────────────────────┐
-//! │  type_check_sfc()                   │
-//! │  - check_props_typing()             │
-//! │  - check_emits_typing()             │
-//! │  - check_template_bindings()        │
-//! │  - generate_virtual_ts_with_scopes()│
-//! └─────────────────────────────────────┘
+//!     |
+//!     v
+//! +-------------------------------------+
+//! |  vize_atelier_sfc::parse_sfc        |
+//! +-------------------------------------+
+//!     |
+//!     v
+//! +-------------------------------------+
+//! |  vize_croquis::Analyzer             |
+//! |  - Script analysis (bindings)       |
+//! |  - Template analysis (scopes)       |
+//! |  - Macro tracking (defineProps)     |
+//! +-------------------------------------+
+//!     |
+//!     v
+//! +-------------------------------------+
+//! |  type_check_sfc()                   |
+//! |  - check_props_typing()             |
+//! |  - check_emits_typing()             |
+//! |  - check_template_bindings()        |
+//! |  - generate_virtual_ts_with_scopes()|
+//! +-------------------------------------+
 //! ```
 
+mod analysis;
 mod checks;
+mod runner;
 mod virtual_ts;
 
-use serde::Serialize;
-use vize_carton::Bump;
-
-use checks::{
-    check_emits_typing, check_fallthrough_attrs, check_invalid_exports, check_props_typing,
-    check_reactivity, check_setup_context, check_template_bindings,
+pub use analysis::{
+    SfcRelatedLocation, SfcTypeCheckOptions, SfcTypeCheckResult, SfcTypeDiagnostic, SfcTypeSeverity,
 };
-use virtual_ts::generate_virtual_ts_with_scopes;
-
-/// Type diagnostic severity.
-#[derive(Debug, Clone, Copy, Serialize, PartialEq, Eq)]
-#[serde(rename_all = "lowercase")]
-pub enum SfcTypeSeverity {
-    Error,
-    Warning,
-    Info,
-    Hint,
-}
-
-/// Type diagnostic representing a type-related issue.
-#[derive(Debug, Clone, Serialize)]
-pub struct SfcTypeDiagnostic {
-    /// Severity of the diagnostic
-    pub severity: SfcTypeSeverity,
-    /// Human-readable message
-    pub message: String,
-    /// Start offset in source
-    pub start: u32,
-    /// End offset in source
-    pub end: u32,
-    /// Optional error code
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub code: Option<String>,
-    /// Optional help text
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub help: Option<String>,
-    /// Related locations (for multi-file issues)
-    #[serde(skip_serializing_if = "Vec::is_empty")]
-    pub related: Vec<SfcRelatedLocation>,
-}
-
-/// Related location for diagnostics.
-#[derive(Debug, Clone, Serialize)]
-pub struct SfcRelatedLocation {
-    pub message: String,
-    pub start: u32,
-    pub end: u32,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub filename: Option<String>,
-}
-
-/// Type checking result.
-#[derive(Debug, Clone, Serialize)]
-pub struct SfcTypeCheckResult {
-    /// List of diagnostics
-    pub diagnostics: Vec<SfcTypeDiagnostic>,
-    /// Generated virtual TypeScript (for debugging/IDE integration)
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub virtual_ts: Option<String>,
-    /// Error count
-    pub error_count: usize,
-    /// Warning count
-    pub warning_count: usize,
-    /// Analysis time in milliseconds
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub analysis_time_ms: Option<f64>,
-}
-
-impl SfcTypeCheckResult {
-    /// Create an empty result.
-    pub fn empty() -> Self {
-        Self {
-            diagnostics: Vec::new(),
-            virtual_ts: None,
-            error_count: 0,
-            warning_count: 0,
-            analysis_time_ms: None,
-        }
-    }
-
-    /// Add a diagnostic.
-    pub fn add_diagnostic(&mut self, diagnostic: SfcTypeDiagnostic) {
-        match diagnostic.severity {
-            SfcTypeSeverity::Error => self.error_count += 1,
-            SfcTypeSeverity::Warning => self.warning_count += 1,
-            _ => {}
-        }
-        self.diagnostics.push(diagnostic);
-    }
-
-    /// Check if there are errors.
-    pub fn has_errors(&self) -> bool {
-        self.error_count > 0
-    }
-}
-
-/// Type checking options.
-#[derive(Debug, Clone, Default)]
-pub struct SfcTypeCheckOptions {
-    /// Filename for error reporting
-    pub filename: String,
-    /// Whether to include virtual TypeScript in output
-    pub include_virtual_ts: bool,
-    /// Whether to check props types
-    pub check_props: bool,
-    /// Whether to check emits types
-    pub check_emits: bool,
-    /// Whether to check template bindings
-    pub check_template_bindings: bool,
-    /// Whether to check reactivity loss patterns
-    pub check_reactivity: bool,
-    /// Whether to check setup context violations
-    pub check_setup_context: bool,
-    /// Whether to check invalid exports in `<script setup>`
-    pub check_invalid_exports: bool,
-    /// Whether to check fallthrough attrs with multi-root
-    pub check_fallthrough_attrs: bool,
-    /// Strict mode - report more potential issues
-    pub strict: bool,
-}
-
-impl SfcTypeCheckOptions {
-    /// Create default options.
-    pub fn new(filename: impl Into<String>) -> Self {
-        Self {
-            filename: filename.into(),
-            include_virtual_ts: false,
-            check_props: true,
-            check_emits: true,
-            check_template_bindings: true,
-            check_reactivity: true,
-            check_setup_context: true,
-            check_invalid_exports: true,
-            check_fallthrough_attrs: true,
-            strict: false,
-        }
-    }
-
-    /// Enable strict mode.
-    pub fn strict(mut self) -> Self {
-        self.strict = true;
-        self
-    }
-
-    /// Include virtual TypeScript in output.
-    pub fn with_virtual_ts(mut self) -> Self {
-        self.include_virtual_ts = true;
-        self
-    }
-}
-
-/// Perform type checking on a Vue SFC.
-///
-/// This performs AST-based type analysis using croquis for semantic analysis.
-/// It checks:
-/// - Props typing (defineProps)
-/// - Emits typing (defineEmits)
-/// - Template binding references
-///
-/// For full TypeScript type checking with tsgo, use `TypeCheckService`.
-pub fn type_check_sfc(source: &str, options: &SfcTypeCheckOptions) -> SfcTypeCheckResult {
-    use vize_atelier_core::parser::parse;
-    use vize_atelier_sfc::{parse_sfc, SfcParseOptions};
-    use vize_croquis::{Analyzer, AnalyzerOptions};
-
-    // Use Instant for timing on native, skip on WASM
-    #[cfg(not(target_arch = "wasm32"))]
-    let start_time = std::time::Instant::now();
-
-    let mut result = SfcTypeCheckResult::empty();
-
-    // Parse SFC
-    let parse_opts = SfcParseOptions {
-        filename: options.filename.clone(),
-        ..Default::default()
-    };
-
-    let descriptor = match parse_sfc(source, parse_opts) {
-        Ok(d) => d,
-        Err(e) => {
-            result.add_diagnostic(SfcTypeDiagnostic {
-                severity: SfcTypeSeverity::Error,
-                message: format!("Failed to parse SFC: {}", e.message),
-                start: 0,
-                end: 0,
-                code: Some("parse-error".to_string()),
-                help: None,
-                related: Vec::new(),
-            });
-            return result;
-        }
-    };
-
-    // Get script content for virtual TS generation
-    let script_content = descriptor
-        .script_setup
-        .as_ref()
-        .map(|s| s.content.as_ref())
-        .or_else(|| descriptor.script.as_ref().map(|s| s.content.as_ref()));
-
-    // Create allocator for template parsing
-    let allocator = Bump::new();
-
-    // Create analyzer with full options
-    let mut analyzer = Analyzer::with_options(AnalyzerOptions::full());
-
-    // Analyze script and get offset
-    let script_offset: u32 = if let Some(ref script_setup) = descriptor.script_setup {
-        analyzer.analyze_script_setup(&script_setup.content);
-        script_setup.loc.start as u32
-    } else if let Some(ref script) = descriptor.script {
-        analyzer.analyze_script_plain(&script.content);
-        script.loc.start as u32
-    } else {
-        0
-    };
-
-    // Analyze template and get AST
-    let (template_offset, template_ast) = if let Some(ref template) = descriptor.template {
-        let (root, _errors) = parse(&allocator, &template.content);
-        analyzer.analyze_template(&root);
-        (template.loc.start as u32, Some(root))
-    } else {
-        (0, None)
-    };
-
-    // Get analysis summary with scopes
-    let summary = analyzer.finish();
-
-    // Check props typing
-    if options.check_props {
-        check_props_typing(&summary, script_offset, &mut result, options.strict);
-    }
-
-    // Check emits typing
-    if options.check_emits {
-        check_emits_typing(&summary, script_offset, &mut result, options.strict);
-    }
-
-    // Check template bindings
-    if options.check_template_bindings {
-        check_template_bindings(&summary, template_offset, &mut result, options.strict);
-    }
-
-    // Check reactivity loss
-    if options.check_reactivity {
-        check_reactivity(&summary, script_offset, &mut result, options.strict);
-    }
-
-    // Check setup context violations
-    if options.check_setup_context {
-        check_setup_context(&summary, script_offset, &mut result);
-    }
-
-    // Check invalid exports in <script setup>
-    if options.check_invalid_exports {
-        check_invalid_exports(&summary, script_offset, &mut result);
-    }
-
-    // Check fallthrough attrs
-    if options.check_fallthrough_attrs {
-        check_fallthrough_attrs(&summary, &mut result, options.strict);
-    }
-
-    // Generate virtual TypeScript with scope information if requested
-    if options.include_virtual_ts {
-        result.virtual_ts = Some(generate_virtual_ts_with_scopes(
-            &summary,
-            script_content,
-            script_offset,
-            template_ast.as_ref(),
-            template_offset,
-        ));
-    }
-
-    // Record analysis time on native only
-    #[cfg(not(target_arch = "wasm32"))]
-    {
-        result.analysis_time_ms = Some(start_time.elapsed().as_secs_f64() * 1000.0);
-    }
-
-    result
-}
+pub use runner::type_check_sfc;
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::{
+        type_check_sfc, SfcTypeCheckOptions, SfcTypeCheckResult, SfcTypeDiagnostic, SfcTypeSeverity,
+    };
 
     #[test]
     fn test_type_check_empty_sfc() {
@@ -347,7 +72,7 @@ mod tests {
 
         result.add_diagnostic(SfcTypeDiagnostic {
             severity: SfcTypeSeverity::Error,
-            message: "test".to_string(),
+            message: "test".into(),
             start: 0,
             end: 0,
             code: None,
@@ -545,7 +270,7 @@ const message = ref('Hello');
 
         result.add_diagnostic(SfcTypeDiagnostic {
             severity: SfcTypeSeverity::Warning,
-            message: "warning 1".to_string(),
+            message: "warning 1".into(),
             start: 0,
             end: 0,
             code: None,
@@ -555,7 +280,7 @@ const message = ref('Hello');
 
         result.add_diagnostic(SfcTypeDiagnostic {
             severity: SfcTypeSeverity::Warning,
-            message: "warning 2".to_string(),
+            message: "warning 2".into(),
             start: 0,
             end: 0,
             code: None,
@@ -574,7 +299,7 @@ const message = ref('Hello');
 
         result.add_diagnostic(SfcTypeDiagnostic {
             severity: SfcTypeSeverity::Error,
-            message: "error".to_string(),
+            message: "error".into(),
             start: 0,
             end: 0,
             code: None,
@@ -584,7 +309,7 @@ const message = ref('Hello');
 
         result.add_diagnostic(SfcTypeDiagnostic {
             severity: SfcTypeSeverity::Warning,
-            message: "warning".to_string(),
+            message: "warning".into(),
             start: 0,
             end: 0,
             code: None,
@@ -594,7 +319,7 @@ const message = ref('Hello');
 
         result.add_diagnostic(SfcTypeDiagnostic {
             severity: SfcTypeSeverity::Info,
-            message: "info".to_string(),
+            message: "info".into(),
             start: 0,
             end: 0,
             code: None,

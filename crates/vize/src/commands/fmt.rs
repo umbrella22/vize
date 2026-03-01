@@ -1,5 +1,7 @@
 //! Format command - High-performance Vue SFC formatting using vize_glyph
 
+#![allow(clippy::disallowed_macros)]
+
 use clap::Args;
 use ignore::WalkBuilder;
 use rayon::prelude::*;
@@ -11,6 +13,7 @@ use vize_glyph::{format_sfc_with_allocator, Allocator, FormatOptions};
 use crate::config;
 
 #[derive(Args)]
+#[allow(clippy::disallowed_types)]
 pub struct FmtArgs {
     /// Glob pattern(s) to match .vue files
     #[arg(default_value = "./**/*.vue")]
@@ -187,7 +190,8 @@ fn build_format_options(args: &FmtArgs) -> FormatOptions {
     opts
 }
 
-fn collect_files(patterns: &[String]) -> Vec<PathBuf> {
+#[allow(clippy::disallowed_types)]
+fn collect_files(patterns: &[std::string::String]) -> Vec<PathBuf> {
     let mut files = Vec::new();
 
     for pattern in patterns {
@@ -240,6 +244,7 @@ fn matches_pattern(path: &std::path::Path, pattern: &str) -> bool {
 }
 
 #[inline]
+#[allow(clippy::disallowed_types)]
 fn process_file(
     path: &PathBuf,
     options: &FormatOptions,

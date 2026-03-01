@@ -20,6 +20,7 @@ pub enum MuseaCommand {
 }
 
 #[derive(Args, Default)]
+#[allow(clippy::disallowed_types)]
 pub struct ServeArgs {
     /// Port to run the server on
     #[arg(short, long, default_value = "6006")]
@@ -39,6 +40,7 @@ pub struct ServeArgs {
 }
 
 #[derive(Args)]
+#[allow(clippy::disallowed_types)]
 pub struct NewArgs {
     /// Name of the story project (defaults to current directory name)
     pub name: Option<String>,
@@ -70,6 +72,7 @@ fn run_serve(args: ServeArgs) {
 
 fn run_new(args: NewArgs) {
     let target_dir = args.path.unwrap_or_else(|| PathBuf::from("."));
+    #[allow(clippy::disallowed_types, clippy::disallowed_methods)]
     let project_name = args.name.unwrap_or_else(|| {
         std::env::current_dir()
             .ok()

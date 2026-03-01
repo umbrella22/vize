@@ -74,7 +74,7 @@ impl Rule for NoBooleanAttrValue {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::NoBooleanAttrValue;
     use crate::linter::Linter;
     use crate::rule::RuleRegistry;
 

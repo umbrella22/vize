@@ -1,4 +1,11 @@
 //! WASM bindings for Vue compiler.
+//!
+//! FFI boundary code: uses std types for JavaScript interop.
+#![allow(
+    clippy::disallowed_types,
+    clippy::disallowed_methods,
+    clippy::disallowed_macros
+)]
 
 mod analyze;
 mod cross_file;
@@ -59,7 +66,8 @@ pub(crate) fn utf8_byte_to_char_offset(content: &str, byte_offset: u32) -> u32 {
 pub(crate) fn parse_css_options(options: JsValue) -> CssCompileOptions {
     let scope_id = js_sys::Reflect::get(&options, &JsValue::from_str("scopeId"))
         .ok()
-        .and_then(|v| v.as_string());
+        .and_then(|v| v.as_string())
+        .map(Into::into);
 
     let scoped = js_sys::Reflect::get(&options, &JsValue::from_str("scoped"))
         .ok()
@@ -78,7 +86,8 @@ pub(crate) fn parse_css_options(options: JsValue) -> CssCompileOptions {
 
     let filename = js_sys::Reflect::get(&options, &JsValue::from_str("filename"))
         .ok()
-        .and_then(|v| v.as_string());
+        .and_then(|v| v.as_string())
+        .map(Into::into);
 
     // Parse targets
     let targets = js_sys::Reflect::get(&options, &JsValue::from_str("targets"))
@@ -200,10 +209,12 @@ impl Compiler {
     /// Parse SFC (.vue file)
     #[wasm_bindgen(js_name = "parseSfc")]
     pub fn parse_sfc_method(&self, source: &str, options: JsValue) -> Result<JsValue, JsValue> {
-        let filename: String = js_sys::Reflect::get(&options, &JsValue::from_str("filename"))
-            .ok()
-            .and_then(|v| v.as_string())
-            .unwrap_or_else(|| "anonymous.vue".to_string());
+        let filename: vize_carton::CompactString =
+            js_sys::Reflect::get(&options, &JsValue::from_str("filename"))
+                .ok()
+                .and_then(|v| v.as_string())
+                .unwrap_or_else(|| "anonymous.vue".to_string())
+                .into();
 
         let opts = SfcParseOptions {
             filename,
@@ -235,10 +246,12 @@ impl Compiler {
         let opts: CompilerOptions =
             serde_wasm_bindgen::from_value(options.clone()).unwrap_or_default();
 
-        let filename: String = js_sys::Reflect::get(&options, &JsValue::from_str("filename"))
-            .ok()
-            .and_then(|v| v.as_string())
-            .unwrap_or_else(|| "anonymous.vue".to_string());
+        let filename: vize_carton::CompactString =
+            js_sys::Reflect::get(&options, &JsValue::from_str("filename"))
+                .ok()
+                .and_then(|v| v.as_string())
+                .unwrap_or_else(|| "anonymous.vue".to_string())
+                .into();
 
         let parse_opts = SfcParseOptions {
             filename: filename.clone(),
@@ -346,14 +359,22 @@ impl Compiler {
             descriptor: descriptor.into_owned(),
             template: template_result,
             script: SfcScriptResult {
-                code: sfc_result.code,
+                code: sfc_result.code.into(),
                 bindings: sfc_result
                     .bindings
                     .map(|b| serde_json::to_value(&b).unwrap_or_default()),
             },
-            css: sfc_result.css,
-            errors: sfc_result.errors.into_iter().map(|e| e.message).collect(),
-            warnings: sfc_result.warnings.into_iter().map(|e| e.message).collect(),
+            css: sfc_result.css.map(Into::into),
+            errors: sfc_result
+                .errors
+                .into_iter()
+                .map(|e| e.message.into())
+                .collect(),
+            warnings: sfc_result
+                .warnings
+                .into_iter()
+                .map(|e| e.message.into())
+                .collect(),
             binding_metadata,
         };
 
@@ -409,7 +430,12 @@ fn compile_internal(
         let result = vapor_compile(&allocator, template, vapor_opts);
 
         if !result.error_messages.is_empty() {
-            return Err(result.error_messages.join("\n"));
+            return Err(result
+                .error_messages
+                .iter()
+                .map(|s| s.as_str())
+                .collect::<Vec<_>>()
+                .join("\n"));
         }
 
         return Ok(CompileResult {

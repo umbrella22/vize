@@ -11,7 +11,7 @@ use crate::cross_file::diagnostics::{
     CrossFileDiagnostic, CrossFileDiagnosticKind, DiagnosticSeverity,
 };
 use crate::cross_file::registry::{FileId, ModuleRegistry};
-use vize_carton::{CompactString, FxHashMap};
+use vize_carton::{cstr, CompactString, FxHashMap};
 
 /// Information about a unique ID issue.
 #[derive(Debug, Clone)]
@@ -100,7 +100,7 @@ pub fn analyze_element_ids(
                     DiagnosticSeverity::Warning,
                     locations[0].0,
                     locations[0].1,
-                    format!(
+                    cstr!(
                         "Element ID '{}' is used in {} different locations across files",
                         id,
                         locations.len()
@@ -129,7 +129,7 @@ pub fn analyze_element_ids(
                         DiagnosticSeverity::Error,
                         *file_id,
                         *offset,
-                        format!("Static ID '{}' inside v-for will create duplicate IDs", id),
+                        cstr!("Static ID '{id}' inside v-for will create duplicate IDs",),
                     )
                     .with_suggestion("Use a dynamic ID like `:id=\"`item-${index}`\"` or useId()"),
                 );
@@ -157,7 +157,7 @@ pub fn analyze_element_ids(
                     DiagnosticSeverity::Warning,
                     file_id,
                     offset,
-                    format!("Dynamic ID '{}' may not produce unique values", id_expr),
+                    cstr!("Dynamic ID '{id_expr}' may not produce unique values",),
                 )
                 .with_suggestion("Include a unique identifier like index or item.id"),
             );
@@ -190,7 +190,7 @@ fn looks_unique(expr: &str) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::looks_unique;
 
     #[test]
     fn test_looks_unique() {

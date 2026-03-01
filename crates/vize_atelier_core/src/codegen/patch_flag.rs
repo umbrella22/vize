@@ -4,6 +4,8 @@ use super::helpers::camelize;
 use crate::ast::*;
 use crate::options::{BindingMetadata, BindingType};
 use vize_carton::is_builtin_directive;
+use vize_carton::String;
+use vize_carton::ToCompactString;
 
 /// Check if an interpolation references only constant bindings (LiteralConst or SetupConst)
 /// These bindings never change at runtime, so no TEXT patch flag is needed.
@@ -130,7 +132,7 @@ fn calculate_element_patch_info_inner(
 
                                             // Transform key based on modifiers
                                             let prop_name = if has_camel {
-                                                camelize(key).to_string()
+                                                camelize(key).to_compact_string()
                                             } else if has_prop {
                                                 let mut name = String::with_capacity(1 + key.len());
                                                 name.push('.');
@@ -142,7 +144,7 @@ fn calculate_element_patch_info_inner(
                                                 name.push_str(key);
                                                 name
                                             } else {
-                                                key.to_string()
+                                                key.to_compact_string()
                                             };
                                             dynamic_props.push(prop_name);
 
@@ -209,7 +211,7 @@ fn calculate_element_patch_info_inner(
                                         || mod_name == "once"
                                         || mod_name == "passive"
                                     {
-                                        let mut cap_mod = String::new();
+                                        let mut cap_mod = String::default();
                                         let mut chars = mod_name.chars();
                                         if let Some(c) = chars.next() {
                                             for uc in c.to_uppercase() {
@@ -303,12 +305,12 @@ fn calculate_element_patch_info_inner(
                 "html" => {
                     // v-html sets innerHTML - dynamic prop
                     flag |= 8; // PROPS
-                    dynamic_props.push("innerHTML".to_string());
+                    dynamic_props.push("innerHTML".to_compact_string());
                 }
                 "text" => {
                     // v-text sets textContent - dynamic prop
                     flag |= 8; // PROPS
-                    dynamic_props.push("textContent".to_string());
+                    dynamic_props.push("textContent".to_compact_string());
                 }
                 _ => {
                     // Custom directive - requires NEED_PATCH
@@ -377,17 +379,17 @@ fn calculate_element_patch_info_inner(
 pub fn patch_flag_name(flag: i32) -> String {
     // Single flag matches
     match flag {
-        1 => return "TEXT".to_string(),
-        2 => return "CLASS".to_string(),
-        4 => return "STYLE".to_string(),
-        8 => return "PROPS".to_string(),
-        16 => return "FULL_PROPS".to_string(),
-        32 => return "NEED_HYDRATION".to_string(),
-        64 => return "STABLE_FRAGMENT".to_string(),
-        128 => return "KEYED_FRAGMENT".to_string(),
-        256 => return "UNKEYED_FRAGMENT".to_string(),
-        512 => return "NEED_PATCH".to_string(),
-        1024 => return "DYNAMIC_SLOTS".to_string(),
+        1 => return "TEXT".to_compact_string(),
+        2 => return "CLASS".to_compact_string(),
+        4 => return "STYLE".to_compact_string(),
+        8 => return "PROPS".to_compact_string(),
+        16 => return "FULL_PROPS".to_compact_string(),
+        32 => return "NEED_HYDRATION".to_compact_string(),
+        64 => return "STABLE_FRAGMENT".to_compact_string(),
+        128 => return "KEYED_FRAGMENT".to_compact_string(),
+        256 => return "UNKEYED_FRAGMENT".to_compact_string(),
+        512 => return "NEED_PATCH".to_compact_string(),
+        1024 => return "DYNAMIC_SLOTS".to_compact_string(),
         _ => {}
     }
 
@@ -428,8 +430,8 @@ pub fn patch_flag_name(flag: i32) -> String {
     }
 
     if names.is_empty() {
-        "UNKNOWN".to_string()
+        "UNKNOWN".to_compact_string()
     } else {
-        names.join(", ")
+        names.join(", ").into()
     }
 }

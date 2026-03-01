@@ -78,7 +78,7 @@ impl Rule for NoVueLifecycleEvents {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::NoVueLifecycleEvents;
     use crate::linter::Linter;
     use crate::rule::RuleRegistry;
 

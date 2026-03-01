@@ -33,6 +33,8 @@
 //! <style>...</style>
 //! ```
 
+#![allow(clippy::disallowed_macros)]
+
 use crate::context::LintContext;
 use crate::diagnostic::Severity;
 use crate::rule::{Rule, RuleCategory, RuleMeta};
@@ -121,7 +123,7 @@ impl Rule for SfcElementOrder {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::SfcElementOrder;
     use crate::linter::Linter;
     use crate::rule::RuleRegistry;
 

@@ -32,6 +32,9 @@
 use crate::context::LintContext;
 use crate::diagnostic::Severity;
 use crate::rule::{Rule, RuleCategory, RuleMeta};
+use vize_carton::FxHashMap;
+use vize_carton::String;
+use vize_carton::ToCompactString;
 use vize_relief::ast::{ElementNode, ElementType, TemplateChildNode};
 
 static META: RuleMeta = RuleMeta {
@@ -55,13 +58,13 @@ impl Rule for NoDuplicateDt {
             return;
         }
 
-        let mut seen: std::collections::HashMap<String, u32> = std::collections::HashMap::new();
+        let mut seen: FxHashMap<String, u32> = FxHashMap::default();
 
         for child in &element.children {
             if let TemplateChildNode::Element(el) = child {
                 if el.tag == "dt" {
                     let text = get_text_content(el);
-                    let normalized = text.trim().to_string();
+                    let normalized = text.trim().to_compact_string();
                     if normalized.is_empty() {
                         continue;
                     }
@@ -85,7 +88,7 @@ impl Rule for NoDuplicateDt {
 }
 
 fn get_text_content(element: &ElementNode) -> String {
-    let mut text = String::new();
+    let mut text = String::default();
     for child in &element.children {
         if let TemplateChildNode::Text(t) = child {
             text.push_str(t.content.as_str());
@@ -96,7 +99,7 @@ fn get_text_content(element: &ElementNode) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::NoDuplicateDt;
     use crate::linter::Linter;
     use crate::rule::RuleRegistry;
 

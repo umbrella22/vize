@@ -8,7 +8,7 @@ use crate::script;
 use crate::style;
 use crate::template;
 use vize_atelier_sfc::{parse_sfc, SfcParseOptions};
-use vize_carton::Allocator;
+use vize_carton::{Allocator, String, ToCompactString};
 
 /// Result of formatting a Vue SFC
 #[derive(Debug, Clone)]
@@ -275,9 +275,9 @@ impl<'a> GlyphFormatter<'a> {
         let is_plain_css = lang.as_ref().is_none_or(|l| l.as_ref() == "css");
         let formatted_content = if is_plain_css {
             style::format_style_content(content, self.options)
-                .unwrap_or_else(|_| content.trim().to_string())
+                .unwrap_or_else(|_| content.trim().to_compact_string())
         } else {
-            content.trim().to_string()
+            content.trim().to_compact_string()
         };
         let formatted_content = formatted_content.as_str();
 

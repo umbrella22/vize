@@ -143,7 +143,8 @@ impl Rule for RequireTypedEmits {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::RequireTypedEmits;
+    use crate::rule::{Rule, RuleCategory};
 
     #[test]
     fn test_meta() {

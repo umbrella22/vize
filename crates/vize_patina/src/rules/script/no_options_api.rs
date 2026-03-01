@@ -30,6 +30,8 @@
 //! watch(count, (val) => console.log(val))
 //! ```
 
+#![allow(clippy::disallowed_macros)]
+
 use memchr::memmem;
 
 use super::{ScriptLintResult, ScriptRule, ScriptRuleMeta};
@@ -119,7 +121,7 @@ impl ScriptRule for NoOptionsApi {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::{NoOptionsApi, ScriptLintResult, ScriptRule};
 
     #[test]
     fn test_valid_composition_api() {

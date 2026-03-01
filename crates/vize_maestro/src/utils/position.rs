@@ -126,7 +126,9 @@ pub fn line_range(rope: &Rope, line: usize) -> Option<Range> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::{internal_to_lsp_position, offset_to_position, position_to_offset};
+    use ropey::Rope;
+    use tower_lsp::lsp_types::Position;
 
     #[test]
     fn test_offset_to_position() {

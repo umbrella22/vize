@@ -423,7 +423,7 @@ impl DependencyGraph {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::{DependencyEdge, DependencyGraph, FileId, ModuleNode};
 
     #[test]
     fn test_graph_basic() {

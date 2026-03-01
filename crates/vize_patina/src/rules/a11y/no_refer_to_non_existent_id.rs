@@ -29,6 +29,8 @@ use crate::context::LintContext;
 use crate::diagnostic::{LintDiagnostic, Severity};
 use crate::rule::{Rule, RuleCategory, RuleMeta};
 use vize_carton::FxHashSet;
+use vize_carton::String;
+use vize_carton::ToCompactString;
 use vize_croquis::analysis::ElementIdKind;
 use vize_relief::ast::RootNode;
 
@@ -71,7 +73,7 @@ impl Rule for NoReferToNonExistentId {
                 .element_ids
                 .iter()
                 .filter(|info| info.kind == ElementIdKind::Id && info.is_static)
-                .map(|info| info.value.to_string())
+                .map(|info| info.value.to_compact_string())
                 .collect();
 
             // Collect all references to check
@@ -84,10 +86,10 @@ impl Rule for NoReferToNonExistentId {
                     let ids = if is_multi_id {
                         info.value
                             .split_whitespace()
-                            .map(|s| s.to_string())
+                            .map(|s| s.to_compact_string())
                             .collect()
                     } else {
-                        vec![info.value.to_string()]
+                        vec![info.value.to_compact_string()]
                     };
                     IdRefCheck {
                         ids,
@@ -121,7 +123,7 @@ impl Rule for NoReferToNonExistentId {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::NoReferToNonExistentId;
     use crate::linter::Linter;
     use crate::rule::RuleRegistry;
 

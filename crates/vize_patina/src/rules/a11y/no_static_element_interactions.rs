@@ -98,7 +98,7 @@ impl Rule for NoStaticElementInteractions {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::NoStaticElementInteractions;
     use crate::linter::Linter;
     use crate::rule::RuleRegistry;
 

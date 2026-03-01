@@ -182,7 +182,7 @@ impl Default for ScriptLinter {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::{ScriptLinter, ScriptRuleMeta};
 
     #[test]
     fn test_has_vue_imports() {

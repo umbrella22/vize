@@ -8,6 +8,7 @@ use crate::transforms::v_slot::{collect_slots, get_slot_name, has_v_slot};
 use super::context::CodegenContext;
 use super::helpers::{escape_js_string, is_valid_js_identifier};
 use super::node::generate_node;
+use vize_carton::String;
 
 /// Get slot props expression as raw source (not transformed)
 fn get_slot_props(dir: &DirectiveNode<'_>) -> Option<vize_carton::String> {
@@ -20,10 +21,10 @@ fn get_slot_props(dir: &DirectiveNode<'_>) -> Option<vize_carton::String> {
 /// Add _ctx. prefix to default value identifiers in destructuring patterns.
 /// e.g., "{ item = defaultItem }" -> "{ item = _ctx.defaultItem }"
 /// Only processes identifiers after `=` (default values), not the param names.
-fn prefix_slot_defaults(source: &str) -> std::string::String {
+fn prefix_slot_defaults(source: &str) -> String {
     let bytes = source.as_bytes();
     let len = bytes.len();
-    let mut result = std::string::String::with_capacity(len + 20);
+    let mut result = String::with_capacity(len + 20);
     let mut i = 0;
 
     while i < len {
@@ -73,7 +74,7 @@ fn prefix_slot_defaults(source: &str) -> std::string::String {
 /// Extract parameter names from slot props expression
 /// e.g., "{ item }" -> ["item"], "{ item, index }" -> ["item", "index"]
 /// e.g., "slotProps" -> ["slotProps"]
-fn extract_slot_params(props_str: &str) -> Vec<std::string::String> {
+fn extract_slot_params(props_str: &str) -> Vec<String> {
     let mut params = Vec::new();
     super::v_for::extract_destructure_params(props_str.trim(), &mut params);
     params
@@ -442,21 +443,22 @@ fn generate_slot_expression(ctx: &mut CodegenContext, expr: &ExpressionNode<'_>)
 }
 
 /// Strip _ctx. prefix from identifiers that are slot parameters
-fn strip_ctx_prefix_for_slot_params(ctx: &CodegenContext, content: &str) -> std::string::String {
-    let mut result = content.to_string();
+fn strip_ctx_prefix_for_slot_params(ctx: &CodegenContext, content: &str) -> String {
+    let mut result = String::new(content);
     for param in &ctx.slot_params {
         // Replace _ctx.paramName with paramName
         let mut prefixed = String::with_capacity(5 + param.len());
         prefixed.push_str("_ctx.");
         prefixed.push_str(param);
-        result = result.replace(&prefixed, param);
+        let replaced = result.replace(prefixed.as_str(), param.as_str());
+        result = String::from(replaced);
     }
     result
 }
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::{is_valid_js_identifier, prefix_slot_defaults};
 
     #[test]
     fn test_is_valid_js_identifier_valid() {

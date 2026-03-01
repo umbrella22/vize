@@ -1,4 +1,11 @@
 //! Patina (Linter) WASM bindings.
+//!
+//! FFI boundary code: uses std types for JavaScript interop.
+#![allow(
+    clippy::disallowed_types,
+    clippy::disallowed_methods,
+    clippy::disallowed_macros
+)]
 
 use super::to_js_value;
 use wasm_bindgen::prelude::*;
@@ -21,7 +28,7 @@ pub fn lint_template_wasm(source: &str, options: JsValue) -> Result<JsValue, JsV
         .unwrap_or_default();
 
     // Parse enabledRules from options (array of rule names)
-    let enabled_rules: Option<Vec<String>> =
+    let enabled_rules: Option<Vec<vize_carton::CompactString>> =
         js_sys::Reflect::get(&options, &JsValue::from_str("enabledRules"))
             .ok()
             .and_then(|v| {
@@ -30,8 +37,8 @@ pub fn lint_template_wasm(source: &str, options: JsValue) -> Result<JsValue, JsV
                 }
                 js_sys::Array::from(&v)
                     .iter()
-                    .map(|item| item.as_string())
-                    .collect::<Option<Vec<String>>>()
+                    .map(|item| item.as_string().map(Into::into))
+                    .collect::<Option<Vec<vize_carton::CompactString>>>()
             });
 
     let linter = Linter::new()
@@ -107,7 +114,7 @@ pub fn lint_sfc_wasm(source: &str, options: JsValue) -> Result<JsValue, JsValue>
     };
 
     // Parse enabledRules from options (array of rule names)
-    let enabled_rules: Option<Vec<String>> =
+    let enabled_rules: Option<Vec<vize_carton::CompactString>> =
         js_sys::Reflect::get(&options, &JsValue::from_str("enabledRules"))
             .ok()
             .and_then(|v| {
@@ -116,8 +123,8 @@ pub fn lint_sfc_wasm(source: &str, options: JsValue) -> Result<JsValue, JsValue>
                 }
                 js_sys::Array::from(&v)
                     .iter()
-                    .map(|item| item.as_string())
-                    .collect::<Option<Vec<String>>>()
+                    .map(|item| item.as_string().map(Into::into))
+                    .collect::<Option<Vec<vize_carton::CompactString>>>()
             });
 
     let linter = Linter::new()
@@ -176,6 +183,7 @@ pub fn lint_sfc_wasm(source: &str, options: JsValue) -> Result<JsValue, JsValue>
 
 /// Get available lint rules
 #[wasm_bindgen(js_name = "getLintRules")]
+#[allow(clippy::disallowed_macros)]
 pub fn get_lint_rules_wasm() -> Result<JsValue, JsValue> {
     use vize_patina::Linter;
 

@@ -65,7 +65,7 @@ Musea uses `*.art.vue` files to define component stories. Each art file describe
 
 ### Basic Structure
 
-```vue
+```art-vue
 <script setup lang="ts">
 import MyButton from './MyButton.vue'
 </script>
@@ -111,7 +111,7 @@ import MyButton from './MyButton.vue'
 
 Here is an art file from the [Vue Fes Japan 2026](https://vuefes.jp/2026) conference website:
 
-```vue
+```art-vue
 <script setup lang="ts">
 import VFHeading from './VFHeading.vue'
 </script>

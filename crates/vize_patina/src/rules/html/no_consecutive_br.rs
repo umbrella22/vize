@@ -78,7 +78,7 @@ impl Rule for NoConsecutiveBr {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::NoConsecutiveBr;
     use crate::linter::Linter;
     use crate::rule::RuleRegistry;
 

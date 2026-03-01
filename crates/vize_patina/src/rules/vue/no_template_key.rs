@@ -24,6 +24,8 @@
 use crate::context::LintContext;
 use crate::diagnostic::Severity;
 use crate::rule::{Rule, RuleCategory, RuleMeta};
+use vize_carton::String;
+use vize_carton::ToCompactString;
 use vize_relief::ast::{ElementNode, PropNode};
 
 static META: RuleMeta = RuleMeta {
@@ -81,14 +83,14 @@ impl Rule for NoTemplateKey {
 /// Get content from ExpressionNode
 fn get_expression_content(expr: &vize_relief::ast::ExpressionNode) -> String {
     match expr {
-        vize_relief::ast::ExpressionNode::Simple(s) => s.content.to_string(),
-        vize_relief::ast::ExpressionNode::Compound(_) => String::new(),
+        vize_relief::ast::ExpressionNode::Simple(s) => s.content.to_compact_string(),
+        vize_relief::ast::ExpressionNode::Compound(_) => String::default(),
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::NoTemplateKey;
     use crate::linter::Linter;
     use crate::rule::RuleRegistry;
 

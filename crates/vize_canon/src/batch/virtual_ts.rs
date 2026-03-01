@@ -6,6 +6,9 @@ use super::import_rewriter::ImportRewriter;
 use super::source_map::SfcSourceMap;
 use super::SfcBlockType;
 use vize_atelier_sfc::SfcDescriptor;
+use vize_carton::append;
+use vize_carton::cstr;
+use vize_carton::String;
 use vize_croquis::{Analyzer, AnalyzerOptions, Croquis};
 
 /// Result of virtual TypeScript generation.
@@ -51,7 +54,7 @@ impl VirtualTsGenerator {
 
     /// Generate virtual TypeScript from SFC descriptor.
     pub fn generate(&self, descriptor: &SfcDescriptor, analysis: &Croquis) -> VirtualTsResult {
-        let mut code = String::new();
+        let mut code = String::default();
         let mut source_map = SfcSourceMap::new();
 
         // Header
@@ -191,7 +194,7 @@ impl VirtualTsGenerator {
     fn emit_template_bindings(&self, code: &mut String, analysis: &Croquis) {
         // Emit void statements for all bindings to trigger type checking
         for (name, _binding_type) in analysis.bindings.iter() {
-            code.push_str(&format!("    void {};\n", name));
+            append!(*code, "    void {name};\n");
         }
     }
 
@@ -202,7 +205,7 @@ impl VirtualTsGenerator {
         for prop in analysis.macros.props() {
             let optional = if !prop.required { "?" } else { "" };
             let prop_type = prop.prop_type.as_deref().unwrap_or("unknown");
-            code.push_str(&format!("  {}{}: {};\n", prop.name, optional, prop_type));
+            append!(*code, "  {}{}: {};\n", prop.name, optional, prop_type);
         }
         code.push_str("}\n\n");
 
@@ -210,12 +213,14 @@ impl VirtualTsGenerator {
         code.push_str("export interface __Emits {\n");
         for emit in analysis.macros.emits() {
             if let Some(ref payload_type) = emit.payload_type {
-                code.push_str(&format!(
+                append!(
+                    *code,
                     "  (e: '{}', payload: {}): void;\n",
-                    emit.name, payload_type
-                ));
+                    emit.name,
+                    payload_type
+                );
             } else {
-                code.push_str(&format!("  (e: '{}'): void;\n", emit.name));
+                append!(*code, "  (e: '{}'): void;\n", emit.name);
             }
         }
         code.push_str("}\n\n");
@@ -225,7 +230,7 @@ impl VirtualTsGenerator {
     pub fn generate_from_content(&self, content: &str) -> Result<VirtualTsResult, String> {
         let options = vize_atelier_sfc::SfcParseOptions::default();
         let descriptor =
-            vize_atelier_sfc::parse_sfc(content, options).map_err(|e| format!("{:?}", e))?;
+            vize_atelier_sfc::parse_sfc(content, options).map_err(|e| cstr!("{e:?}"))?;
 
         let mut analyzer = Analyzer::with_options(AnalyzerOptions::full());
 
@@ -255,7 +260,7 @@ impl Default for VirtualTsGenerator {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::VirtualTsGenerator;
 
     #[test]
     fn test_generate_from_content() {

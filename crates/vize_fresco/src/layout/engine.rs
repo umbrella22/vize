@@ -242,7 +242,7 @@ fn resolve_margin(m: taffy::LengthPercentageAuto) -> f32 {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::{FlexStyle, LayoutEngine};
 
     #[test]
     fn test_engine_new() {

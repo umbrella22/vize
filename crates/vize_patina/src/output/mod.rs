@@ -7,6 +7,7 @@ pub use text::*;
 use crate::diagnostic::{render_help, HelpRenderTarget};
 use crate::linter::LintResult;
 use serde::Serialize;
+use vize_carton::String;
 
 /// Output format for lint results
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -95,5 +96,7 @@ fn format_json(results: &[LintResult]) -> String {
         })
         .collect();
 
-    serde_json::to_string_pretty(&json_results).unwrap_or_else(|_| "[]".to_string())
+    serde_json::to_string_pretty(&json_results)
+        .unwrap_or_else(|_| "[]".to_owned())
+        .into()
 }

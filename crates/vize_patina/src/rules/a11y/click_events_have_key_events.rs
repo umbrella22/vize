@@ -138,7 +138,7 @@ impl Rule for ClickEventsHaveKeyEvents {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::ClickEventsHaveKeyEvents;
     use crate::linter::Linter;
     use crate::rule::RuleRegistry;
 

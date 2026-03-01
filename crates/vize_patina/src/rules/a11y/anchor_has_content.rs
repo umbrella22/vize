@@ -103,7 +103,7 @@ impl Rule for AnchorHasContent {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::AnchorHasContent;
     use crate::linter::Linter;
     use crate::rule::RuleRegistry;
 

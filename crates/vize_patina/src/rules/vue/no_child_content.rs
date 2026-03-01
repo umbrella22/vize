@@ -98,7 +98,7 @@ impl Rule for NoChildContent {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::NoChildContent;
     use crate::linter::Linter;
     use crate::rule::RuleRegistry;
 

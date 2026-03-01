@@ -80,7 +80,7 @@ impl Rule for NoEmptyPalpableContent {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::NoEmptyPalpableContent;
     use crate::linter::Linter;
     use crate::rule::RuleRegistry;
 

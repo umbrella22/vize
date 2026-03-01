@@ -20,10 +20,13 @@ pub mod errors;
 pub mod options;
 pub mod transforms;
 
-pub use codegen::*;
-pub use errors::*;
-pub use options::*;
-pub use transforms::*;
+pub use codegen::{SsrCodegenContext, SsrCodegenResult};
+pub use errors::SsrErrorCode;
+pub use options::SsrCompilerOptions;
+pub use transforms::{
+    get_v_html_exp, get_v_model_exp, get_v_show_exp, get_v_text_exp, has_v_html, has_v_model,
+    has_v_show, has_v_text,
+};
 
 // Re-export core types
 pub use vize_atelier_core::{
@@ -36,7 +39,7 @@ use vize_atelier_core::{
     parser::parse_with_options,
     transform::transform as do_transform,
 };
-use vize_carton::Bump;
+use vize_carton::{Bump, String};
 
 /// Compile a Vue template for SSR with default options
 pub fn compile_ssr<'a>(
@@ -67,8 +70,8 @@ pub fn compile_ssr_with_options<'a>(
 
     if !errors.is_empty() {
         let codegen_result = SsrCodegenResult {
-            code: String::new(),
-            preamble: String::new(),
+            code: String::default(),
+            preamble: String::default(),
         };
         return (root, errors.to_vec(), codegen_result);
     }
@@ -121,7 +124,7 @@ fn get_namespace(tag: &str, parent: Option<&str>) -> Namespace {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::{compile_ssr, Bump};
 
     #[test]
     fn test_compile_simple_element() {

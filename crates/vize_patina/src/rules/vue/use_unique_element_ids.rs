@@ -43,6 +43,8 @@
 //!
 //! Based on Biome's useUniqueElementIds rule.
 
+#![allow(clippy::disallowed_macros)]
+
 use crate::context::LintContext;
 use crate::diagnostic::Severity;
 use crate::rule::{Rule, RuleCategory, RuleMeta};
@@ -239,7 +241,7 @@ impl UseUniqueElementIds {
             ctx.t("vue/use-unique-element-ids.help")
         };
 
-        ctx.warn_with_help(&message, loc, help);
+        ctx.warn_with_help(message, loc, help);
     }
 
     fn report_static_id_tiered(
@@ -271,13 +273,13 @@ impl UseUniqueElementIds {
             ctx.t("vue/use-unique-element-ids.help")
         };
 
-        ctx.warn_with_help(&message, loc, help);
+        ctx.warn_with_help(message, loc, help);
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::{classify_element, IdWarningTier, UseUniqueElementIds};
     use crate::linter::Linter;
     use crate::rule::RuleRegistry;
 

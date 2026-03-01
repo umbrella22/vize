@@ -65,8 +65,14 @@ pub use vize_carton::{
 };
 
 // Re-export core types
-pub use scope::*;
-pub use symbol::*;
+pub use scope::{
+    BindingFlags, BlockKind, BlockScopeData, CallbackScopeData, ClientOnlyScopeData,
+    ClosureScopeData, EventHandlerScopeData, ExternalModuleScopeData, JsGlobalScopeData, JsRuntime,
+    NonScriptSetupScopeData, ParamNames, ParentScopes, Scope, ScopeBinding, ScopeChain, ScopeData,
+    ScopeId, ScopeKind, ScriptSetupScopeData, Span, UniversalScopeData, VForScopeData,
+    VSlotScopeData, VueGlobalScopeData, PARAM_INLINE_CAP,
+};
+pub use symbol::{Symbol, SymbolFlags, SymbolId, SymbolTable};
 
 // Re-export analysis types
 pub use analysis::{

@@ -127,7 +127,7 @@ impl Rule for MultiWordComponentNames {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::MultiWordComponentNames;
     use crate::linter::Linter;
     use crate::rule::RuleRegistry;
 

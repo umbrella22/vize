@@ -113,7 +113,7 @@ pub fn is_rcdata_tag(tag: &str) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::{is_html_tag, is_raw_text_tag, is_svg_tag, is_void_tag};
 
     #[test]
     fn test_html_tags() {

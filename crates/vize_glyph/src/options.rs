@@ -3,6 +3,7 @@
 //! These options are designed to be compatible with Prettier and oxfmt.
 
 use serde::{Deserialize, Serialize};
+use vize_carton::{String, ToCompactString};
 
 /// Formatting options for Vue SFC
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -264,9 +265,9 @@ impl FormatOptions {
     #[inline]
     pub fn indent_string(&self) -> String {
         if self.use_tabs {
-            "\t".to_string()
+            "\t".to_compact_string()
         } else {
-            " ".repeat(self.tab_width as usize)
+            " ".repeat(self.tab_width as usize).into()
         }
     }
 

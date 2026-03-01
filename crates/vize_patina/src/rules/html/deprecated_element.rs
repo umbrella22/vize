@@ -61,7 +61,7 @@ impl Rule for DeprecatedElement {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::DeprecatedElement;
     use crate::linter::Linter;
     use crate::rule::RuleRegistry;
 

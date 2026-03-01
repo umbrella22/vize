@@ -81,7 +81,7 @@ impl Rule for NoTemplateShadow {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::NoTemplateShadow;
     use crate::linter::Linter;
     use crate::rule::RuleRegistry;
 

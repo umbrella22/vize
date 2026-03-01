@@ -164,7 +164,7 @@ pub fn is_props_destructure_line(line: &str) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::{is_macro_call_line, is_multiline_macro_start, is_paren_macro_start};
 
     #[test]
     fn test_multiline_macro_start_complete_with_semicolon() {

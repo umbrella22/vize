@@ -16,7 +16,7 @@ pub fn decode_html_entities(s: &str) -> String {
                 chars.next(); // consume 'x' or 'X'
             }
 
-            let mut num_str = String::new();
+            let mut num_str = String::default();
             while let Some(&ch) = chars.peek() {
                 if ch == ';' {
                     chars.next(); // consume ';'
@@ -187,12 +187,12 @@ pub fn default_helper_alias(helper: RuntimeHelper) -> &'static str {
 }
 
 // Re-export from vize_carton for convenience
-pub use vize_carton::{camelize, capitalize};
+pub use vize_carton::{camelize, capitalize, String};
 
 /// Capitalize first letter of a string (alias for capitalize)
 #[inline]
 pub fn capitalize_first(s: &str) -> String {
-    capitalize(s).into()
+    capitalize(s)
 }
 
 /// Check if a component is a Vue built-in that should be imported directly.

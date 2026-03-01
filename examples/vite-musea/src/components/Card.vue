@@ -107,7 +107,7 @@ defineProps<{
     <Self
       title="Featured"
       description="A card with an image header for rich content display."
-      image="linear-gradient(135deg, #6b5090 0%, #3a7a70 100%)"
+      image="#6b5090"
     >
       <button class="btn btn--primary">View</button>
       <button class="btn">Share</button>

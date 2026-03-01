@@ -31,6 +31,7 @@ pub use catalog::{generate_catalog, generate_category_index, generate_tags_index
 pub use markdown::{generate_component_doc, generate_variant_doc};
 
 use serde::{Deserialize, Serialize};
+use vize_carton::String;
 
 /// Options for documentation generation.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -119,7 +120,7 @@ pub struct CatalogOutput {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::{generate_catalog, generate_component_doc, CatalogEntry, DocOptions};
     use crate::{parse_art, ArtParseOptions};
     use vize_carton::Bump;
 

@@ -78,7 +78,7 @@ impl ScriptRule for NoGetCurrentInstance {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::{NoGetCurrentInstance, ScriptLintResult, ScriptRule};
 
     #[test]
     fn test_valid_no_get_current_instance() {

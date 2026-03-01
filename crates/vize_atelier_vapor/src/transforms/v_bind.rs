@@ -151,7 +151,7 @@ pub fn is_dynamic_binding(dir: &DirectiveNode<'_>) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use vize_carton::camelize;
 
     #[test]
     fn test_camelize() {

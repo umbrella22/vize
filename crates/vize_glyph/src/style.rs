@@ -6,16 +6,17 @@
 use crate::error::FormatError;
 use crate::options::FormatOptions;
 use lightningcss::stylesheet::{ParserOptions, PrinterOptions, StyleSheet};
+use vize_carton::{String, ToCompactString};
 
 /// Format CSS content using lightningcss
 pub fn format_style_content(source: &str, options: &FormatOptions) -> Result<String, FormatError> {
     let trimmed = source.trim();
     if trimmed.is_empty() {
-        return Ok(String::new());
+        return Ok(String::default());
     }
 
     let stylesheet = StyleSheet::parse(trimmed, ParserOptions::default())
-        .map_err(|e| FormatError::StyleFormatError(e.to_string()))?;
+        .map_err(|e| FormatError::StyleFormatError(e.to_compact_string()))?;
 
     let indent_width = options.tab_width;
 
@@ -26,9 +27,9 @@ pub fn format_style_content(source: &str, options: &FormatOptions) -> Result<Str
 
     let result = stylesheet
         .to_css(printer_options)
-        .map_err(|e| FormatError::StyleFormatError(e.to_string()))?;
+        .map_err(|e| FormatError::StyleFormatError(e.to_compact_string()))?;
 
-    let mut code = result.code;
+    let mut code: String = result.code.into();
 
     // lightningcss uses 2-space indent by default; re-indent if needed
     if options.use_tabs || indent_width != 2 {
@@ -42,7 +43,7 @@ pub fn format_style_content(source: &str, options: &FormatOptions) -> Result<Str
 fn reindent_css(source: &str, options: &FormatOptions) -> String {
     let indent = options.indent_string();
     let newline = options.newline_string();
-    let mut result = String::with_capacity(source.len());
+    let mut result: String = String::with_capacity(source.len());
 
     for line in source.lines() {
         // Count leading spaces (lightningcss uses 2-space indent)
@@ -72,7 +73,7 @@ fn reindent_css(source: &str, options: &FormatOptions) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::{format_style_content, FormatOptions};
 
     #[test]
     fn test_format_simple_css() {

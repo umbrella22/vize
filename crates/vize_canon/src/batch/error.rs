@@ -1,6 +1,9 @@
 //! Error types for batch type checking.
 
 use std::path::{Path, PathBuf};
+use vize_carton::append;
+use vize_carton::cstr;
+use vize_carton::String;
 
 /// Error type for tsgo operations.
 #[derive(Debug, thiserror::Error)]
@@ -74,32 +77,36 @@ impl TsgoNotFoundError {
 
     /// Generate CLI error message with installation instructions.
     pub fn display_message(&self) -> String {
-        let mut msg = String::new();
+        let mut msg = String::default();
 
         msg.push_str("error: tsgo not found\n\n");
         msg.push_str("vize check requires '@typescript/native-preview' to be installed.\n\n");
 
         if let Some(pm) = self.detected_pm {
             msg.push_str("To install, run:\n\n");
-            msg.push_str(&format!("  {}\n", self.install_command(pm)));
+            append!(msg, "  {}\n", self.install_command(pm));
         } else {
             msg.push_str("To install, run one of the following:\n\n");
-            msg.push_str(&format!(
+            append!(
+                msg,
                 "  {}  # npm\n",
                 self.install_command(PackageManager::Npm)
-            ));
-            msg.push_str(&format!(
+            );
+            append!(
+                msg,
                 "  {}  # pnpm\n",
                 self.install_command(PackageManager::Pnpm)
-            ));
-            msg.push_str(&format!(
+            );
+            append!(
+                msg,
                 "  {}  # yarn\n",
                 self.install_command(PackageManager::Yarn)
-            ));
-            msg.push_str(&format!(
+            );
+            append!(
+                msg,
                 "  {}  # bun\n",
                 self.install_command(PackageManager::Bun)
-            ));
+            );
         }
 
         msg
@@ -107,10 +114,10 @@ impl TsgoNotFoundError {
 
     fn install_command(&self, pm: PackageManager) -> String {
         match pm {
-            PackageManager::Npm => "npm install -D @typescript/native-preview".to_string(),
-            PackageManager::Pnpm => "pnpm add -D @typescript/native-preview".to_string(),
-            PackageManager::Yarn => "yarn add -D @typescript/native-preview".to_string(),
-            PackageManager::Bun => "bun add -D @typescript/native-preview".to_string(),
+            PackageManager::Npm => cstr!("npm install -D @typescript/native-preview"),
+            PackageManager::Pnpm => cstr!("pnpm add -D @typescript/native-preview"),
+            PackageManager::Yarn => cstr!("yarn add -D @typescript/native-preview"),
+            PackageManager::Bun => cstr!("bun add -D @typescript/native-preview"),
         }
     }
 }
@@ -165,7 +172,7 @@ pub fn detect_package_manager(project_root: &Path) -> Option<PackageManager> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::{PackageManager, TsgoNotFoundError};
 
     #[test]
     fn test_tsgo_not_found_error_message() {

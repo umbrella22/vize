@@ -146,7 +146,7 @@ impl Rule for HtmlSelfClosing {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::HtmlSelfClosing;
     use crate::linter::Linter;
     use crate::rule::RuleRegistry;
 

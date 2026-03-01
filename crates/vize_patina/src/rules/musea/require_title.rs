@@ -20,6 +20,8 @@
 //! </art>
 //! ```
 
+#![allow(clippy::disallowed_macros)]
+
 use super::{MuseaLintResult, MuseaRule, MuseaRuleMeta};
 use crate::diagnostic::{LintDiagnostic, Severity};
 
@@ -81,7 +83,7 @@ fn has_attribute(tag: &str, attr_name: &str) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::{MuseaLintResult, MuseaRule, RequireTitle};
 
     #[test]
     fn test_valid_with_title() {

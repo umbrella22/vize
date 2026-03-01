@@ -26,6 +26,8 @@
 //! import { ref, computed } from 'vue'
 //! ```
 
+#![allow(clippy::disallowed_macros)]
+
 use memchr::memmem;
 
 use crate::diagnostic::{LintDiagnostic, Severity};
@@ -113,7 +115,7 @@ impl ScriptRule for NoImportCompilerMacros {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::NoImportCompilerMacros;
     use crate::rules::script::ScriptLinter;
 
     fn create_linter() -> ScriptLinter {

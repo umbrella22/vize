@@ -30,6 +30,9 @@
 use crate::context::LintContext;
 use crate::diagnostic::{LintDiagnostic, Severity};
 use crate::rule::{Rule, RuleCategory, RuleMeta};
+use vize_carton::FxHashMap;
+use vize_carton::String;
+use vize_carton::ToCompactString;
 use vize_relief::ast::{ElementNode, ElementType, PropNode, RootNode, TemplateChildNode};
 
 static META: RuleMeta = RuleMeta {
@@ -97,10 +100,10 @@ fn get_label(element: &ElementNode) -> Option<String> {
     for prop in &element.props {
         if let PropNode::Attribute(attr) = prop {
             if attr.name == "aria-label" {
-                return attr.value.as_ref().map(|v| v.content.to_string());
+                return attr.value.as_ref().map(|v| v.content.to_compact_string());
             }
             if attr.name == "aria-labelledby" {
-                return attr.value.as_ref().map(|v| v.content.to_string());
+                return attr.value.as_ref().map(|v| v.content.to_compact_string());
             }
         }
     }
@@ -114,7 +117,7 @@ fn collect_landmarks<'a>(children: &[TemplateChildNode<'a>], landmarks: &mut Vec
                 if el.tag_type != ElementType::Component {
                     if let Some(role) = get_landmark_role(el) {
                         landmarks.push(LandmarkInfo {
-                            role: role.to_string(),
+                            role: role.to_compact_string(),
                             label: get_label(el),
                             start: el.loc.start.offset,
                             end: el.loc.end.offset,
@@ -160,8 +163,7 @@ impl Rule for LandmarkRoles {
         }
 
         // Check 2: Multiple nav/aside/etc. without labels
-        let mut role_groups: std::collections::HashMap<&str, Vec<&LandmarkInfo>> =
-            std::collections::HashMap::new();
+        let mut role_groups: FxHashMap<&str, Vec<&LandmarkInfo>> = FxHashMap::default();
         for landmark in &landmarks {
             role_groups
                 .entry(landmark.role.as_str())
@@ -193,7 +195,7 @@ impl Rule for LandmarkRoles {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::LandmarkRoles;
     use crate::linter::Linter;
     use crate::rule::RuleRegistry;
 

@@ -112,7 +112,7 @@ pub fn lint(source: &str, filename: &str) -> LintResult {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::lint;
 
     #[test]
     fn test_lint_function() {

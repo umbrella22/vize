@@ -8,6 +8,7 @@ use oxc_parser::Parser;
 use oxc_semantic::SemanticBuilder;
 use oxc_span::SourceType;
 use oxc_transformer::{TransformOptions, Transformer, TypeScriptOptions};
+use vize_carton::{String, ToCompactString};
 
 /// Transform TypeScript code to JavaScript using OXC
 pub fn transform_typescript_to_js(code: &str) -> String {
@@ -18,7 +19,7 @@ pub fn transform_typescript_to_js(code: &str) -> String {
 
     if !parse_result.errors.is_empty() {
         // If parsing fails, return original code
-        return code.to_string();
+        return code.to_compact_string();
     }
 
     let mut program = parse_result.program;
@@ -30,7 +31,7 @@ pub fn transform_typescript_to_js(code: &str) -> String {
 
     if !semantic_ret.errors.is_empty() {
         // If semantic analysis fails, return original code
-        return code.to_string();
+        return code.to_compact_string();
     }
 
     let scoping = semantic_ret.semantic.into_scoping();
@@ -49,10 +50,14 @@ pub fn transform_typescript_to_js(code: &str) -> String {
 
     if !ret.errors.is_empty() {
         // If transformation fails, return original code
-        return code.to_string();
+        return code.to_compact_string();
     }
 
     // Generate JavaScript code
     // Replace tabs with 2 spaces for consistent indentation
-    Codegen::new().build(&program).code.replace('\t', "  ")
+    Codegen::new()
+        .build(&program)
+        .code
+        .replace('\t', "  ")
+        .into()
 }

@@ -28,6 +28,7 @@ pub use self::props::{
     extract_emit_names_from_type, extract_prop_types_from_type, extract_with_defaults_defaults,
     is_valid_identifier, PropTypeInfo,
 };
+use vize_carton::{String, ToCompactString};
 
 /// Script compilation result
 pub struct ScriptCompileResult {
@@ -65,7 +66,7 @@ pub fn compile_script(
         )
     } else if let Some(script) = &descriptor.script {
         // Use regular script, wrapped in __sfc__
-        let mut code = String::new();
+        let mut code = String::default();
         code.push_str(&script.content);
         if is_vapor {
             code.push_str("\nconst __sfc__ = { ...(__default__ || {}), __vapor: true }\n");
@@ -86,12 +87,12 @@ pub fn compile_script(
         // No script - generate empty component
         if is_vapor {
             Ok(ScriptCompileResult {
-                code: "const __sfc__ = { __vapor: true }\n".to_string(),
+                code: "const __sfc__ = { __vapor: true }\n".to_compact_string(),
                 bindings: None,
             })
         } else {
             Ok(ScriptCompileResult {
-                code: "const __sfc__ = {}\n".to_string(),
+                code: "const __sfc__ = {}\n".to_compact_string(),
                 bindings: None,
             })
         }

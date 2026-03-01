@@ -1,13 +1,15 @@
 //! Style block processing and scoped CSS.
 
-use crate::types::*;
+use vize_carton::{String, ToCompactString};
+
+use crate::types::{SfcError, SfcStyleBlock, StyleCompileOptions};
 
 /// Compile a style block
 pub fn compile_style(
     style: &SfcStyleBlock,
     options: &StyleCompileOptions,
 ) -> Result<String, SfcError> {
-    let mut output: String = style.content.to_string();
+    let mut output: String = style.content.to_compact_string();
 
     // Apply scoped transformation if needed
     if style.scoped || options.scoped {
@@ -16,7 +18,7 @@ pub fn compile_style(
 
     // Trim if requested
     if options.trim {
-        output = output.trim().to_string();
+        output = output.trim().to_compact_string();
     }
 
     Ok(output)
@@ -38,7 +40,7 @@ pub fn apply_scoped_css(css: &str, scope_id: &str) -> String {
     let mut brace_depth: u32 = 0;
     let mut at_rule_depth: u32 = 0; // Track nested at-rule depth
     let mut last_selector_end = 0;
-    let mut current = String::new();
+    let mut current = String::default();
     let mut pending_keyframes = false;
     let mut keyframes_brace_depth: Option<u32> = None;
     let mut saved_at_rule_depth: Option<u32> = None;
@@ -184,12 +186,13 @@ fn scope_selector(selector: &str, attr_selector: &str) -> String {
         .map(|s| scope_single_selector(s.trim(), attr_selector))
         .collect::<Vec<_>>()
         .join(", ")
+        .into()
 }
 
 /// Add scope attribute to a single selector
 fn scope_single_selector(selector: &str, attr_selector: &str) -> String {
     if selector.is_empty() {
-        return selector.to_string();
+        return selector.to_compact_string();
     }
 
     // Handle :deep(), :slotted(), :global()
@@ -208,11 +211,11 @@ fn scope_single_selector(selector: &str, attr_selector: &str) -> String {
     // Find the last simple selector to append the attribute
     let parts: Vec<&str> = selector.split_whitespace().collect();
     if parts.is_empty() {
-        return selector.to_string();
+        return selector.to_compact_string();
     }
 
     // Add scope to the last part
-    let mut result = String::new();
+    let mut result = String::default();
     for (i, part) in parts.iter().enumerate() {
         if i > 0 {
             result.push(' ');
@@ -273,7 +276,7 @@ fn transform_deep(selector: &str, attr_selector: &str) -> String {
             let rest = &after[end + 1..];
 
             let scoped_before = if before.is_empty() {
-                attr_selector.to_string()
+                attr_selector.to_compact_string()
             } else {
                 let trimmed = before.trim();
                 let mut result = String::with_capacity(trimmed.len() + attr_selector.len());
@@ -292,7 +295,7 @@ fn transform_deep(selector: &str, attr_selector: &str) -> String {
         }
     }
 
-    selector.to_string()
+    selector.to_compact_string()
 }
 
 /// Transform :slotted() for slot content
@@ -315,7 +318,7 @@ fn transform_slotted(selector: &str, attr_selector: &str) -> String {
         }
     }
 
-    selector.to_string()
+    selector.to_compact_string()
 }
 
 /// Transform :global() to unscoped
@@ -337,7 +340,7 @@ fn transform_global(selector: &str) -> String {
         }
     }
 
-    selector.to_string()
+    selector.to_compact_string()
 }
 
 /// Extract CSS v-bind() expressions
@@ -351,7 +354,7 @@ pub fn extract_css_vars(css: &str) -> Vec<String> {
             let expr = css[start..start + end].trim();
             // Remove quotes if present
             let expr = expr.trim_matches(|c| c == '"' || c == '\'');
-            vars.push(expr.to_string());
+            vars.push(expr.to_compact_string());
             search_from = start + end + 1;
         } else {
             break;
@@ -363,7 +366,9 @@ pub fn extract_css_vars(css: &str) -> Vec<String> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::{
+        apply_scoped_css, extract_css_vars, scope_selector, transform_deep, transform_global,
+    };
 
     #[test]
     fn test_scope_simple_selector() {

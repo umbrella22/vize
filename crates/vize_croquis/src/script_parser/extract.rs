@@ -11,7 +11,7 @@ use crate::macros::{EmitDefinition, MacroKind, ModelDefinition, PropDefinition};
 use crate::provide::ProvideKey;
 use crate::reactivity::ReactiveKind;
 use crate::setup_context::SetupContextViolationKind;
-use vize_carton::{CompactString, FxHashMap};
+use vize_carton::{CompactString, FxHashMap, String};
 use vize_relief::BindingType;
 
 use super::ScriptParseResult;
@@ -462,12 +462,13 @@ pub fn extract_argument_source(arg: &Argument<'_>, source: &str) -> String {
         Argument::FunctionExpression(f) => f.span,
         Argument::ArrowFunctionExpression(a) => a.span,
         Argument::CallExpression(c) => c.span,
-        _ => return String::new(),
+        _ => return String::default(),
     };
-    source
-        .get(span.start as usize..span.end as usize)
-        .unwrap_or("")
-        .to_string()
+    String::from(
+        source
+            .get(span.start as usize..span.end as usize)
+            .unwrap_or(""),
+    )
 }
 
 /// Get binding type from variable declaration kind

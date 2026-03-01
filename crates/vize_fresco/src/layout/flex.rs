@@ -467,7 +467,7 @@ impl Inset {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::{Dimension, Display, Edges, FlexDirection, FlexStyle, LengthPercentageAuto};
 
     #[test]
     fn test_flex_style_default() {

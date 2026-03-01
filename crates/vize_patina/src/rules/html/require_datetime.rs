@@ -28,6 +28,7 @@ use crate::rule::{Rule, RuleCategory, RuleMeta};
 use vize_relief::ast::{ElementNode, PropNode, TemplateChildNode};
 
 use super::helpers::is_valid_datetime;
+use vize_carton::String;
 
 static META: RuleMeta = RuleMeta {
     name: "html/require-datetime",
@@ -70,7 +71,7 @@ impl Rule for RequireDatetime {
         }
 
         // Check if text content is a valid datetime
-        let mut text_content = String::new();
+        let mut text_content = String::default();
         let mut has_dynamic_content = false;
 
         for child in &element.children {
@@ -100,7 +101,7 @@ impl Rule for RequireDatetime {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::RequireDatetime;
     use crate::linter::Linter;
     use crate::rule::RuleRegistry;
 

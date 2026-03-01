@@ -105,7 +105,7 @@ impl Rule for PropNameCasing {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::PropNameCasing;
     use crate::linter::Linter;
     use crate::rule::RuleRegistry;
 

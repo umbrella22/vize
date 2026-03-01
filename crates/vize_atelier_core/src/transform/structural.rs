@@ -564,12 +564,12 @@ fn parse_v_for_expression<'a>(
 }
 
 /// Extract key value string from a PropNode for comparison
-fn extract_key_value_str(prop: &PropNode<'_>) -> Option<std::string::String> {
+fn extract_key_value_str(prop: &PropNode<'_>) -> Option<String> {
     match prop {
-        PropNode::Attribute(attr) => attr.value.as_ref().map(|v| v.content.to_string()),
+        PropNode::Attribute(attr) => attr.value.as_ref().map(|v| v.content.clone()),
         PropNode::Directive(dir) => dir.exp.as_ref().map(|exp| match exp {
-            ExpressionNode::Simple(s) => s.content.to_string(),
-            ExpressionNode::Compound(c) => c.loc.source.to_string(),
+            ExpressionNode::Simple(s) => s.content.clone(),
+            ExpressionNode::Compound(c) => c.loc.source.clone(),
         }),
     }
 }

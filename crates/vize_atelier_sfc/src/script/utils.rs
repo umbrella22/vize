@@ -5,6 +5,8 @@
 //! Note: Some functions in this module are kept for tests but replaced by OXC-based
 //! parsing in production. They are marked with `#[allow(dead_code)]`.
 
+use vize_carton::{String, ToCompactString};
+
 /// Macro definitions found in script setup
 #[derive(Debug, Default)]
 pub struct ScriptSetupMacros {
@@ -138,7 +140,7 @@ pub fn extract_type_args(before_call: &str) -> Option<String> {
             '<' => {
                 depth -= 1;
                 if depth == 0 {
-                    return Some(trimmed[i + 1..trimmed.len() - 1].to_string());
+                    return Some(String::from(&trimmed[i + 1..trimmed.len() - 1]));
                 }
             }
             _ => {}
@@ -179,9 +181,9 @@ pub fn is_valid_identifier(s: &str) -> bool {
 /// Escape property name for object key
 pub fn get_escaped_prop_name(key: &str) -> String {
     if is_valid_identifier(key) {
-        key.to_string()
+        key.to_compact_string()
     } else {
-        let mut out = String::new();
+        let mut out = String::default();
         use std::fmt::Write as _;
         let _ = write!(&mut out, "{:?}", key);
         out
@@ -190,7 +192,10 @@ pub fn get_escaped_prop_name(key: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::{
+        extract_type_args, find_matching_paren, get_escaped_prop_name, is_valid_identifier,
+    };
+    use vize_carton::ToCompactString;
 
     #[test]
     fn test_find_matching_paren() {
@@ -204,13 +209,13 @@ mod tests {
     fn test_extract_type_args() {
         assert_eq!(
             extract_type_args("defineProps<{ msg: string }>"),
-            Some("{ msg: string }".to_string())
+            Some("{ msg: string }".to_compact_string())
         );
         assert_eq!(extract_type_args("defineProps"), None);
         // Arrow function inside type args
         assert_eq!(
             extract_type_args("defineEmits<(e: 'click') => void>"),
-            Some("(e: 'click') => void".to_string())
+            Some("(e: 'click') => void".to_compact_string())
         );
     }
 

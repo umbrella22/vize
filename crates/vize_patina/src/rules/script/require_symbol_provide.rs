@@ -108,7 +108,7 @@ impl RequireSymbolProvide {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::RequireSymbolProvide;
     use crate::rules::script::ScriptLinter;
 
     fn create_linter() -> ScriptLinter {

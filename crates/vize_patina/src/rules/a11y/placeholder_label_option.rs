@@ -100,7 +100,7 @@ impl Rule for PlaceholderLabelOption {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::PlaceholderLabelOption;
     use crate::linter::Linter;
     use crate::rule::RuleRegistry;
 

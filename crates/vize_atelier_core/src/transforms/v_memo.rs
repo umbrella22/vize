@@ -3,6 +3,7 @@
 //! Transforms v-memo directives for memoized rendering.
 
 use vize_carton::String;
+use vize_carton::ToCompactString;
 
 use crate::ast::*;
 use crate::transform::TransformContext;
@@ -86,7 +87,7 @@ pub fn generate_v_memo_wrapper(deps: &str) -> String {
 pub fn generate_memo_check(deps: &str, cache_index: usize) -> String {
     let mut out = String::with_capacity(deps.len() + 24);
     out.push_str("_isMemoSame(_cache, ");
-    out.push_str(&cache_index.to_string());
+    out.push_str(&cache_index.to_compact_string());
     out.push_str(", [");
     out.push_str(deps);
     out.push_str("])");
@@ -95,7 +96,7 @@ pub fn generate_memo_check(deps: &str, cache_index: usize) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::{get_memo_deps, has_v_memo, TemplateChildNode};
     use crate::parser::parse;
     use bumpalo::Bump;
 

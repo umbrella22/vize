@@ -68,7 +68,7 @@ Syntax highlighting for `*.art.vue` files used by Musea.
 
 With the extension installed, art files get proper syntax highlighting:
 
-```vue
+```art-vue
 <script setup lang="ts">
 import MyButton from './MyButton.vue'
 </script>

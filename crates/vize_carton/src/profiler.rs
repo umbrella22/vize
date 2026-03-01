@@ -333,7 +333,8 @@ impl std::fmt::Display for CacheStats {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::{CacheStats, Profiler, Timer};
+    use std::time::Duration;
 
     #[test]
     fn test_timer() {

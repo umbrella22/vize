@@ -1,4 +1,11 @@
 //! NAPI bindings for type checking.
+//!
+//! FFI boundary code: uses std types for JavaScript interop.
+#![allow(
+    clippy::disallowed_types,
+    clippy::disallowed_methods,
+    clippy::disallowed_macros
+)]
 
 use napi::bindgen_prelude::*;
 use napi_derive::napi;
@@ -75,11 +82,8 @@ pub fn type_check_napi(
     options: Option<TypeCheckOptionsNapi>,
 ) -> Result<TypeCheckResultNapi> {
     let opts = options.unwrap_or_default();
-    let filename = opts
-        .filename
-        .as_deref()
-        .unwrap_or("anonymous.vue")
-        .to_string();
+    let filename: vize_carton::CompactString =
+        opts.filename.as_deref().unwrap_or("anonymous.vue").into();
 
     let mut check_opts = TypeCheckOptions::new(filename);
     apply_napi_options(&opts, &mut check_opts);
@@ -97,24 +101,24 @@ pub fn type_check_napi(
                     TypeSeverity::Info => "info".to_string(),
                     TypeSeverity::Hint => "hint".to_string(),
                 },
-                message: d.message,
+                message: d.message.into(),
                 start: d.start,
                 end: d.end,
-                code: d.code,
-                help: d.help,
+                code: d.code.map(Into::into),
+                help: d.help.map(Into::into),
                 related: d
                     .related
                     .into_iter()
                     .map(|r| RelatedLocationNapi {
-                        message: r.message,
+                        message: r.message.into(),
                         start: r.start,
                         end: r.end,
-                        filename: r.filename,
+                        filename: r.filename.map(Into::into),
                     })
                     .collect(),
             })
             .collect(),
-        virtual_ts: result.virtual_ts,
+        virtual_ts: result.virtual_ts.map(Into::into),
         error_count: result.error_count as u32,
         warning_count: result.warning_count as u32,
         analysis_time_ms: result.analysis_time_ms,
@@ -252,11 +256,11 @@ pub fn type_check_batch_napi(
             Err(_) => return,
         };
 
-        let filename = path
+        let filename: vize_carton::CompactString = path
             .file_name()
             .and_then(|n| n.to_str())
             .unwrap_or("anonymous.vue")
-            .to_string();
+            .into();
 
         let mut check_opts = TypeCheckOptions::new(filename);
         apply_napi_options(&opts, &mut check_opts);

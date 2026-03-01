@@ -70,7 +70,7 @@ impl Rule for DeprecatedAttr {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::DeprecatedAttr;
     use crate::linter::Linter;
     use crate::rule::RuleRegistry;
 

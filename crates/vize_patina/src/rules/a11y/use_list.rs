@@ -105,7 +105,7 @@ impl Rule for UseList {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::UseList;
     use crate::linter::Linter;
     use crate::rule::RuleRegistry;
 

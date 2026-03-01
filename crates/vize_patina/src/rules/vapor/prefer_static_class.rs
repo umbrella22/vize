@@ -24,6 +24,7 @@
 use crate::context::LintContext;
 use crate::diagnostic::{Fix, Severity, TextEdit};
 use crate::rule::{Rule, RuleCategory, RuleMeta};
+use vize_carton::String;
 use vize_relief::ast::{DirectiveNode, ElementNode, ExpressionNode, PropNode};
 
 static META: RuleMeta = RuleMeta {
@@ -135,7 +136,7 @@ fn is_string_literal(s: &str) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::PreferStaticClass;
     use crate::linter::Linter;
     use crate::rule::RuleRegistry;
 

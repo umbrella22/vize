@@ -33,6 +33,7 @@ impl JsonRpcRequest {
     /// Serialize to LSP message format (with Content-Length header).
     pub fn to_lsp_message(&self) -> Result<String, serde_json::Error> {
         let content = serde_json::to_string(self)?;
+        #[allow(clippy::disallowed_macros)]
         Ok(format!(
             "Content-Length: {}\r\n\r\n{}",
             content.len(),
@@ -63,6 +64,7 @@ impl JsonRpcNotification {
     /// Serialize to LSP message format (with Content-Length header).
     pub fn to_lsp_message(&self) -> Result<String, serde_json::Error> {
         let content = serde_json::to_string(self)?;
+        #[allow(clippy::disallowed_macros)]
         Ok(format!(
             "Content-Length: {}\r\n\r\n{}",
             content.len(),
@@ -422,7 +424,10 @@ impl VueReactiveType {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::{
+        parse_content_length, Diagnostic, JsonRpcNotification, JsonRpcRequest, Range,
+        RequestIdGenerator, VueReactiveType,
+    };
 
     #[test]
     fn test_json_rpc_request() {

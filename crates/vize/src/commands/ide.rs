@@ -164,7 +164,8 @@ fn vscode_status() {
 
     match output {
         Ok(out) => {
-            let extensions = String::from_utf8_lossy(&out.stdout);
+            #[allow(clippy::disallowed_types)]
+            let extensions = std::string::String::from_utf8_lossy(&out.stdout);
             if extensions.contains("vize.vize") {
                 println!("✓ Vize extension is installed in VSCode");
             } else {

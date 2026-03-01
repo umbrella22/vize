@@ -11,7 +11,7 @@ use crate::cross_file::diagnostics::{
 use crate::cross_file::graph::{DependencyEdge, DependencyGraph};
 use crate::cross_file::registry::{FileId, ModuleRegistry};
 use crate::provide::{InjectEntry, InjectPattern, ProvideEntry, ProvideKey};
-use vize_carton::{CompactString, FxHashMap, FxHashSet};
+use vize_carton::{cstr, CompactString, FxHashMap, FxHashSet, String};
 
 /// Information about a provide/inject match.
 #[derive(Debug, Clone)]
@@ -131,12 +131,12 @@ impl ProvideInjectTree {
                 let type_str = p
                     .value_type
                     .as_deref()
-                    .map(|t| format!(": `{}`", t))
+                    .map(|t| cstr!(": `{t}`"))
                     .unwrap_or_default();
                 let consumers = if p.consumer_count > 0 {
-                    format!(" → {} consumer(s)", p.consumer_count)
+                    cstr!(" → {} consumer(s)", p.consumer_count)
                 } else {
-                    " ⚠️ _unused_".to_string()
+                    CompactString::new(" ⚠️ _unused_")
                 };
                 writeln!(
                     output,
@@ -423,22 +423,22 @@ pub fn analyze_provide_inject(
                     diagnostics.push(
                         CrossFileDiagnostic::new(
                             CrossFileDiagnosticKind::HydrationMismatchRisk {
-                                reason: CompactString::new(format!(
+                                reason: cstr!(
                                     "Destructuring inject('{}') loses reactivity",
                                     key_str
-                                )),
+                                ),
                             },
                             DiagnosticSeverity::Error,
                             consumer_id,
                             inject.start,
-                            format!(
+                            cstr!(
                                 "Destructuring inject('{}') into {{ {} }} breaks reactivity connection",
                                 key_str,
                                 props.iter().map(|p| p.as_str()).collect::<Vec<_>>().join(", ")
                             ),
                         )
                         .with_end_offset(inject.end)
-                        .with_suggestion(format!(
+                        .with_suggestion(cstr!(
                             "Store inject result first: `const {} = inject('{}')`, then access properties",
                             inject.local_name,
                             key_str
@@ -449,22 +449,22 @@ pub fn analyze_provide_inject(
                     diagnostics.push(
                         CrossFileDiagnostic::new(
                             CrossFileDiagnosticKind::HydrationMismatchRisk {
-                                reason: CompactString::new(format!(
+                                reason: cstr!(
                                     "Array destructuring inject('{}') loses reactivity",
                                     key_str
-                                )),
+                                ),
                             },
                             DiagnosticSeverity::Error,
                             consumer_id,
                             inject.start,
-                            format!(
+                            cstr!(
                                 "Array destructuring inject('{}') into [{}] breaks reactivity connection",
                                 key_str,
                                 items.iter().map(|p| p.as_str()).collect::<Vec<_>>().join(", ")
                             ),
                         )
                         .with_end_offset(inject.end)
-                        .with_suggestion(format!(
+                        .with_suggestion(cstr!(
                             "Store inject result first: `const {} = inject('{}')`, then access indices",
                             inject.local_name,
                             key_str
@@ -480,22 +480,22 @@ pub fn analyze_provide_inject(
                     diagnostics.push(
                         CrossFileDiagnostic::new(
                             CrossFileDiagnosticKind::HydrationMismatchRisk {
-                                reason: CompactString::new(format!(
+                                reason: cstr!(
                                     "Destructuring inject variable '{}' loses reactivity",
                                     inject_var
-                                )),
+                                ),
                             },
                             DiagnosticSeverity::Error,
                             consumer_id,
                             *offset,
-                            format!(
+                            cstr!(
                                 "Destructuring '{}' (from inject('{}')) into {{ {} }} breaks reactivity connection",
                                 inject_var,
                                 key_str,
                                 props.iter().map(|p| p.as_str()).collect::<Vec<_>>().join(", ")
                             ),
                         )
-                        .with_suggestion(format!(
+                        .with_suggestion(cstr!(
                             "Access properties directly: `{}.prop` instead of destructuring",
                             inject_var
                         )),
@@ -535,7 +535,7 @@ pub fn analyze_provide_inject(
                                 DiagnosticSeverity::Error,
                                 consumer_id,
                                 inject.start,
-                                format!(
+                                cstr!(
                                     "**Unmatched Inject**: `inject('{}')` has no matching `provide()` in any ancestor component\n\n\
                                     This will return `undefined` at runtime and may cause errors.\n\n\
                                     ### Checklist:\n\
@@ -545,7 +545,7 @@ pub fn analyze_provide_inject(
                                 ),
                             )
                             .with_end_offset(inject.end)
-                            .with_suggestion(format!(
+                            .with_suggestion(cstr!(
                                 "```typescript\n// In parent component:\nprovide('{}', yourValue)\n\n// Or with default:\nconst {} = inject('{}', defaultValue)\n```",
                                 key_str, inject.local_name, key_str
                             )),
@@ -560,7 +560,7 @@ pub fn analyze_provide_inject(
                                 DiagnosticSeverity::Info,
                                 consumer_id,
                                 inject.start,
-                                format!(
+                                cstr!(
                                     "**Info**: `inject('{}')` uses default value — no ancestor provides this key",
                                     key_str
                                 ),
@@ -595,7 +595,7 @@ pub fn analyze_provide_inject(
                             DiagnosticSeverity::Warning,
                             provider_id,
                             provide.start,
-                            format!(
+                            cstr!(
                                 "provide('{}') is not used by any descendant component",
                                 key_str
                             ),
@@ -711,7 +711,8 @@ fn has_inject_in_descendants(
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use crate::provide::ProvideKey;
+    use vize_carton::CompactString;
 
     #[test]
     fn test_provide_key_match() {

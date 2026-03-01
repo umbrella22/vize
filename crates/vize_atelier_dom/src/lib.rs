@@ -12,8 +12,14 @@
 pub mod options;
 pub mod transforms;
 
-pub use options::*;
-pub use transforms::*;
+pub use options::{element_checks, event_modifiers, DomCompilerOptions};
+pub use transforms::{
+    generate_html_prop, generate_html_warning, generate_key_guard, generate_model_props,
+    generate_modifier_guard, generate_show_directive, generate_show_style, generate_text_children,
+    generate_text_content, get_model_event, get_model_helper, get_model_prop, is_v_html, is_v_show,
+    is_v_text, resolve_key_alias, EventModifiers, EventOptions, MouseModifiers,
+    PropagationModifiers, SystemModifiers, VModelModifiers, V_SHOW, V_TEXT,
+};
 
 // Re-export core types
 pub use vize_atelier_core::{
@@ -28,7 +34,7 @@ use vize_atelier_core::{
     parser::parse_with_options,
     transform::transform as do_transform,
 };
-use vize_carton::Bump;
+use vize_carton::{Bump, String};
 use vize_croquis::Croquis;
 
 /// Compile a Vue template for DOM with default options
@@ -60,8 +66,8 @@ pub fn compile_template_with_options<'a>(
 
     if !errors.is_empty() {
         let codegen_result = CodegenResult {
-            code: String::new(),
-            preamble: String::new(),
+            code: String::default(),
+            preamble: String::default(),
             map: None,
         };
         return (root, errors.to_vec(), codegen_result);
@@ -128,8 +134,12 @@ fn get_namespace(tag: &str, parent: Option<&str>) -> Namespace {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::{
+        compile_template, compile_template_with_options, DomCompilerOptions, Namespace,
+        TemplateChildNode,
+    };
     use vize_atelier_core::options::CodegenMode;
+    use vize_carton::Bump;
 
     #[test]
     fn test_compile_simple_element() {

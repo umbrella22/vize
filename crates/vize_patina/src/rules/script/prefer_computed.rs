@@ -94,7 +94,7 @@ impl ScriptRule for PreferComputed {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::PreferComputed;
     use crate::rules::script::ScriptLinter;
 
     fn create_linter() -> ScriptLinter {

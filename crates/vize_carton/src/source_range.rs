@@ -5,6 +5,8 @@
 
 use serde::{Deserialize, Serialize};
 
+use crate::CompactString as String;
+
 /// A range of byte offsets in a source file.
 ///
 /// Used for tracking positions in source code for:
@@ -307,7 +309,7 @@ impl SourceMap {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::{SourceMap, SourceMapping, SourceRange};
 
     #[test]
     fn test_source_range_contains() {

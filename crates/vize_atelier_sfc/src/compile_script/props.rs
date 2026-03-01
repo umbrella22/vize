@@ -3,7 +3,8 @@
 //! This module handles extracting prop types from TypeScript type definitions
 //! and processing withDefaults defaults.
 
-use std::collections::HashMap;
+use vize_carton::FxHashMap;
+use vize_carton::{String, ToCompactString};
 
 /// Prop type information
 #[derive(Debug, Clone)]
@@ -111,7 +112,7 @@ pub fn extract_prop_types_from_type(type_args: &str) -> Vec<(String, PropTypeInf
 
     // Split by commas/semicolons/newlines (but not inside nested braces)
     let mut depth: i32 = 0;
-    let mut current = String::new();
+    let mut current = String::default();
     let chars: Vec<char> = content.chars().collect();
     let mut i = 0;
 
@@ -178,12 +179,12 @@ fn extract_prop_type_info(segment: &str, props: &mut Vec<(String, PropTypeInfo)>
         let name = name_part.trim().trim_end_matches('?').trim();
 
         if !name.is_empty() && is_valid_identifier(name) {
-            let ts_type_str = type_part.trim().to_string();
+            let ts_type_str = type_part.trim().to_compact_string();
             let js_type = ts_type_to_js_type(&ts_type_str);
             // Avoid duplicates (intersection types may have overlapping props)
             if !props.iter().any(|(n, _)| n == name) {
                 props.push((
-                    name.to_string(),
+                    name.to_compact_string(),
                     PropTypeInfo {
                         js_type,
                         ts_type: Some(ts_type_str),
@@ -199,7 +200,7 @@ fn extract_prop_type_info(segment: &str, props: &mut Vec<(String, PropTypeInfo)>
 /// respecting nested `<>`, `()`, `[]`, `{}` and `=>` arrows.
 fn split_type_at_top_level(s: &str, delimiter: char) -> Vec<String> {
     let mut parts = Vec::new();
-    let mut current = String::new();
+    let mut current = String::default();
     let mut depth: i32 = 0;
     let chars: Vec<char> = s.chars().collect();
     let mut i = 0;
@@ -278,17 +279,17 @@ fn ts_type_to_js_type(ts_type: &str) -> String {
     if (ts_type.starts_with('"') && ts_type.ends_with('"'))
         || (ts_type.starts_with('\'') && ts_type.ends_with('\''))
     {
-        return "String".to_string();
+        return "String".to_compact_string();
     }
 
     // Handle numeric literal types: 123, 1.5 -> Number
     if ts_type.parse::<f64>().is_ok() {
-        return "Number".to_string();
+        return "Number".to_compact_string();
     }
 
     // Handle boolean literal types: true, false -> Boolean
     if ts_type == "true" || ts_type == "false" {
-        return "Boolean".to_string();
+        return "Boolean".to_compact_string();
     }
 
     // Arrow function types must be detected BEFORE union splitting,
@@ -297,7 +298,7 @@ fn ts_type_to_js_type(ts_type: &str) -> String {
     // Also must come before array/object checks because `(items: T[]) => T[]`
     // ends with `[]` and contains `:`.
     if contains_top_level_arrow(ts_type) {
-        return "Function".to_string();
+        return "Function".to_compact_string();
     }
 
     // Handle union types — split at top level only (respecting nesting).
@@ -312,7 +313,7 @@ fn ts_type_to_js_type(ts_type: &str) -> String {
                 .collect();
 
             if meaningful.is_empty() {
-                return "null".to_string();
+                return "null".to_compact_string();
             }
 
             // Collect unique JS types for each union member
@@ -340,22 +341,22 @@ fn ts_type_to_js_type(ts_type: &str) -> String {
 
     // Map TypeScript types to JavaScript constructors
     match ts_type.to_lowercase().as_str() {
-        "string" => "String".to_string(),
-        "number" => "Number".to_string(),
-        "boolean" => "Boolean".to_string(),
-        "object" => "Object".to_string(),
-        "function" => "Function".to_string(),
-        "symbol" => "Symbol".to_string(),
+        "string" => "String".to_compact_string(),
+        "number" => "Number".to_compact_string(),
+        "boolean" => "Boolean".to_compact_string(),
+        "object" => "Object".to_compact_string(),
+        "function" => "Function".to_compact_string(),
+        "symbol" => "Symbol".to_compact_string(),
         _ => {
             // Handle array types
             if ts_type.ends_with("[]") || ts_type.starts_with("Array<") {
-                "Array".to_string()
+                "Array".to_compact_string()
             } else if ts_type.starts_with('{') || contains_top_level_colon(ts_type) {
                 // Object literal type
-                "Object".to_string()
+                "Object".to_compact_string()
             } else if ts_type.starts_with('(') && ts_type.contains("=>") {
                 // Function type (fallback, already handled above)
-                "Function".to_string()
+                "Function".to_compact_string()
             } else {
                 // Check if this is a built-in JavaScript constructor type
                 let type_name = ts_type.split('<').next().unwrap_or(ts_type).trim();
@@ -366,12 +367,12 @@ fn ts_type_to_js_type(ts_type: &str) -> String {
                     | "Int16Array" | "Uint16Array" | "Int32Array" | "Uint32Array"
                     | "Float32Array" | "Float64Array" | "BigInt64Array" | "BigUint64Array"
                     | "URL" | "URLSearchParams" | "FormData" | "Blob" | "File" => {
-                        type_name.to_string()
+                        type_name.to_compact_string()
                     }
                     // User-defined interface/type or generic type parameter
                     // - Single uppercase letter (T, U, K, V) = generic param → null
                     // - Otherwise = user-defined type → null (types don't exist at runtime)
-                    _ => "null".to_string(),
+                    _ => "null".to_compact_string(),
                 }
             }
         }
@@ -412,7 +413,7 @@ pub fn extract_emit_names_from_type(type_args: &str) -> Vec<String> {
     // Match patterns like: (e: 'eventName') or (event: 'eventName', ...)
     let mut in_string = false;
     let mut quote_char = ' ';
-    let mut current_string = String::new();
+    let mut current_string = String::default();
 
     for c in type_args.chars() {
         if !in_string && (c == '\'' || c == '"') {
@@ -435,8 +436,8 @@ pub fn extract_emit_names_from_type(type_args: &str) -> Vec<String> {
 /// Extract default values from withDefaults second argument
 /// Input: "withDefaults(defineProps<{...}>(), { prop1: default1, prop2: default2 })"
 /// Returns: HashMap of prop name to default value string
-pub fn extract_with_defaults_defaults(with_defaults_args: &str) -> HashMap<String, String> {
-    let mut defaults = HashMap::new();
+pub fn extract_with_defaults_defaults(with_defaults_args: &str) -> FxHashMap<String, String> {
+    let mut defaults = FxHashMap::default();
 
     // Find the second argument (the defaults object)
     // withDefaults(defineProps<...>(), { ... })
@@ -516,7 +517,7 @@ pub fn extract_with_defaults_defaults(with_defaults_args: &str) -> HashMap<Strin
 }
 
 /// Parse a JavaScript object literal to extract key-value pairs
-fn parse_defaults_object(content: &str, defaults: &mut HashMap<String, String>) {
+fn parse_defaults_object(content: &str, defaults: &mut FxHashMap<String, String>) {
     let content = content.trim();
     if content.is_empty() {
         return;
@@ -524,7 +525,7 @@ fn parse_defaults_object(content: &str, defaults: &mut HashMap<String, String>) 
 
     // Split by commas, but respect nested braces/parens/brackets
     let mut depth = 0;
-    let mut current = String::new();
+    let mut current = String::default();
 
     for c in content.chars() {
         match c {
@@ -547,7 +548,7 @@ fn parse_defaults_object(content: &str, defaults: &mut HashMap<String, String>) 
 }
 
 /// Extract a single key: value pair from a default definition
-fn extract_default_pair(pair: &str, defaults: &mut HashMap<String, String>) {
+fn extract_default_pair(pair: &str, defaults: &mut FxHashMap<String, String>) {
     let trimmed = pair.trim();
     if trimmed.is_empty() {
         return;
@@ -574,7 +575,7 @@ fn extract_default_pair(pair: &str, defaults: &mut HashMap<String, String>) {
         let value = trimmed[pos + 1..].trim();
 
         if !key.is_empty() && !value.is_empty() {
-            defaults.insert(key.to_string(), value.to_string());
+            defaults.insert(key.to_compact_string(), value.to_compact_string());
         }
     }
 }

@@ -28,6 +28,9 @@
 use crate::context::LintContext;
 use crate::diagnostic::{LintDiagnostic, Severity};
 use crate::rule::{Rule, RuleCategory, RuleMeta};
+use vize_carton::FxHashMap;
+use vize_carton::String;
+use vize_carton::ToCompactString;
 use vize_relief::ast::{ElementNode, PropNode, RootNode, SourceLocation, TemplateChildNode};
 
 static META: RuleMeta = RuleMeta {
@@ -63,7 +66,7 @@ impl Rule for IdDuplication {
         collect_static_ids(&root.children, &mut ids);
 
         // Find duplicates
-        let mut seen: std::collections::HashMap<&str, &LocInfo> = std::collections::HashMap::new();
+        let mut seen: FxHashMap<&str, &LocInfo> = FxHashMap::default();
 
         for entry in &ids {
             if let Some(first_loc) = seen.get(entry.value.as_str()) {
@@ -76,7 +79,7 @@ impl Rule for IdDuplication {
                     LintDiagnostic::error(META.name, message, entry.loc.start, entry.loc.end)
                         .with_help(help.into_owned())
                         .with_label(
-                            "first defined here".to_string(),
+                            "first defined here".to_compact_string(),
                             first_loc.start,
                             first_loc.end,
                         );
@@ -114,7 +117,7 @@ fn collect_element_id(element: &ElementNode, ids: &mut Vec<IdEntry>) {
             if attr.name == "id" {
                 if let Some(value) = &attr.value {
                     ids.push(IdEntry {
-                        value: value.content.to_string(),
+                        value: value.content.to_compact_string(),
                         loc: loc_info(&attr.loc),
                     });
                 }
@@ -132,7 +135,7 @@ fn loc_info(loc: &SourceLocation) -> LocInfo {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::IdDuplication;
     use crate::linter::Linter;
     use crate::rule::RuleRegistry;
 

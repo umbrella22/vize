@@ -49,10 +49,14 @@ pub mod style;
 pub mod types;
 
 // Re-exports for public API
-pub use compile::*;
+pub use compile::{compile_sfc, ScriptCompileResult};
 pub use css::{compile_css, compile_style_block, CssCompileOptions, CssCompileResult, CssTargets};
-pub use parse::*;
-pub use types::*;
+pub use parse::parse_sfc;
+pub use types::{
+    BindingMetadata, BindingType, BlockLocation, PadOption, PropsDestructure, ScriptCompileOptions,
+    SfcCompileOptions, SfcCompileResult, SfcCustomBlock, SfcDescriptor, SfcError, SfcParseOptions,
+    SfcScriptBlock, SfcStyleBlock, SfcTemplateBlock, StyleCompileOptions, TemplateCompileOptions,
+};
 
 // Re-export key types from dependencies
 pub use vize_atelier_core::CompilerError;
@@ -63,7 +67,7 @@ mod snapshot_tests;
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::{compile_sfc, parse_sfc, SfcCompileOptions};
 
     #[test]
     fn test_parse_simple_sfc() {

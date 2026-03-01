@@ -85,7 +85,7 @@ impl ScriptRule for NoWithDefaults {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::NoWithDefaults;
     use crate::rules::script::ScriptLinter;
 
     fn create_linter() -> ScriptLinter {

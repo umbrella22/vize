@@ -112,7 +112,7 @@ impl Rule for ComponentDefinitionNameCasing {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::ComponentDefinitionNameCasing;
     use crate::linter::Linter;
     use crate::rule::RuleRegistry;
 

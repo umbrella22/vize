@@ -132,12 +132,12 @@ impl Default for TransformOptions {
 #[serde(rename_all = "camelCase")]
 pub struct BindingMetadata {
     /// Setup bindings with their types
-    pub bindings: FxHashMap<std::string::String, BindingType>,
+    pub bindings: FxHashMap<String, BindingType>,
 
     /// Props aliases (local name -> prop key)
     /// For destructured props with aliases like: const { foo: bar } = defineProps()
     /// This maps "bar" -> "foo"
-    pub props_aliases: FxHashMap<std::string::String, std::string::String>,
+    pub props_aliases: FxHashMap<String, String>,
 
     /// Whether these bindings are from script setup
     /// If false, components/directives won't be resolved from these bindings
@@ -292,7 +292,10 @@ pub struct CompilerOptions {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::{
+        BindingMetadata, BindingType, CodegenMode, CodegenOptions, ParseMode, ParserOptions,
+        TransformOptions, WhitespaceStrategy,
+    };
 
     #[test]
     fn parser_options_default() {

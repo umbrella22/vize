@@ -3,6 +3,8 @@ import Button from './components/Button.vue'
 import Input from './components/Input.vue'
 import Card from './components/Card.vue'
 import Badge from './components/Badge.vue'
+import Alert from './components/Alert.vue'
+import Avatar from './components/Avatar.vue'
 </script>
 
 <template>
@@ -51,11 +53,36 @@ import Badge from './components/Badge.vue'
         <Card
           title="Featured"
           description="A card with image header."
-          image="linear-gradient(135deg, #6b5090 0%, #3a7a70 100%)"
+          image="#6b5090"
           variant="elevated"
         >
           <Button variant="primary">View</Button>
         </Card>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>Alerts</h2>
+      <div class="demo demo--column" style="max-width: 480px">
+        <Alert>This is a default informational alert.</Alert>
+        <Alert variant="success">Operation completed successfully.</Alert>
+        <Alert variant="warning">Please review before proceeding.</Alert>
+        <Alert variant="error">Something went wrong. Please try again.</Alert>
+        <Alert variant="success" closable>This alert can be dismissed.</Alert>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>Avatars</h2>
+      <div class="demo" style="align-items: center">
+        <Avatar name="Jane Doe" size="sm" />
+        <Avatar name="Jane Doe" />
+        <Avatar name="Jane Doe" size="lg" />
+        <div style="display: flex">
+          <Avatar name="Alice" style="border: 2px solid #e6e2d6" />
+          <Avatar name="Bob" style="margin-left: -8px; border: 2px solid #e6e2d6" />
+          <Avatar name="Charlie" style="margin-left: -8px; border: 2px solid #e6e2d6" />
+        </div>
       </div>
     </section>
   </div>

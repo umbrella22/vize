@@ -171,7 +171,7 @@ impl NoTopLevelRefInScript {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::NoTopLevelRefInScript;
     use crate::rules::script::ScriptLinter;
 
     fn create_linter() -> ScriptLinter {

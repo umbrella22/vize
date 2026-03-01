@@ -3,6 +3,7 @@
 //! Provides high-performance hashing for HMR change detection
 //! and content-based cache invalidation.
 
+use crate::String;
 use xxhash_rust::xxh3::xxh3_64;
 
 /// Compute a 64-bit hash of the given bytes using xxHash3.
@@ -23,7 +24,7 @@ pub fn hash_str(data: &str) -> u64 {
 /// Convert a hash to a hex string (16 characters).
 #[inline]
 pub fn hash_to_hex(hash: u64) -> String {
-    format!("{:016x}", hash)
+    crate::cstr!("{hash:016x}")
 }
 
 /// Compute hash of a string and return as hex.
@@ -34,7 +35,7 @@ pub fn content_hash(content: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::{content_hash, hash_str, hash_to_hex};
 
     #[test]
     fn test_hash_consistency() {

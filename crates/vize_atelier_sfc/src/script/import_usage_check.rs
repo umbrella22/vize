@@ -11,6 +11,7 @@ use vize_atelier_core::ast::{
 };
 use vize_carton::{
     camelize, capitalize, is_builtin_directive, is_native_tag, is_simple_identifier, FxHashSet,
+    String, ToCompactString,
 };
 use vize_croquis::builtins::is_builtin_component;
 
@@ -138,8 +139,8 @@ fn walk_element(
         // Add both camelCase and PascalCase versions
         let camelized = camelize(tag);
         let capitalized = capitalize(&camelized);
-        result.used_ids.insert(camelized.to_string());
-        result.used_ids.insert(capitalized.to_string());
+        result.used_ids.insert(camelized.to_compact_string());
+        result.used_ids.insert(capitalized.to_compact_string());
     }
 
     // Process props
@@ -153,7 +154,7 @@ fn walk_element(
                 if collect_used_ids && attr.name.as_str() == "ref" {
                     if let Some(ref value) = attr.value {
                         if !value.content.is_empty() {
-                            result.used_ids.insert(value.content.to_string());
+                            result.used_ids.insert(value.content.to_compact_string());
                         }
                     }
                 }
@@ -191,7 +192,7 @@ fn process_directive(
             if let ExpressionNode::Simple(simple_exp) = exp {
                 let exp_string = simple_exp.content.trim();
                 if is_simple_identifier(exp_string) && exp_string != "undefined" {
-                    result.v_model_ids.insert(exp_string.to_string());
+                    result.v_model_ids.insert(exp_string.to_compact_string());
                 }
             }
         }
@@ -227,7 +228,7 @@ fn process_directive(
                 if let ExpressionNode::Simple(simple_arg) = arg {
                     if simple_arg.is_static {
                         let identifier = camelize(simple_arg.content.as_str());
-                        result.used_ids.insert(identifier.to_string());
+                        result.used_ids.insert(identifier.to_compact_string());
                     }
                 }
             }
@@ -253,7 +254,7 @@ fn extract_v_for_source_identifiers(exp: &ExpressionNode, ids: &mut FxHashSet<St
 
         let source_trimmed = source_part.trim();
         if !source_trimmed.is_empty() && is_simple_identifier(source_trimmed) {
-            ids.insert(source_trimmed.to_string());
+            ids.insert(source_trimmed.to_compact_string());
         }
     }
 }
@@ -278,7 +279,7 @@ fn extract_identifiers_from_simple_expression(
     // If the node has pre-parsed identifiers, use them
     if let Some(ref identifiers) = node.identifiers {
         for ident in identifiers.iter() {
-            ids.insert(ident.to_string());
+            ids.insert(ident.to_compact_string());
         }
         return;
     }
@@ -292,7 +293,7 @@ fn extract_identifiers_from_simple_expression(
     // This matches the TypeScript behavior where node.ast === null means simple identifier
     let content = node.content.trim();
     if !content.is_empty() && is_simple_identifier(content) {
-        ids.insert(content.to_string());
+        ids.insert(content.to_compact_string());
     }
 }
 
@@ -304,7 +305,7 @@ fn extract_identifiers_from_compound(
     // Use pre-parsed identifiers if available
     if let Some(ref identifiers) = node.identifiers {
         for ident in identifiers.iter() {
-            ids.insert(ident.to_string());
+            ids.insert(ident.to_compact_string());
         }
         return;
     }
@@ -329,7 +330,7 @@ fn extract_identifiers_from_compound(
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::{is_used_in_template, resolve_template_used_identifiers, TemplateUsedIdentifiers};
     use vize_atelier_core::parser::parse;
     use vize_carton::Bump;
 

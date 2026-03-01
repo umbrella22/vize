@@ -79,7 +79,7 @@ impl Rule for A11yImgAlt {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::A11yImgAlt;
     use crate::linter::Linter;
     use crate::rule::RuleRegistry;
 

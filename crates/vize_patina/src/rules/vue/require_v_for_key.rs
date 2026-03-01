@@ -87,7 +87,7 @@ impl Rule for RequireVForKey {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::RequireVForKey;
     use crate::linter::Linter;
     use crate::rule::RuleRegistry;
 

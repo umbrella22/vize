@@ -4,6 +4,7 @@ use clap::Args;
 use vize_canon::{ServerConfig, TsgoServer};
 
 #[derive(Args)]
+#[allow(clippy::disallowed_types)]
 pub struct CheckServerArgs {
     /// Unix socket path (if not specified, uses stdin/stdout)
     #[arg(long, short)]
@@ -20,8 +21,8 @@ pub struct CheckServerArgs {
 
 pub fn run(args: CheckServerArgs) {
     let config = ServerConfig {
-        tsgo_path: args.tsgo_path,
-        working_dir: args.working_dir,
+        tsgo_path: args.tsgo_path.map(Into::into),
+        working_dir: args.working_dir.map(Into::into),
     };
 
     let mut server = TsgoServer::with_config(config);

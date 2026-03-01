@@ -145,7 +145,9 @@ pub async fn serve_tcp(port: u16) -> Result<(), Box<dyn std::error::Error + Send
 
     tracing::info!("Starting vize_maestro LSP server on port {}", port);
 
-    let listener = TcpListener::bind(format!("127.0.0.1:{}", port)).await?;
+    #[allow(clippy::disallowed_macros)]
+    let addr = format!("127.0.0.1:{}", port);
+    let listener = TcpListener::bind(addr).await?;
     tracing::info!("Listening on 127.0.0.1:{}", port);
 
     let (stream, addr) = listener.accept().await?;

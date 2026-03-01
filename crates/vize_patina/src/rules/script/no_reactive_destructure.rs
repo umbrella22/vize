@@ -32,11 +32,14 @@
 //! someFunction(toRef(state, 'count'))
 //! ```
 
+#![allow(clippy::disallowed_macros)]
+
 use memchr::memmem;
 
 use crate::diagnostic::{LintDiagnostic, Severity};
 
 use super::{ScriptLintResult, ScriptRule, ScriptRuleMeta};
+use vize_carton::String;
 
 static META: ScriptRuleMeta = ScriptRuleMeta {
     name: "script/no-reactive-destructure",
@@ -152,7 +155,7 @@ impl ScriptRule for NoReactiveDestructure {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::NoReactiveDestructure;
     use crate::rules::script::ScriptLinter;
 
     fn create_linter() -> ScriptLinter {

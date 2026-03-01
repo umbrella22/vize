@@ -358,9 +358,9 @@ impl Rule for NoBrowserGlobalsInSsr {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use crate::context::SsrMode;
-    use crate::rule::RuleRegistry;
+    use super::NoBrowserGlobalsInSsr;
+    use crate::context::{LintContext, SsrMode};
+    use crate::rule::{Rule, RuleRegistry};
     use crate::Linter;
 
     fn lint_with_ssr(source: &str) -> Vec<String> {

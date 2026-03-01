@@ -9,6 +9,9 @@ use oxc_ast_visit::walk;
 use oxc_ast_visit::Visit;
 use oxc_parser::Parser;
 use oxc_span::SourceType;
+use vize_carton::cstr;
+use vize_carton::String;
+use vize_carton::ToCompactString;
 
 /// Offset adjustment for source map.
 #[derive(Debug, Clone)]
@@ -132,14 +135,14 @@ impl ImportRewriter {
         // Sort by offset descending (process from end to start)
         rewrites.sort_by(|a, b| b.0.cmp(&a.0));
 
-        let mut output = source.to_string();
+        let mut output = source.to_compact_string();
         let mut adjustments = Vec::new();
 
         for (start, end, new_path) in rewrites {
             let original_len = (end - start) as i32;
             let new_len = new_path.len() as i32;
 
-            output.replace_range(start as usize..end as usize, &new_path);
+            output.replace_range(start as usize..end as usize, new_path.as_str());
 
             adjustments.push(OffsetAdjustment {
                 original_offset: start,
@@ -160,7 +163,7 @@ impl ImportRewriter {
     fn rewrite_module_specifier(&self, path: &str) -> Option<String> {
         // Only rewrite relative .vue imports
         if path.ends_with(".vue") && (path.starts_with("./") || path.starts_with("../")) {
-            Some(format!("{}.ts", path))
+            Some(cstr!("{path}.ts"))
         } else {
             None
         }
@@ -193,7 +196,7 @@ impl<'a> Visit<'a> for DynamicImportCollector {
             self.imports.push((
                 lit.span.start + 1, // +1 to skip opening quote
                 lit.span.end - 1,   // -1 to skip closing quote
-                lit.value.to_string(),
+                lit.value.as_str().into(),
             ));
         }
         walk::walk_import_expression(self, expr);
@@ -202,7 +205,8 @@ impl<'a> Visit<'a> for DynamicImportCollector {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::ImportRewriter;
+    use oxc_span::SourceType;
 
     #[test]
     fn test_rewrite_default_import() {

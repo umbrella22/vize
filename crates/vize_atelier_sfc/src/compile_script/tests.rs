@@ -9,6 +9,7 @@ mod compile_script_tests {
     };
     use crate::compile_script::typescript::transform_typescript_to_js;
     use crate::types::SfcDescriptor;
+    use vize_carton::ToCompactString;
 
     #[test]
     fn test_compile_empty_script() {
@@ -35,13 +36,16 @@ mod compile_script_tests {
         let input = r#"withDefaults(defineProps<{ msg?: string }>(), { msg: "hello" })"#;
         let defaults = extract_with_defaults_defaults(input);
         eprintln!("Defaults: {:?}", defaults);
-        assert_eq!(defaults.get("msg"), Some(&r#""hello""#.to_string()));
+        assert_eq!(defaults.get("msg"), Some(&r#""hello""#.to_compact_string()));
 
         // Test multiple defaults
         let input2 = r#"withDefaults(defineProps<{ msg?: string, count?: number }>(), { msg: "hello", count: 42 })"#;
         let defaults2 = extract_with_defaults_defaults(input2);
-        assert_eq!(defaults2.get("msg"), Some(&r#""hello""#.to_string()));
-        assert_eq!(defaults2.get("count"), Some(&"42".to_string()));
+        assert_eq!(
+            defaults2.get("msg"),
+            Some(&r#""hello""#.to_compact_string())
+        );
+        assert_eq!(defaults2.get("count"), Some(&"42".to_compact_string()));
 
         // Test multiline input like AfCheckbox
         let input3 = r#"withDefaults(
@@ -57,8 +61,14 @@ mod compile_script_tests {
 )"#;
         let defaults3 = extract_with_defaults_defaults(input3);
         eprintln!("Defaults3: {:?}", defaults3);
-        assert_eq!(defaults3.get("label"), Some(&"undefined".to_string()));
-        assert_eq!(defaults3.get("color"), Some(&r#""primary""#.to_string()));
+        assert_eq!(
+            defaults3.get("label"),
+            Some(&"undefined".to_compact_string())
+        );
+        assert_eq!(
+            defaults3.get("color"),
+            Some(&r#""primary""#.to_compact_string())
+        );
     }
 
     #[test]

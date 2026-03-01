@@ -9,6 +9,7 @@ use super::error::{TsgoNotFoundError, TsgoResult};
 use super::type_checker::TypeCheckResult;
 use super::virtual_project::VirtualProject;
 use super::Diagnostic;
+use vize_carton::String;
 
 /// tsgo CLI executor.
 pub struct TsgoExecutor {
@@ -103,7 +104,8 @@ impl TsgoExecutor {
             .output()?;
 
         // Parse output
-        let stderr = String::from_utf8_lossy(&output.stderr);
+        #[allow(clippy::disallowed_types)]
+        let stderr = std::string::String::from_utf8_lossy(&output.stderr);
         let diagnostics = self.parse_tsgo_output(&stderr, project);
 
         let exit_code = output.status.code().unwrap_or(-1);
@@ -208,10 +210,10 @@ impl TsgoExecutor {
         };
 
         // Extract message
-        let message = if let Some(msg_start) = s.find(": ") {
-            s[msg_start + 2..].to_string()
+        let message: String = if let Some(msg_start) = s.find(": ") {
+            s[msg_start + 2..].into()
         } else {
-            s.to_string()
+            s.into()
         };
 
         Some((severity, code, message))
@@ -220,7 +222,8 @@ impl TsgoExecutor {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::TsgoExecutor;
+    use std::path::PathBuf;
 
     #[test]
     fn test_parse_location() {
@@ -244,13 +247,13 @@ mod tests {
         let (severity, code, message) = result.unwrap();
         assert_eq!(severity, 1);
         assert_eq!(code, Some(2304));
-        assert_eq!(message, "Cannot find name 'foo'.");
+        assert_eq!(message.as_str(), "Cannot find name 'foo'.");
 
         let result = executor.parse_message("warning TS2551: Did you mean 'bar'?");
         assert!(result.is_some());
         let (severity, code, message) = result.unwrap();
         assert_eq!(severity, 2);
         assert_eq!(code, Some(2551));
-        assert_eq!(message, "Did you mean 'bar'?");
+        assert_eq!(message.as_str(), "Did you mean 'bar'?");
     }
 }

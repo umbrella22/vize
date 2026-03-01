@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { mount } from "@vue/test-utils";
-import Button from "./components/Button.vue";
+import Button from "./shared/Button.vue";
 
 describe("Slot Test", () => {
   it("should mount Button with slot", () => {

@@ -161,7 +161,9 @@ pub fn has_dynamic_slots<'a>(el: &ElementNode<'a>) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::{
+        collect_slots, get_slot_name, has_v_slot, DirectiveNode, SourceLocation, TemplateChildNode,
+    };
     use crate::parser::parse;
     use bumpalo::Bump;
 
