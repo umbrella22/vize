@@ -130,6 +130,10 @@ sed -i.bak 's/^version = ".*"/version = "'"$NEW_VERSION"'"/' Cargo.toml
 sed -i.bak 's/version = "'"$CURRENT_VERSION"'"/version = "'"$NEW_VERSION"'"/g' Cargo.toml
 rm -f Cargo.toml.bak
 
+# Update Cargo.lock to reflect the new versions
+echo "Updating Cargo.lock..."
+cargo update --workspace
+
 # Update npm package versions
 echo "Updating npm packages..."
 for pkg in npm/*/; do
@@ -158,7 +162,7 @@ rm -f README.md.bak
 
 # Commit changes
 echo "Committing changes..."
-git add Cargo.toml npm/*/package.json README.md
+git add Cargo.toml Cargo.lock npm/*/package.json README.md
 # Add READMEs that are tracked (some may be gitignored)
 git add npm/*/README.md 2>/dev/null || true
 git commit -m "chore: release v$NEW_VERSION"
