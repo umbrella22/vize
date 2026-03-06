@@ -3468,6 +3468,7 @@ dependencies = [
  "vize_carton",
  "vize_croquis",
  "vize_glyph",
+ "vize_musea",
  "vize_patina",
  "vize_relief",
  "vize_vitrine",
