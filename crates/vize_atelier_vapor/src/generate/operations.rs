@@ -3,7 +3,7 @@
 //! Each function emits JavaScript code for a specific IR operation node.
 
 use crate::ir::{
-    ChildRefIRNode, ComponentKind, CreateComponentIRNode, DirectiveIRNode, ForIRNode,
+    BlockIRNode, ChildRefIRNode, ComponentKind, CreateComponentIRNode, DirectiveIRNode, ForIRNode,
     GetTextChildIRNode, IRSlot, IfIRNode, InsertNodeIRNode, NegativeBranch, NextRefIRNode,
     OperationNode, PrependNodeIRNode, SetDynamicPropsIRNode, SetEventIRNode, SetHtmlIRNode,
     SetPropIRNode, SetTemplateRefIRNode, SetTextIRNode, SlotOutletIRNode,
@@ -319,7 +319,7 @@ fn generate_set_html(ctx: &mut GenerateContext, set_html: &SetHtmlIRNode<'_>) {
     let value = if set_html.value.is_static {
         cstr!("\"{}\"", set_html.value.content)
     } else {
-        vize_carton::CompactString::from(set_html.value.content.as_str())
+        ctx.resolve_expression(set_html.value.content.as_str())
     };
 
     ctx.push_line_fmt(format_args!("{}.innerHTML = {}", element, value));
@@ -332,10 +332,17 @@ fn generate_set_template_ref(ctx: &mut GenerateContext, set_ref: &SetTemplateRef
     let value = if set_ref.value.is_static {
         cstr!("\"{}\"", set_ref.value.content)
     } else {
-        vize_carton::CompactString::from(set_ref.value.content.as_str())
+        ctx.resolve_expression(set_ref.value.content.as_str())
     };
 
-    ctx.push_line_fmt(format_args!("_setRef({}, {})", element, value));
+    if set_ref.ref_for {
+        ctx.push_line_fmt(format_args!(
+            "_setRef({}, {}, undefined, true)",
+            element, value
+        ));
+    } else {
+        ctx.push_line_fmt(format_args!("_setRef({}, {})", element, value));
+    }
 }
 
 /// Generate InsertNode
@@ -514,6 +521,7 @@ fn generate_if_inner(
     element_template_map: &FxHashMap<usize, usize>,
 ) {
     ctx.use_helper("createIf");
+    emit_insertion_state(ctx, if_node.parent, if_node.anchor);
 
     let condition = if if_node.condition.is_static {
         ["\"", if_node.condition.content.as_str(), "\""].concat()
@@ -536,7 +544,12 @@ fn generate_if_inner(
     let was_fragment = ctx.is_fragment;
     ctx.is_fragment = true;
     ctx.indent();
+    if block_requires_parent_insertion_state(&if_node.positive) {
+        emit_insertion_state(ctx, if_node.parent, if_node.anchor);
+    }
+    ctx.push_component_scope();
     generate_block(ctx, &if_node.positive, element_template_map);
+    ctx.pop_component_scope();
     ctx.deindent();
 
     if let Some(ref negative) = if_node.negative {
@@ -544,16 +557,25 @@ fn generate_if_inner(
             NegativeBranch::Block(block) => {
                 ctx.push_line("}, () => {");
                 ctx.indent();
+                if block_requires_parent_insertion_state(block) {
+                    emit_insertion_state(ctx, if_node.parent, if_node.anchor);
+                }
+                ctx.push_component_scope();
                 generate_block(ctx, block, element_template_map);
+                ctx.pop_component_scope();
                 ctx.deindent();
                 ctx.push_line("})");
             }
             NegativeBranch::If(nested_if) => {
-                // v-else-if: inline format without block wrapper
+                ctx.push_line("}, () => {");
+                ctx.indent();
+                emit_insertion_state(ctx, nested_if.parent, nested_if.anchor);
                 ctx.push_indent();
-                ctx.push("}, () => ");
+                ctx.push("return ");
                 generate_nested_if(ctx, nested_if, element_template_map);
-                ctx.push(")\n");
+                ctx.push("\n");
+                ctx.deindent();
+                ctx.push_line("})");
             }
         }
     } else {
@@ -581,7 +603,12 @@ fn generate_nested_if(
     ctx.push(&["_createIf(() => ", &condition, ", () => {\n"].concat());
 
     ctx.indent();
+    if block_requires_parent_insertion_state(&if_node.positive) {
+        emit_insertion_state(ctx, if_node.parent, if_node.anchor);
+    }
+    ctx.push_component_scope();
     generate_block(ctx, &if_node.positive, element_template_map);
+    ctx.pop_component_scope();
     ctx.deindent();
 
     if let Some(ref negative) = if_node.negative {
@@ -589,16 +616,27 @@ fn generate_nested_if(
             NegativeBranch::Block(block) => {
                 ctx.push_line("}, () => {");
                 ctx.indent();
+                if block_requires_parent_insertion_state(block) {
+                    emit_insertion_state(ctx, if_node.parent, if_node.anchor);
+                }
+                ctx.push_component_scope();
                 generate_block(ctx, block, element_template_map);
+                ctx.pop_component_scope();
                 ctx.deindent();
                 ctx.push_indent();
                 ctx.push("})");
             }
             NegativeBranch::If(nested_if) => {
+                ctx.push_line("}, () => {");
+                ctx.indent();
+                emit_insertion_state(ctx, nested_if.parent, nested_if.anchor);
                 ctx.push_indent();
-                ctx.push("}, () => ");
+                ctx.push("return ");
                 generate_nested_if(ctx, nested_if, element_template_map);
-                ctx.push(")");
+                ctx.push("\n");
+                ctx.deindent();
+                ctx.push_indent();
+                ctx.push("})");
             }
         }
     } else {
@@ -614,6 +652,7 @@ fn generate_for(
     element_template_map: &FxHashMap<usize, usize>,
 ) {
     ctx.use_helper("createFor");
+    emit_insertion_state(ctx, for_node.parent, for_node.anchor);
 
     let depth = ctx.for_scopes.len();
     let source = if for_node.source.is_static {
@@ -664,7 +703,12 @@ fn generate_for(
         .concat(),
     );
     ctx.indent();
+    if block_requires_parent_insertion_state(&for_node.render) {
+        emit_insertion_state(ctx, for_node.parent, for_node.anchor);
+    }
+    ctx.push_component_scope();
     generate_block(ctx, &for_node.render, element_template_map);
+    ctx.pop_component_scope();
     ctx.deindent();
 
     // Generate key function if key_prop is provided
@@ -750,7 +794,7 @@ fn generate_component_props_str(
             } else {
                 "undefined".to_compact_string()
             };
-            if key.contains(':') {
+            if should_quote_component_prop_key(key.as_str()) {
                 ["\"", key.as_str(), "\": ", &value].concat().into()
             } else {
                 [key.as_str(), ": ", &value].concat().into()
@@ -772,6 +816,23 @@ fn generate_component_props_str(
     } else {
         ["{ ", &prop_strs.join(", "), " }"].concat().into()
     }
+}
+
+fn should_quote_component_prop_key(key: &str) -> bool {
+    if key.contains(':') {
+        return true;
+    }
+
+    let mut chars = key.chars();
+    let Some(first) = chars.next() else {
+        return true;
+    };
+
+    if !first.is_alphabetic() && first != '_' && first != '$' {
+        return true;
+    }
+
+    chars.any(|ch| !ch.is_alphanumeric() && ch != '_' && ch != '$')
 }
 
 /// Generate a single slot function body
@@ -800,7 +861,9 @@ fn generate_slot_fn(
         ctx.push(&param);
     }
     ctx.indent();
+    ctx.push_component_scope();
     generate_block(ctx, &slot.block, element_template_map);
+    ctx.pop_component_scope();
     ctx.deindent();
     ctx.push_indent();
     ctx.push("}");
@@ -823,7 +886,7 @@ fn generate_create_component(
     let use_with_vapor_ctx = kind == ComponentKind::Suspense || kind == ComponentKind::KeepAlive;
 
     // Track if this component was already resolved by a parent (Suspense/KeepAlive)
-    let was_already_resolved = ctx.resolved_components.contains(tag);
+    let was_already_resolved = ctx.is_component_resolved(tag.as_str());
 
     // For Suspense/KeepAlive, resolve inner components FIRST (before the outer component)
     if use_with_vapor_ctx {
@@ -832,7 +895,7 @@ fn generate_create_component(
                 if let OperationNode::CreateComponent(inner_comp) = op {
                     if (inner_comp.kind == ComponentKind::Regular
                         || inner_comp.kind == ComponentKind::Suspense)
-                        && !ctx.resolved_components.contains(&inner_comp.tag)
+                        && !ctx.is_component_resolved(inner_comp.tag.as_str())
                     {
                         ctx.use_helper("resolveComponent");
                         ctx.push_line(&cstr!(
@@ -840,7 +903,7 @@ fn generate_create_component(
                             inner_comp.tag,
                             inner_comp.tag
                         ));
-                        ctx.resolved_components.insert(inner_comp.tag.clone());
+                        ctx.mark_component_resolved(inner_comp.tag.as_str());
                     }
                 }
             }
@@ -873,13 +936,13 @@ fn generate_create_component(
             ctx.use_helper("resolveComponent");
             ctx.use_helper("createComponentWithFallback");
             let comp_var: String = cstr!("_component_{}", tag);
-            if !ctx.resolved_components.contains(tag) {
+            if !ctx.is_component_resolved(tag.as_str()) {
                 ctx.push_line(&cstr!(
                     "const {} = _resolveComponent(\"{}\")",
                     comp_var,
                     tag
                 ));
-                ctx.resolved_components.insert(tag.clone());
+                ctx.mark_component_resolved(tag.as_str());
             }
             (comp_var, "createComponentWithFallback")
         }
@@ -887,13 +950,13 @@ fn generate_create_component(
             ctx.use_helper("resolveComponent");
             ctx.use_helper("createComponentWithFallback");
             let comp_var: String = cstr!("_component_{}", tag);
-            if !ctx.resolved_components.contains(tag) {
+            if !ctx.is_component_resolved(tag.as_str()) {
                 ctx.push_line(&cstr!(
                     "const {} = _resolveComponent(\"{}\")",
                     comp_var,
                     tag
                 ));
-                ctx.resolved_components.insert(tag.clone());
+                ctx.mark_component_resolved(tag.as_str());
             }
             (comp_var, "createComponentWithFallback")
         }
@@ -901,6 +964,8 @@ fn generate_create_component(
 
     let props = generate_component_props_str(ctx, component);
     let has_slots = !component.slots.is_empty();
+
+    emit_insertion_state(ctx, component.parent, component.anchor);
 
     // Check if this is a simple inner component (pre-resolved, no props, no slots)
     // In that case, emit simplified call: _createComponentWithFallback(_component_Foo)
@@ -994,6 +1059,31 @@ fn generate_create_component(
     }
 }
 
+fn emit_insertion_state(ctx: &mut GenerateContext, parent: Option<usize>, anchor: Option<usize>) {
+    let Some(parent_id) = parent else {
+        return;
+    };
+    ctx.use_helper("setInsertionState");
+    let anchor_expr = anchor
+        .map(|anchor_id| cstr!("n{}", anchor_id))
+        .unwrap_or_else(|| String::from("null"));
+    ctx.push_line(&cstr!(
+        "_setInsertionState(n{}, {}, true)",
+        parent_id,
+        anchor_expr
+    ));
+}
+
+fn block_requires_parent_insertion_state(block: &BlockIRNode<'_>) -> bool {
+    block.operation.iter().any(|op| match op {
+        OperationNode::If(if_node) => if_node.parent.is_none(),
+        OperationNode::For(for_node) => for_node.parent.is_none(),
+        OperationNode::CreateComponent(component) => component.parent.is_none(),
+        OperationNode::SlotOutlet(_) => true,
+        _ => false,
+    })
+}
+
 /// Generate SlotOutlet
 fn generate_slot_outlet(ctx: &mut GenerateContext, slot: &SlotOutletIRNode<'_>) {
     let name = ctx.next_temp();
@@ -1020,19 +1110,31 @@ fn generate_get_text_child(ctx: &mut GenerateContext, get_text: &GetTextChildIRN
 /// Generate ChildRef (_child helper)
 fn generate_child_ref(ctx: &mut GenerateContext, child_ref: &ChildRefIRNode) {
     ctx.use_helper("child");
-    ctx.push_line_fmt(format_args!(
-        "const n{} = _child(n{})",
-        child_ref.child_id, child_ref.parent_id
-    ));
+    if child_ref.offset == 0 {
+        ctx.push_line_fmt(format_args!(
+            "const n{} = _child(n{})",
+            child_ref.child_id, child_ref.parent_id
+        ));
+    } else {
+        ctx.use_helper("next");
+        let expr = build_next_chain(cstr!("_child(n{})", child_ref.parent_id), child_ref.offset);
+        ctx.push_line_fmt(format_args!("const n{} = {}", child_ref.child_id, expr));
+    }
 }
 
 /// Generate NextRef (_next helper)
 fn generate_next_ref(ctx: &mut GenerateContext, next_ref: &NextRefIRNode) {
     ctx.use_helper("next");
-    ctx.push_line_fmt(format_args!(
-        "const n{} = _next(n{}, {})",
-        next_ref.child_id, next_ref.prev_id, next_ref.offset
-    ));
+    let expr = build_next_chain(cstr!("n{}", next_ref.prev_id), next_ref.offset);
+    ctx.push_line_fmt(format_args!("const n{} = {}", next_ref.child_id, expr));
+}
+
+fn build_next_chain(base: String, offset: usize) -> String {
+    let mut expr = base;
+    for _ in 0..offset {
+        expr = cstr!("_next({})", expr);
+    }
+    expr
 }
 
 /// Check if handler is an inline statement (not a function reference)

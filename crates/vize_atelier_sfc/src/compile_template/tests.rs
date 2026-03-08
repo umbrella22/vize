@@ -4,13 +4,56 @@ use super::extraction::{extract_template_parts, extract_template_parts_full};
 use super::string_tracking::{
     count_braces_outside_strings, count_braces_with_state, StringTrackState,
 };
-use super::vapor::add_scope_id_to_template;
+use super::vapor::{add_scope_id_to_template, transform_vapor_template_output};
+use crate::types::{BlockLocation, SfcTemplateBlock};
+use std::borrow::Cow;
 
 #[test]
 fn test_add_scope_id_to_template() {
     let input = r#"const t0 = _template("<div class='container'>Hello</div>")"#;
     let result = add_scope_id_to_template(input, "data-v-abc123");
     assert!(result.contains("data-v-abc123"));
+}
+
+#[test]
+fn test_transform_vapor_template_output_current_render_format() {
+    let template = SfcTemplateBlock {
+        content: Cow::Borrowed("<div>{{ msg }}</div>"),
+        loc: BlockLocation {
+            start: 0,
+            end: 0,
+            tag_start: 0,
+            tag_end: 0,
+            start_line: 1,
+            start_column: 1,
+            end_line: 1,
+            end_column: 1,
+        },
+        lang: None,
+        src: None,
+        attrs: Default::default(),
+    };
+
+    let vapor_code = r#"import { template as _template } from 'vue/vapor';
+const t0 = _template("<div> </div>", true)
+
+export function render(_ctx) {
+  const n0 = t0()
+  return n0
+}"#;
+
+    let result = transform_vapor_template_output(vapor_code, None, &template, None)
+        .expect("current Vapor output should be transformed");
+
+    assert!(result.contains("from 'vue';"));
+    assert!(result.contains("function render(_ctx, $props, $emit, $attrs, $slots) {"));
+    assert!(result.contains("const n0 = t0()"));
+    assert!(result.contains("return n0"));
+    assert!(
+        !result.contains("export function render(_ctx)"),
+        "inner render function should be removed. Got:\n{}",
+        result
+    );
 }
 
 // --- count_braces_outside_strings tests ---
@@ -82,6 +125,44 @@ export function render(_ctx, _cache) {
     assert!(imports.contains("import"));
     assert!(hoisted.contains("_hoisted_1"));
     assert!(render_body.contains("_createVNode"));
+}
+
+#[test]
+fn test_extract_template_parts_vapor_template_declarations() {
+    let template_code = r#"import { template as _template, renderEffect as _renderEffect, setText as _setText } from 'vue'
+
+const t0 = _template("<div> </div>", true)
+
+function render(_ctx, $props, $emit, $attrs, $slots) {
+  const n0 = t0()
+  _renderEffect(() => _setText(n0, _ctx.msg))
+  return n0
+}"#;
+
+    let (_imports, hoisted, _preamble, render_body) = extract_template_parts(template_code);
+
+    assert!(hoisted.contains("const t0 = _template"));
+    assert!(render_body.contains("const n0 = t0()"));
+    assert!(render_body.contains("_renderEffect"));
+}
+
+#[test]
+fn test_extract_template_parts_full_preserves_vapor_top_level_side_effects() {
+    let template_code = r#"import { delegateEvents as _delegateEvents, template as _template } from 'vue'
+
+const t0 = _template("<button>ok</button>", true)
+_delegateEvents("click")
+
+function render(_ctx, $props, $emit, $attrs, $slots) {
+  const n0 = t0()
+  return n0
+}"#;
+
+    let (_imports, hoisted, render_fn) = extract_template_parts_full(template_code);
+
+    assert!(hoisted.contains("const t0 = _template"));
+    assert!(hoisted.contains("_delegateEvents(\"click\")"));
+    assert!(render_fn.contains("const n0 = t0()"));
 }
 
 // --- Multiline template literal tests ---

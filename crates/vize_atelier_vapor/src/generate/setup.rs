@@ -36,6 +36,7 @@ pub(crate) fn generate_imports(ctx: &GenerateContext) -> String {
             "txt" => 20,
             "toDisplayString" => 21,
             "setText" => 22,
+            "createTemplateRefSetter" => 23,
             "setClass" => 30,
             "setProp" => 31,
             "setStyle" => 32,

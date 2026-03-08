@@ -390,6 +390,9 @@ pub struct SfcCompileOptions {
     /// Style compile options
     pub style: StyleCompileOptions,
 
+    /// Whether to compile the SFC in Vapor mode
+    pub vapor: bool,
+
     /// External scope ID (8-char hex, without "data-v-" prefix).
     /// When provided, this scope ID is used instead of generating one from the filename.
     /// This ensures consistency with the JS-side scope ID generation (SHA-256).

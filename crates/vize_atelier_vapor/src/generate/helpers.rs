@@ -16,30 +16,32 @@ pub(crate) fn generate_effect(
     // If only one operation, use single-line format
     if effect.operations.len() == 1 {
         let op = &effect.operations[0];
-        let op_code = generate_operation_inline(ctx, op);
-        ctx.push_line_fmt(format_args!("_renderEffect(() => {op_code})"));
-    } else {
-        ctx.push_line("_renderEffect(() => {");
-        ctx.indent();
-
-        for op in effect.operations.iter() {
-            generate_operation(ctx, op, element_template_map);
+        if let Some(op_code) = generate_operation_inline(ctx, op) {
+            ctx.push_line_fmt(format_args!("_renderEffect(() => {op_code})"));
+            return;
         }
-
-        ctx.deindent();
-        ctx.push_line("})");
     }
+
+    ctx.push_line("_renderEffect(() => {");
+    ctx.indent();
+
+    for op in effect.operations.iter() {
+        generate_operation(ctx, op, element_template_map);
+    }
+
+    ctx.deindent();
+    ctx.push_line("})");
 }
 
 /// Generate operation inline (returns code string)
 pub(crate) fn generate_operation_inline(
     ctx: &mut GenerateContext,
     op: &OperationNode<'_>,
-) -> String {
+) -> Option<String> {
     match op {
-        OperationNode::SetProp(set_prop) => generate_set_prop_inline(ctx, set_prop),
+        OperationNode::SetProp(set_prop) => Some(generate_set_prop_inline(ctx, set_prop)),
         OperationNode::SetDynamicProps(set_props) => {
-            generate_set_dynamic_props_inline(ctx, set_props)
+            Some(generate_set_dynamic_props_inline(ctx, set_props))
         }
         OperationNode::SetText(set_text) => {
             ctx.use_helper("setText");
@@ -54,7 +56,7 @@ pub(crate) fn generate_operation_inline(
                 .iter()
                 .map(|v| {
                     if v.is_static {
-                        cstr!("\"{}\"", v.content)
+                        cstr!("\"{}\"", escape_text_literal(v.content.as_str()))
                     } else {
                         ctx.use_helper("toDisplayString");
                         let resolved = ctx.resolve_expression(&v.content);
@@ -64,12 +66,12 @@ pub(crate) fn generate_operation_inline(
                 .collect();
 
             if values.len() == 1 {
-                cstr!("_setText({text_ref}, {})", values[0])
+                Some(cstr!("_setText({text_ref}, {})", values[0]))
             } else {
-                cstr!("_setText({text_ref}, {})", values.join(" + "))
+                Some(cstr!("_setText({text_ref}, {})", values.join(" + ")))
             }
         }
-        _ => String::from("/* unsupported */"),
+        _ => None,
     }
 }
 
@@ -176,4 +178,13 @@ fn generate_set_dynamic_props_inline(
             .collect();
         cstr!("_setDynamicProps({element}, [{}])", props_parts.join(", "))
     }
+}
+
+fn escape_text_literal(text: &str) -> String {
+    text.replace('\\', "\\\\")
+        .replace('"', "\\\"")
+        .replace('\n', "\\n")
+        .replace('\r', "\\r")
+        .replace('\t', "\\t")
+        .into()
 }

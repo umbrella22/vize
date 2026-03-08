@@ -7,11 +7,12 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "vitest",
+    "test": "pnpm test:node && vitest run",
+    "test:node": "vitest run --config vitest.node.config.ts",
     "test:browser": "vitest --browser.headless",
     "test:vrt": "playwright test",
     "test:vrt:update": "playwright test --update-snapshots",
-    "lint": "oxlint --deny-warnings --type-aware --tsconfig tsconfig.json && vize lint",
+    "lint": "oxlint --deny-warnings --type-aware --tsconfig tsconfig.json src e2e vite.config.ts vitest.config.ts vitest.node.config.ts playwright.config.ts && vize lint",
     "lint:fix": "oxlint --type-aware --tsconfig tsconfig.json --fix",
     "fmt": "oxfmt --write src",
     "fmt:check": "oxfmt src",
@@ -23,7 +24,7 @@
     "prettier": "^3.7.4",
     "shiki": "^1.24.0",
     "typescript": "^5.7.0",
-    "vue": "^3.5.0"
+    "vue": "3.6.0-beta.1"
   },
   "devDependencies": {
     "@playwright/test": "^1.58.2",

@@ -4,5 +4,5 @@
     "no-unused-vars": "warn",
     "no-console": "off"
   },
-  "ignorePatterns": ["dist", "node_modules", "src/wasm"]
+  "ignorePatterns": ["dist", "node_modules", "src/wasm", "__agent_only", "../__agent_only"]
 }

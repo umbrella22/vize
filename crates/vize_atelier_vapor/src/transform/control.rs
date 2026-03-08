@@ -18,6 +18,26 @@ pub(crate) fn transform_if_node<'a>(
     if_node: &IfNode<'a>,
     block: &mut BlockIRNode<'a>,
 ) {
+    transform_if_node_with_options(ctx, if_node, block, None, None, true);
+}
+
+pub(crate) fn transform_if_node_into_parent<'a>(
+    ctx: &mut TransformContext<'a>,
+    if_node: &IfNode<'a>,
+    block: &mut BlockIRNode<'a>,
+    parent: usize,
+) {
+    transform_if_node_with_options(ctx, if_node, block, Some(parent), None, false);
+}
+
+fn transform_if_node_with_options<'a>(
+    ctx: &mut TransformContext<'a>,
+    if_node: &IfNode<'a>,
+    block: &mut BlockIRNode<'a>,
+    parent: Option<usize>,
+    anchor: Option<usize>,
+    add_return: bool,
+) {
     if if_node.branches.is_empty() {
         return;
     }
@@ -62,7 +82,12 @@ pub(crate) fn transform_if_node<'a>(
 
     // Handle remaining branches (v-else-if, v-else)
     let negative = if if_node.branches.len() > 1 {
-        Some(transform_remaining_branches(ctx, &if_node.branches[1..]))
+        Some(transform_remaining_branches(
+            ctx,
+            &if_node.branches[1..],
+            parent,
+            anchor,
+        ))
     } else {
         None
     };
@@ -73,20 +98,24 @@ pub(crate) fn transform_if_node<'a>(
         positive,
         negative,
         once: false,
-        parent: None,
-        anchor: None,
+        parent,
+        anchor,
     };
 
     block
         .operation
         .push(OperationNode::If(Box::new_in(ir_if, ctx.allocator)));
-    block.returns.push(if_id);
+    if add_return {
+        block.returns.push(if_id);
+    }
 }
 
 /// Transform remaining if branches (v-else-if, v-else)
 pub(crate) fn transform_remaining_branches<'a>(
     ctx: &mut TransformContext<'a>,
     branches: &[vize_atelier_core::IfBranchNode<'a>],
+    parent: Option<usize>,
+    anchor: Option<usize>,
 ) -> NegativeBranch<'a> {
     if branches.is_empty() {
         // This shouldn't happen, but return an empty block just in case
@@ -126,7 +155,12 @@ pub(crate) fn transform_remaining_branches<'a>(
         let negative = if branches.len() > 1 {
             // Consume ID for negative branch callback block
             let _negative_block_id = ctx.next_id();
-            Some(transform_remaining_branches(ctx, &branches[1..]))
+            Some(transform_remaining_branches(
+                ctx,
+                &branches[1..],
+                parent,
+                anchor,
+            ))
         } else {
             None
         };
@@ -137,8 +171,8 @@ pub(crate) fn transform_remaining_branches<'a>(
             positive,
             negative,
             once: false,
-            parent: None,
-            anchor: None,
+            parent,
+            anchor,
         };
 
         NegativeBranch::If(Box::new_in(nested_if, ctx.allocator))
@@ -154,6 +188,26 @@ pub(crate) fn transform_for_node<'a>(
     ctx: &mut TransformContext<'a>,
     for_node: &ForNode<'a>,
     block: &mut BlockIRNode<'a>,
+) {
+    transform_for_node_with_options(ctx, for_node, block, None, None, true);
+}
+
+pub(crate) fn transform_for_node_into_parent<'a>(
+    ctx: &mut TransformContext<'a>,
+    for_node: &ForNode<'a>,
+    block: &mut BlockIRNode<'a>,
+    parent: usize,
+) {
+    transform_for_node_with_options(ctx, for_node, block, Some(parent), None, false);
+}
+
+fn transform_for_node_with_options<'a>(
+    ctx: &mut TransformContext<'a>,
+    for_node: &ForNode<'a>,
+    block: &mut BlockIRNode<'a>,
+    parent: Option<usize>,
+    anchor: Option<usize>,
+    add_return: bool,
 ) {
     // Allocate for-node ID first (before children consume IDs)
     let for_id = ctx.next_id();
@@ -199,12 +253,16 @@ pub(crate) fn transform_for_node<'a>(
         once: false,
         component: false,
         only_child: for_node.children.len() == 1,
+        parent,
+        anchor,
     };
 
     block
         .operation
         .push(OperationNode::For(Box::new_in(ir_for, ctx.allocator)));
-    block.returns.push(for_id);
+    if add_return {
+        block.returns.push(for_id);
+    }
 }
 
 /// Clone an ExpressionNode into a SimpleExpressionNode

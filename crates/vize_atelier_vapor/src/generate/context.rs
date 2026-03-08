@@ -1,6 +1,8 @@
 //! Code generation context that tracks state during Vapor code emission.
 
+use super::expression;
 use vize_carton::{cstr, FxHashMap, FxHashSet, String, ToCompactString};
+use vize_croquis::builtins::is_global_allowed;
 
 /// For-loop scope entry
 #[derive(Debug, Clone)]
@@ -51,6 +53,8 @@ pub(crate) struct GenerateContext<'a> {
     pub(crate) slot_scope_count: usize,
     /// Components that have already been resolved (to avoid duplicate resolveComponent calls)
     pub(crate) resolved_components: FxHashSet<String>,
+    /// Component resolutions created inside callback scopes and removed on exit.
+    resolved_component_scopes: std::vec::Vec<std::vec::Vec<String>>,
     /// Element IDs that are standalone text nodes (no _txt needed)
     pub(crate) standalone_text_elements: &'a FxHashSet<usize>,
 }
@@ -73,96 +77,18 @@ impl<'a> GenerateContext<'a> {
             slot_scopes: std::vec::Vec::new(),
             slot_scope_count: 0,
             resolved_components: FxHashSet::default(),
+            resolved_component_scopes: std::vec::Vec::new(),
             standalone_text_elements,
         }
     }
 
     /// Resolve an expression, replacing for-loop aliases with _for_item/key references
     pub(crate) fn resolve_expression(&self, expr: &str) -> String {
-        let trimmed = expr.trim();
-
-        // Don't prefix numeric literals
-        if trimmed.parse::<f64>().is_ok() {
-            return trimmed.to_compact_string();
-        }
-
-        // Don't prefix string literals
-        if (trimmed.starts_with('"') && trimmed.ends_with('"'))
-            || (trimmed.starts_with('\'') && trimmed.ends_with('\''))
-        {
-            return trimmed.to_compact_string();
-        }
-
-        // Handle negation
-        if let Some(rest) = trimmed.strip_prefix('!') {
-            let inner = self.resolve_expression(rest.trim());
-            return cstr!("!{}", inner);
-        }
-
-        // Don't prefix object/array literals - prefix inner expressions instead
-        if trimmed.starts_with('{') || trimmed.starts_with('[') {
-            return self.resolve_complex_expression(trimmed);
-        }
-
-        // Check for-loop scopes (innermost first)
-        for scope in self.for_scopes.iter().rev() {
-            if let Some(ref value_alias) = scope.value_alias {
-                let for_var = cstr!("_for_item{}", scope.depth);
-
-                // Check if this is a destructured alias like "{ id, name }"
-                if value_alias.starts_with('{') || value_alias.starts_with('(') {
-                    // Parse destructured names
-                    let names = parse_destructure_names(value_alias.as_str());
-                    for name in &names {
-                        if trimmed == *name {
-                            return cstr!("{}.value.{}", for_var, name);
-                        }
-                        let member_prefix = [*name, "."].concat();
-                        if trimmed.starts_with(&member_prefix) {
-                            return cstr!("{}.value.{}", for_var, trimmed);
-                        }
-                    }
-                } else {
-                    // Simple alias
-                    if trimmed == value_alias.as_str() {
-                        return cstr!("{}.value", for_var);
-                    }
-                    let prefix = [value_alias.as_str(), "."].concat();
-                    if trimmed.starts_with(&prefix) {
-                        return cstr!("{}.value.{}", for_var, &trimmed[prefix.len()..]);
-                    }
-                }
-            }
-            if let Some(ref key_alias) = scope.key_alias {
-                let for_key_var = cstr!("_for_key{}", scope.depth);
-                if trimmed == key_alias.as_str() {
-                    return cstr!("{}.value", for_key_var);
-                }
-                let prefix = [key_alias.as_str(), "."].concat();
-                if trimmed.starts_with(&prefix) {
-                    return cstr!("{}.value.{}", for_key_var, &trimmed[prefix.len()..]);
-                }
-            }
-        }
-        // Check slot scopes (innermost first)
-        for scope in self.slot_scopes.iter().rev() {
-            for name in &scope.names {
-                if trimmed == name.as_str() {
-                    return cstr!("{}.{}", scope.slot_props_var, name);
-                }
-                let member_prefix = [name.as_str(), "."].concat();
-                if trimmed.starts_with(&member_prefix) {
-                    return cstr!("{}.{}", scope.slot_props_var, trimmed);
-                }
-            }
-        }
-
-        // Not a for-loop or slot variable, use _ctx prefix
-        cstr!("_ctx.{}", trimmed)
+        expression::resolve_expression(self, expr)
     }
 
     /// Resolve complex expressions (object/array literals) by prefixing identifiers inside
-    fn resolve_complex_expression(&self, expr: &str) -> String {
+    pub(super) fn resolve_complex_expression_fallback(&self, expr: &str) -> String {
         let mut result = String::default();
         let mut chars = expr.chars().peekable();
         let mut in_string = false;
@@ -269,6 +195,75 @@ impl<'a> GenerateContext<'a> {
         result
     }
 
+    pub(super) fn resolve_scope_binding(&self, name: &str) -> Option<String> {
+        for scope in self.for_scopes.iter().rev() {
+            if let Some(ref value_alias) = scope.value_alias {
+                let for_var = cstr!("_for_item{}", scope.depth);
+
+                if value_alias.starts_with('{') || value_alias.starts_with('(') {
+                    let names = parse_destructure_names(value_alias.as_str());
+                    for binding_name in &names {
+                        if name == *binding_name {
+                            return Some(cstr!("{}.value.{}", for_var, binding_name));
+                        }
+                    }
+                } else if name == value_alias.as_str() {
+                    return Some(cstr!("{}.value", for_var));
+                }
+            }
+
+            if let Some(ref key_alias) = scope.key_alias {
+                if name == key_alias.as_str() {
+                    return Some(cstr!("_for_key{}.value", scope.depth));
+                }
+            }
+        }
+
+        for scope in self.slot_scopes.iter().rev() {
+            for slot_name in &scope.names {
+                if name == slot_name.as_str() {
+                    return Some(cstr!("{}.{}", scope.slot_props_var, slot_name));
+                }
+            }
+        }
+
+        None
+    }
+
+    pub(super) fn resolve_simple_reference(&self, expr: &str) -> String {
+        if let Some((head, tail)) = expr.split_once('.') {
+            if let Some(replacement) = self.resolve_scope_binding(head) {
+                let mut resolved = replacement;
+                resolved.push('.');
+                resolved.push_str(tail);
+                return resolved;
+            }
+
+            if is_global_allowed(head)
+                || matches!(head, "_ctx" | "$props" | "$slots" | "$attrs" | "$emit")
+            {
+                return expr.to_compact_string();
+            }
+
+            let mut resolved = String::with_capacity(expr.len() + 5);
+            resolved.push_str("_ctx.");
+            resolved.push_str(expr);
+            return resolved;
+        }
+
+        if let Some(replacement) = self.resolve_scope_binding(expr) {
+            return replacement;
+        }
+
+        if is_global_allowed(expr)
+            || matches!(expr, "_ctx" | "$props" | "$slots" | "$attrs" | "$emit")
+        {
+            return expr.to_compact_string();
+        }
+
+        cstr!("_ctx.{}", expr)
+    }
+
     pub(crate) fn add_delegate_event(&mut self, event_name: &str) {
         self.delegate_events.insert(event_name.to_compact_string());
     }
@@ -284,6 +279,33 @@ impl<'a> GenerateContext<'a> {
 
     pub(crate) fn use_helper(&mut self, name: &'static str) {
         self.used_helpers.insert(name);
+    }
+
+    pub(crate) fn push_component_scope(&mut self) {
+        self.resolved_component_scopes.push(std::vec::Vec::new());
+    }
+
+    pub(crate) fn pop_component_scope(&mut self) {
+        let Some(added_components) = self.resolved_component_scopes.pop() else {
+            return;
+        };
+
+        for component in added_components {
+            self.resolved_components.remove(&component);
+        }
+    }
+
+    pub(crate) fn is_component_resolved(&self, component: &str) -> bool {
+        self.resolved_components.contains(component)
+    }
+
+    pub(crate) fn mark_component_resolved(&mut self, component: &str) {
+        let component = component.to_compact_string();
+        if self.resolved_components.insert(component.clone()) {
+            if let Some(scope) = self.resolved_component_scopes.last_mut() {
+                scope.push(component);
+            }
+        }
     }
 
     pub(crate) fn push(&mut self, s: &str) {

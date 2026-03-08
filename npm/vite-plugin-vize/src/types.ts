@@ -9,6 +9,7 @@ export interface SfcCompileOptionsNapi {
   filename?: string;
   sourceMap?: boolean;
   ssr?: boolean;
+  vapor?: boolean;
   scopeId?: string;
 }
 
@@ -159,6 +160,7 @@ export interface BatchFileResult {
 
 export interface BatchCompileOptionsNapi {
   ssr?: boolean;
+  vapor?: boolean;
   threads?: number;
 }
 

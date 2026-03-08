@@ -61,6 +61,7 @@ export function createPostTransformPlugin(state: VizePluginState): Plugin {
             {
               sourceMap: state.mergedOptions?.sourceMap ?? !(state.isProduction ?? false),
               ssr: state.mergedOptions?.ssr ?? false,
+              vapor: state.mergedOptions?.vapor ?? false,
             },
             code,
           );

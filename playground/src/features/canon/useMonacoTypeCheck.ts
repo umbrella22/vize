@@ -60,11 +60,15 @@ export function useMonacoTypeCheck({
   let virtualTsModel: monaco.editor.ITextModel | null = null;
   let cachedSourceMap: SourceMapEntry[] = [];
   let hoverProviderDisposable: monaco.IDisposable | null = null;
+  let hasConfiguredTypeScript = false;
+  let isTypeScriptReady = false;
+  let typeScriptReadyPromise: Promise<boolean> | null = null;
 
   const VIRTUAL_TS_URI = monaco.Uri.parse("ts:virtual-sfc.ts");
 
-  // Configure Monaco TypeScript compiler
-  async function configureTypeScript() {
+  function applyTypeScriptDefaults() {
+    if (hasConfiguredTypeScript) return;
+
     monaco.languages.typescript.typescriptDefaults.setCompilerOptions({
       target: monaco.languages.typescript.ScriptTarget.ESNext,
       module: monaco.languages.typescript.ModuleKind.ESNext,
@@ -83,11 +87,62 @@ export function useMonacoTypeCheck({
       VUE_GLOBALS_DECLARATIONS,
       "vue.d.ts",
     );
+    hasConfiguredTypeScript = true;
+  }
+
+  function isTypeScriptRegistrationError(error: unknown): boolean {
+    return String(error).includes("TypeScript not registered");
+  }
+
+  async function waitForTypeScriptReady(): Promise<boolean> {
+    if (!virtualTsModel) {
+      virtualTsModel = monaco.editor.createModel("", "typescript", VIRTUAL_TS_URI);
+    }
+
+    for (let attempt = 0; attempt < 10; attempt++) {
+      try {
+        const worker = await monaco.languages.typescript.getTypeScriptWorker();
+        await worker(VIRTUAL_TS_URI);
+        return true;
+      } catch (error) {
+        if (!isTypeScriptRegistrationError(error)) {
+          throw error;
+        }
+        await new Promise((resolve) => setTimeout(resolve, 50));
+      }
+    }
+
+    return false;
+  }
+
+  // Configure Monaco TypeScript compiler
+  async function configureTypeScript(): Promise<boolean> {
+    applyTypeScriptDefaults();
+
+    if (isTypeScriptReady) return true;
+    if (typeScriptReadyPromise) return typeScriptReadyPromise;
+
+    typeScriptReadyPromise = waitForTypeScriptReady()
+      .then((ready) => {
+        isTypeScriptReady = ready;
+        return ready;
+      })
+      .finally(() => {
+        typeScriptReadyPromise = null;
+      });
+
+    return typeScriptReadyPromise;
+  }
+
+  async function ensureTypeScriptReady(): Promise<boolean> {
+    if (isTypeScriptReady) return true;
+    return configureTypeScript();
   }
 
   // Get hover info from TypeScript at a given position in Virtual TS
   async function getTypeScriptHover(genOffset: number): Promise<string | null> {
     if (!virtualTsModel) return null;
+    if (!(await ensureTypeScriptReady())) return null;
     try {
       const worker = await monaco.languages.typescript.getTypeScriptWorker();
       const client = await worker(VIRTUAL_TS_URI);
@@ -105,6 +160,10 @@ export function useMonacoTypeCheck({
       }
       return parts.length > 0 ? parts.join("\n\n") : null;
     } catch (e) {
+      if (isTypeScriptRegistrationError(e)) {
+        isTypeScriptReady = false;
+        return null;
+      }
       console.error("Failed to get TypeScript hover:", e);
       return null;
     }
@@ -177,6 +236,8 @@ export function useMonacoTypeCheck({
       virtualTsModel = monaco.editor.createModel(virtualTs, "typescript", VIRTUAL_TS_URI);
     }
 
+    if (!(await ensureTypeScriptReady())) return [];
+
     try {
       const worker = await monaco.languages.typescript.getTypeScriptWorker();
       const client = await worker(VIRTUAL_TS_URI);
@@ -220,6 +281,10 @@ export function useMonacoTypeCheck({
         };
       });
     } catch (e) {
+      if (isTypeScriptRegistrationError(e)) {
+        isTypeScriptReady = false;
+        return [];
+      }
       console.error("Failed to get TypeScript diagnostics:", e);
       return [];
     }

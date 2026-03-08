@@ -3,6 +3,7 @@
 //! Generates JavaScript code from Vapor IR.
 
 mod context;
+mod expression;
 mod helpers;
 mod operations;
 mod setup;
@@ -96,6 +97,11 @@ pub fn generate_vapor(ir: &RootIRNode<'_>) -> VaporGenerateResult {
     ctx.push_line("export function render(_ctx) {");
     ctx.indent();
 
+    if block_has_template_refs(&ir.block) {
+        ctx.use_helper("createTemplateRefSetter");
+        ctx.push_line("const _setRef = _ctx.vaporTemplateRefSetter || _createTemplateRefSetter()");
+    }
+
     // Generate block content (includes template instantiation, text nodes, operations, effects, return)
     generate_block(&mut ctx, &ir.block, &ir.element_template_map);
 
@@ -133,6 +139,46 @@ pub fn generate_vapor(ir: &RootIRNode<'_>) -> VaporGenerateResult {
     VaporGenerateResult {
         code: final_code,
         templates: ir.templates.iter().cloned().collect(),
+    }
+}
+
+fn block_has_template_refs(block: &BlockIRNode<'_>) -> bool {
+    block.operation.iter().any(operation_has_template_refs)
+        || block
+            .effect
+            .iter()
+            .any(|effect| effect.operations.iter().any(operation_has_template_refs))
+}
+
+fn operation_has_template_refs(op: &OperationNode<'_>) -> bool {
+    match op {
+        OperationNode::SetTemplateRef(_) => true,
+        OperationNode::If(if_node) => {
+            block_has_template_refs(&if_node.positive)
+                || if_node
+                    .negative
+                    .as_ref()
+                    .is_some_and(negative_branch_has_template_refs)
+        }
+        OperationNode::For(for_node) => block_has_template_refs(&for_node.render),
+        OperationNode::CreateComponent(component) => component
+            .slots
+            .iter()
+            .any(|slot| block_has_template_refs(&slot.block)),
+        _ => false,
+    }
+}
+
+fn negative_branch_has_template_refs(branch: &crate::ir::NegativeBranch<'_>) -> bool {
+    match branch {
+        crate::ir::NegativeBranch::Block(block) => block_has_template_refs(block),
+        crate::ir::NegativeBranch::If(if_node) => {
+            block_has_template_refs(&if_node.positive)
+                || if_node
+                    .negative
+                    .as_ref()
+                    .is_some_and(negative_branch_has_template_refs)
+        }
     }
 }
 
@@ -182,30 +228,6 @@ fn generate_block(
                 }
             }
         }
-    }
-
-    // Check if we need setInsertionState for nested v-if/v-for
-    let has_control_flow = block
-        .operation
-        .iter()
-        .any(|op| matches!(op, OperationNode::If(_) | OperationNode::For(_)));
-    let parent_element = if has_control_flow && ctx.is_fragment {
-        // Find the parent template element (first element in returns that has a template)
-        block
-            .returns
-            .iter()
-            .find(|id| element_template_map.contains_key(id))
-            .copied()
-    } else {
-        None
-    };
-
-    if let Some(parent_id) = parent_element {
-        ctx.use_helper("setInsertionState");
-        ctx.push_line_fmt(format_args!(
-            "_setInsertionState(n{}, null, true)",
-            parent_id
-        ));
     }
 
     // Generate remaining operations (skip ChildRef/NextRef already generated above)

@@ -40,6 +40,12 @@ pub(crate) fn transform_directive<'a>(
 
             if let Some(ref arg) = dir.arg {
                 if let ExpressionNode::Simple(key_exp) = arg {
+                    if el.tag_type == ElementType::Element
+                        && matches!(key_exp.content.as_str(), "ref" | "ref_for" | "ref_key")
+                    {
+                        return;
+                    }
+
                     // Dynamic attribute name (e.g. :[attr]="value") -> SetDynamicProps
                     if !key_exp.is_static {
                         if let Some(ref exp) = dir.exp {
@@ -302,6 +308,8 @@ pub(crate) fn transform_directive<'a>(
                         once: false,
                         component: el.tag_type == ElementType::Component,
                         only_child: false,
+                        parent: None,
+                        anchor: None,
                     };
 
                     block

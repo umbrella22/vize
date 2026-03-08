@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import "./MonacoEditor.css";
-import { ref, watch, onMounted, onUnmounted, shallowRef, inject, type ComputedRef } from "vue";
+import { useTemplateRef, watch, onUnmounted, shallowRef, inject, type ComputedRef } from "vue";
 import * as monaco from "monaco-editor";
 import { configureMonaco, addVueCommentAction } from "./monacoConfig";
 import {
@@ -38,7 +38,7 @@ const emit = defineEmits<{
   "update:modelValue": [string];
 }>();
 
-const containerRef = ref<HTMLDivElement | null>(null);
+const containerRef = useTemplateRef<HTMLDivElement>("containerRef");
 const editorInstance = shallowRef<monaco.editor.IStandaloneCodeEditor | null>(null);
 const _injectedTheme = inject<ComputedRef<"dark" | "light">>("theme", undefined as any);
 const resolvedTheme = () => _injectedTheme?.value ?? props.theme ?? "light";
@@ -115,12 +115,13 @@ function setValue(value: string) {
   }
 }
 
-onMounted(() => {
-  if (!containerRef.value) return;
-
+function mountEditor(container: HTMLDivElement) {
+  if (editorInstance.value) {
+    return;
+  }
   configureMonaco();
 
-  const editor = monaco.editor.create(containerRef.value, {
+  const editor = monaco.editor.create(container, {
     value: props.modelValue,
     language: props.language,
     theme: resolvedTheme() === "light" ? "vue-light" : "vue-dark",
@@ -139,7 +140,7 @@ onMounted(() => {
   editorInstance.value = editor;
 
   // Store on DOM for vite-plugin-vize workaround (ref binding may fail)
-  (containerRef.value as any).__monacoEditor = editor;
+  (container as any).__monacoEditor = editor;
 
   editor.onDidChangeModelContent(() => {
     const value = editor.getValue() || "";
@@ -157,7 +158,17 @@ onMounted(() => {
   if (props.diagnostics && props.diagnostics.length > 0) {
     applyDiagnostics(props.diagnostics);
   }
-});
+}
+
+watch(
+  containerRef,
+  (container) => {
+    if (container) {
+      mountEditor(container);
+    }
+  },
+  { immediate: true, flush: "post" },
+);
 
 onUnmounted(() => {
   editorInstance.value?.dispose();

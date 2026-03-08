@@ -34,6 +34,7 @@ pub struct SfcCompileOptionsNapi {
     pub filename: Option<String>,
     pub source_map: Option<bool>,
     pub ssr: Option<bool>,
+    pub vapor: Option<bool>,
     /// Preserve TypeScript in output when true
     pub is_ts: Option<bool>,
     /// Scope ID for scoped CSS (e.g., "data-v-abc123")
@@ -64,6 +65,7 @@ pub struct SfcCompileResultNapi {
 #[derive(Default)]
 pub struct BatchCompileOptionsNapi {
     pub ssr: Option<bool>,
+    pub vapor: Option<bool>,
     /// Preserve TypeScript in output when true
     pub is_ts: Option<bool>,
     pub threads: Option<u32>,
@@ -257,6 +259,7 @@ pub fn compile_sfc(
 
     // Compile
     let has_scoped = descriptor.styles.iter().any(|s| s.scoped);
+    let vapor = opts.vapor.unwrap_or(false);
     let is_ts = opts.is_ts.unwrap_or(false);
 
     // Extract scope_id from options (strip "data-v-" prefix if present)
@@ -300,6 +303,7 @@ pub fn compile_sfc(
             scoped: has_scoped,
             ..Default::default()
         },
+        vapor,
         scope_id: external_scope_id,
     };
 
@@ -347,6 +351,7 @@ pub fn compile_sfc_batch(
 
     let opts = options.unwrap_or_default();
     let ssr = opts.ssr.unwrap_or(false);
+    let vapor = opts.vapor.unwrap_or(false);
     let is_ts = opts.is_ts.unwrap_or(false);
 
     // Configure thread pool if specified
@@ -435,6 +440,7 @@ pub fn compile_sfc_batch(
                 scoped: has_scoped,
                 ..Default::default()
             },
+            vapor,
             scope_id: None,
         };
 
@@ -475,6 +481,7 @@ pub fn compile_sfc_batch_with_results(
 
     let opts = options.unwrap_or_default();
     let ssr = opts.ssr.unwrap_or(false);
+    let vapor = opts.vapor.unwrap_or(false);
     let is_ts = opts.is_ts.unwrap_or(false);
 
     // Configure thread pool if specified
@@ -582,6 +589,7 @@ pub fn compile_sfc_batch_with_results(
                 scoped: actual_has_scoped,
                 ..Default::default()
             },
+            vapor,
             scope_id: Some(scope_id.clone()),
         };
 

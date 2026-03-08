@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch, onMounted } from "vue";
+import { useTemplateRef, watch } from "vue";
 import { createHighlighter, type Highlighter, type ThemeRegistration } from "shiki";
 
 const props = defineProps<{
@@ -74,11 +74,26 @@ const vizeLightTheme: ThemeRegistration = {
   ],
 };
 
-const codeContentEl = ref<HTMLDivElement | null>(null);
-const lineNumbersEl = ref<HTMLDivElement | null>(null);
-let highlighter: Highlighter | null = null;
-let highlighterPromise: Promise<Highlighter> | null = null;
+const codeContentEl = useTemplateRef<HTMLDivElement>("codeContentEl");
+const lineNumbersEl = useTemplateRef<HTMLDivElement>("lineNumbersEl");
 let latestRenderId = 0;
+
+type SharedHighlighterState = {
+  highlighter: Highlighter | null;
+  highlighterPromise: Promise<Highlighter> | null;
+};
+
+type SharedGlobal = typeof globalThis & {
+  __vizeCodeHighlightState?: SharedHighlighterState;
+};
+
+const sharedGlobal = globalThis as SharedGlobal;
+const sharedState =
+  sharedGlobal.__vizeCodeHighlightState ??
+  (sharedGlobal.__vizeCodeHighlightState = {
+    highlighter: null,
+    highlighterPromise: null,
+  });
 
 function escapeHtml(value: string): string {
   return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -123,19 +138,19 @@ function renderCodeLines(lines: string[]) {
 }
 
 async function initHighlighter() {
-  if (highlighter) {
-    return highlighter;
+  if (sharedState.highlighter) {
+    return sharedState.highlighter;
   }
-  if (!highlighterPromise) {
-    highlighterPromise = createHighlighter({
+  if (!sharedState.highlighterPromise) {
+    sharedState.highlighterPromise = createHighlighter({
       themes: [vizeDarkTheme, vizeLightTheme],
       langs: ["javascript", "json", "css", "html", "typescript"],
     }).then((instance) => {
-      highlighter = instance;
+      sharedState.highlighter = instance;
       return instance;
     });
   }
-  return highlighterPromise;
+  return sharedState.highlighterPromise;
 }
 
 async function highlight(renderId: number) {
@@ -184,13 +199,32 @@ function render() {
   void highlight(renderId);
 }
 
-onMounted(render);
-watch(() => [props.code, props.language, props.showLineNumbers], render);
+function renderWhenReady() {
+  if (!codeContentEl.value) {
+    return;
+  }
+  if (props.showLineNumbers && !lineNumbersEl.value) {
+    return;
+  }
+  render();
+}
+
+watch(
+  [
+    codeContentEl,
+    lineNumbersEl,
+    () => props.code,
+    () => props.language,
+    () => props.showLineNumbers,
+  ],
+  renderWhenReady,
+  { immediate: true, flush: "post" },
+);
 </script>
 
 <template>
-  <div class="code-highlight" :class="{ 'with-line-numbers': showLineNumbers }">
-    <div v-if="showLineNumbers" ref="lineNumbersEl" class="line-numbers"></div>
+  <div class="code-highlight" :class="{ 'with-line-numbers': props.showLineNumbers }">
+    <div v-if="props.showLineNumbers" ref="lineNumbersEl" class="line-numbers"></div>
     <div ref="codeContentEl" class="code-content"></div>
   </div>
 </template>

@@ -8,7 +8,7 @@ export interface CompilerOptions {
   ssr?: boolean;
   scopeId?: string | null;
   filename?: string;
-  // Internal mock-only property for vapor mode detection
+  // SFC output target selection
   outputMode?: "vdom" | "vapor";
   isTs?: boolean;
   // Script extension: 'preserve' keeps TypeScript, 'downcompile' (default) transpiles to JS

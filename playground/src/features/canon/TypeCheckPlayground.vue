@@ -2,6 +2,7 @@
 import "./TypeCheckPlayground.css";
 import { ref, watch, computed, onMounted, onUnmounted, inject, type ComputedRef } from "vue";
 import MonacoEditor from "../../shared/MonacoEditor.vue";
+import CodeHighlight from "../../shared/CodeHighlight.vue";
 import { type WasmModule, getWasm } from "../../wasm/index";
 import { TYPECHECK_PRESET, TYPECHECK_TYPED_PRESET } from "../../shared/presets/typecheck";
 import {
@@ -323,10 +324,10 @@ onUnmounted(() => {
               format may change without notice.
             </div>
             <div v-if="typeCheckResult.virtualTs" class="editor-container">
-              <MonacoEditor
-                :model-value="typeCheckResult.virtualTs"
+              <CodeHighlight
+                :code="typeCheckResult.virtualTs"
                 language="typescript"
-                :read-only="true"
+                show-line-numbers
                 :theme
               />
             </div>

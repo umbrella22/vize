@@ -551,6 +551,7 @@ impl Compiler {
                 scoped: descriptor.styles.iter().any(|s| s.scoped),
                 ..Default::default()
             },
+            vapor: use_vapor,
             scope_id: None,
         };
 

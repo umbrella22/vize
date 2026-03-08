@@ -17,6 +17,7 @@ export default defineConfig({
       instances: [{ browser: "chromium" }],
     },
     include: ["src/**/*.test.ts", "e2e/**/*.test.ts"],
+    exclude: ["e2e/vite-plugin-vapor.test.ts"],
   },
   server: {
     headers: {

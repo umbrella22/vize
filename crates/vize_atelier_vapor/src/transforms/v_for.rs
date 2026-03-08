@@ -38,6 +38,8 @@ pub fn transform_v_for<'a>(
         once: false,
         component: el.tag_type == ElementType::Component,
         only_child: false,
+        parent: None,
+        anchor: None,
     };
 
     OperationNode::For(Box::new_in(for_node, allocator))
@@ -76,6 +78,8 @@ pub fn transform_for_node<'a>(
         once: false,
         component: false,
         only_child: for_node.children.len() == 1,
+        parent: None,
+        anchor: None,
     };
 
     OperationNode::For(Box::new_in(for_ir, allocator))

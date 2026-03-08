@@ -27,6 +27,7 @@ export async function handleHotUpdateHook(
         {
           sourceMap: state.mergedOptions?.sourceMap ?? !state.isProduction,
           ssr: state.mergedOptions?.ssr ?? false,
+          vapor: state.mergedOptions?.vapor ?? false,
         },
         source,
       );

@@ -521,6 +521,7 @@ fn compile_file_with_profile(
             scoped: has_scoped,
             ..Default::default()
         },
+        vapor: false,
         scope_id: None,
     };
 

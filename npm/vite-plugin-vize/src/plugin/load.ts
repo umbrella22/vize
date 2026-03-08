@@ -164,6 +164,7 @@ export function loadHook(
       compiled = compileFile(realPath, state.cache, {
         sourceMap: state.mergedOptions?.sourceMap ?? !(state.isProduction ?? false),
         ssr: state.mergedOptions?.ssr ?? false,
+        vapor: state.mergedOptions?.vapor ?? false,
       });
     }
 

@@ -286,4 +286,606 @@ mod tests {
         );
         assert!(code.contains("items"), "Should reference items source");
     }
+
+    #[test]
+    fn test_compile_nested_dynamic_child_attrs_and_events() {
+        let allocator = Bump::new();
+        let result = compile_vapor(
+            &allocator,
+            r#"<div><button :class="cls" @click="onClick">x</button></div>"#,
+            Default::default(),
+        );
+
+        assert!(
+            result.error_messages.is_empty(),
+            "Expected no errors: {:?}",
+            result.error_messages
+        );
+
+        let code = normalize_code(&result.code);
+        assert!(
+            code.contains("setClass as _setClass"),
+            "Should import setClass for nested dynamic child: {}",
+            code
+        );
+        assert!(
+            code.contains("_setClass(n0"),
+            "Should update nested child class via child ref: {}",
+            code
+        );
+        assert!(
+            code.contains("createInvoker as _createInvoker"),
+            "Should keep nested child event binding: {}",
+            code
+        );
+    }
+
+    #[test]
+    fn test_compile_nested_component_child() {
+        let allocator = Bump::new();
+        let result = compile_vapor(&allocator, "<div><MyComp /></div>", Default::default());
+
+        assert!(
+            result.error_messages.is_empty(),
+            "Expected no errors: {:?}",
+            result.error_messages
+        );
+
+        let code = normalize_code(&result.code);
+        assert!(
+            code.contains("_createComponentWithFallback"),
+            "Should create nested component at runtime: {}",
+            code
+        );
+        assert!(
+            code.contains("_setInsertionState"),
+            "Should set insertion state for nested component child: {}",
+            code
+        );
+        assert!(
+            code.contains("_template(\"<div></div>\", true)"),
+            "Should not inline component tag into static template: {}",
+            code
+        );
+    }
+
+    #[test]
+    fn test_compile_branch_component_under_existing_parent() {
+        let allocator = Bump::new();
+        let result = compile_vapor(
+            &allocator,
+            r#"<main><template v-if="ok"><MyComp /></template></main>"#,
+            Default::default(),
+        );
+
+        assert!(
+            result.error_messages.is_empty(),
+            "Expected no errors: {:?}",
+            result.error_messages
+        );
+
+        let code = normalize_code(&result.code);
+        assert!(
+            code.contains("_setInsertionState(n"),
+            "Should set insertion state for branch component insertion: {}",
+            code
+        );
+        assert!(
+            code.contains("_createIf"),
+            "Should keep v-if branch: {}",
+            code
+        );
+        assert!(
+            code.contains("_createComponentWithFallback"),
+            "Should create component inside branch: {}",
+            code
+        );
+    }
+
+    #[test]
+    fn test_compile_component_resolution_is_scoped_per_branch() {
+        let allocator = Bump::new();
+        let result = compile_vapor(
+            &allocator,
+            r#"
+            <div>
+              <template v-if="first"><CodeHighlight /></template>
+              <template v-else-if="second"><CodeHighlight /></template>
+              <template v-else><CodeHighlight /></template>
+            </div>
+            "#,
+            Default::default(),
+        );
+
+        assert!(
+            result.error_messages.is_empty(),
+            "Expected no errors: {:?}",
+            result.error_messages
+        );
+
+        let code = normalize_code(&result.code);
+        let resolve_stmt = r#"const _component_CodeHighlight = _resolveComponent("CodeHighlight")"#;
+        assert_eq!(
+            code.matches(resolve_stmt).count(),
+            3,
+            "Each branch callback should resolve its own component binding: {}",
+            code
+        );
+    }
+
+    #[test]
+    fn test_compile_component_resolution_reuses_outer_scope_inside_branch() {
+        let allocator = Bump::new();
+        let result = compile_vapor(
+            &allocator,
+            r#"
+            <div>
+              <CodeHighlight />
+              <template v-if="visible"><CodeHighlight /></template>
+            </div>
+            "#,
+            Default::default(),
+        );
+
+        assert!(
+            result.error_messages.is_empty(),
+            "Expected no errors: {:?}",
+            result.error_messages
+        );
+
+        let code = normalize_code(&result.code);
+        let resolve_stmt = r#"const _component_CodeHighlight = _resolveComponent("CodeHighlight")"#;
+        assert_eq!(
+            code.matches(resolve_stmt).count(),
+            1,
+            "Outer component resolution should remain visible inside branch callbacks: {}",
+            code
+        );
+    }
+
+    #[test]
+    fn test_compile_nested_if_under_existing_child() {
+        let allocator = Bump::new();
+        let result = compile_vapor(
+            &allocator,
+            r#"<div><button><template v-if="ok"><span>a</span></template></button></div>"#,
+            Default::default(),
+        );
+
+        assert!(
+            result.error_messages.is_empty(),
+            "Expected no errors: {:?}",
+            result.error_messages
+        );
+
+        let code = normalize_code(&result.code);
+        assert!(
+            code.contains("_createIf"),
+            "Should keep nested child v-if: {}",
+            code
+        );
+        assert_eq!(
+            code.matches("_setInsertionState(n0, null, true)").count(),
+            1,
+            "Static branch roots should only need the fragment insertion state: {}",
+            code
+        );
+    }
+
+    #[test]
+    fn test_compile_control_flow_uses_parent_specific_insertion_state() {
+        let allocator = Bump::new();
+        let result = compile_vapor(
+            &allocator,
+            r#"
+            <div>
+              <button>
+                <template v-if="dark"><span>a</span></template>
+              </button>
+              <main>
+                <template v-if="tab"><MyComp /></template>
+              </main>
+            </div>
+            "#,
+            Default::default(),
+        );
+
+        assert!(
+            result.error_messages.is_empty(),
+            "Expected no errors: {:?}",
+            result.error_messages
+        );
+
+        let code = normalize_code(&result.code);
+        assert_eq!(
+            code.matches("_setInsertionState(n0, null, true)").count(),
+            1,
+            "Static branch roots should only emit the fragment insertion state: {}",
+            code
+        );
+        assert_eq!(
+            code.matches("_setInsertionState(n1, null, true)").count(),
+            2,
+            "Component branches still need fragment and component insertion state: {}",
+            code
+        );
+    }
+
+    #[test]
+    fn test_compile_nested_control_flow_avoids_unused_root_insertion_state() {
+        let allocator = Bump::new();
+        let result = compile_vapor(
+            &allocator,
+            r#"
+            <div>
+              <template v-if="ok">
+                <section>
+                  <template v-if="inner"><span>a</span></template>
+                  <template v-if="more"><i>b</i></template>
+                </section>
+              </template>
+            </div>
+            "#,
+            Default::default(),
+        );
+
+        assert!(
+            result.error_messages.is_empty(),
+            "Expected no errors: {:?}",
+            result.error_messages
+        );
+
+        let code = normalize_code(&result.code);
+        assert_eq!(
+            code.matches("_setInsertionState(n0, null, true)").count(),
+            1,
+            "Outer fragment parent should not leak an extra insertion state into the branch body: {}",
+            code
+        );
+        assert_eq!(
+            code.matches("_setInsertionState(n3, null, true)").count(),
+            2,
+            "Nested branch container should only emit insertion state for each child fragment: {}",
+            code
+        );
+    }
+
+    #[test]
+    fn test_compile_static_template_ref_uses_template_ref_setter() {
+        let allocator = Bump::new();
+        let result = compile_vapor(&allocator, r#"<div ref="el"></div>"#, Default::default());
+
+        assert!(
+            result.error_messages.is_empty(),
+            "Expected no errors: {:?}",
+            result.error_messages
+        );
+
+        let code = normalize_code(&result.code);
+        assert!(
+            code.contains("createTemplateRefSetter as _createTemplateRefSetter"),
+            "Should import template ref setter helper: {}",
+            code
+        );
+        assert!(
+            code.contains(
+                "const _setRef = _ctx.vaporTemplateRefSetter || _createTemplateRefSetter()"
+            ),
+            "Should create a template ref setter once per render: {}",
+            code
+        );
+        assert!(
+            code.contains("_setRef(n0, \"el\")"),
+            "Should assign the static template ref: {}",
+            code
+        );
+        assert!(
+            code.contains("_template(\"<div></div>\", true)"),
+            "Should not serialize ref as a DOM attribute in the static template: {}",
+            code
+        );
+    }
+
+    #[test]
+    fn test_compile_dynamic_template_ref_uses_resolved_expression() {
+        let allocator = Bump::new();
+        let result = compile_vapor(
+            &allocator,
+            r#"<div :ref="setEl"></div>"#,
+            Default::default(),
+        );
+
+        assert!(
+            result.error_messages.is_empty(),
+            "Expected no errors: {:?}",
+            result.error_messages
+        );
+
+        let code = normalize_code(&result.code);
+        assert!(
+            code.contains("_setRef(n0, _ctx.setEl)"),
+            "Should resolve dynamic template ref expressions through render context: {}",
+            code
+        );
+    }
+
+    #[test]
+    fn test_compile_v_html_resolves_ctx_and_v_for_aliases() {
+        let allocator = Bump::new();
+        let result = compile_vapor(
+            &allocator,
+            r#"<div v-for="diagnostic in diagnostics"><div v-html="formatHelp(diagnostic.help)"></div></div>"#,
+            Default::default(),
+        );
+
+        assert!(
+            result.error_messages.is_empty(),
+            "Expected no errors: {:?}",
+            result.error_messages
+        );
+
+        let code = normalize_code(&result.code);
+        assert!(
+            code.contains("_ctx.formatHelp(_for_item0.value.help)"),
+            "Should resolve v-html expressions through render context and v-for aliases: {}",
+            code
+        );
+    }
+
+    #[test]
+    fn test_compile_nested_static_template_ref_uses_child_ref() {
+        let allocator = Bump::new();
+        let result = compile_vapor(
+            &allocator,
+            r#"<div><span ref="inner"></span></div>"#,
+            Default::default(),
+        );
+
+        assert!(
+            result.error_messages.is_empty(),
+            "Expected no errors: {:?}",
+            result.error_messages
+        );
+
+        let code = normalize_code(&result.code);
+        assert!(
+            code.contains("_child(n1)"),
+            "Should create a child ref for nested template refs: {}",
+            code
+        );
+        assert!(
+            code.contains("_setRef(n0, \"inner\")"),
+            "Should assign the nested template ref to the child node: {}",
+            code
+        );
+        assert!(
+            code.contains("_template(\"<div><span></span></div>\", true)"),
+            "Should keep the nested ref out of serialized HTML: {}",
+            code
+        );
+    }
+
+    #[test]
+    fn test_compile_complex_comparison_expression() {
+        let allocator = Bump::new();
+        let result = compile_vapor(
+            &allocator,
+            r#"<button :class="['main-tab', { active: tab === 'atelier' }]">x</button>"#,
+            Default::default(),
+        );
+
+        assert!(
+            result.error_messages.is_empty(),
+            "Expected no errors: {:?}",
+            result.error_messages
+        );
+
+        let code = normalize_code(&result.code);
+        assert!(
+            code.contains("_ctx.tab === 'atelier'"),
+            "Should preserve comparison operators while prefixing identifiers: {}",
+            code
+        );
+        assert!(
+            !code.contains("_ctx.==="),
+            "Should not corrupt comparison operators: {}",
+            code
+        );
+    }
+
+    #[test]
+    fn test_compile_v_for_aliases_in_complex_expressions() {
+        let allocator = Bump::new();
+        let result = compile_vapor(
+            &allocator,
+            r#"<ul><li v-for="item in items" :class="['row', { active: selected.has(item.id) }, `kind-${item.kind}`]" @click="pick(item.id)">{{ item.name }}</li></ul>"#,
+            Default::default(),
+        );
+
+        assert!(
+            result.error_messages.is_empty(),
+            "Expected no errors: {:?}",
+            result.error_messages
+        );
+
+        let code = normalize_code(&result.code);
+        assert!(
+            code.contains("_ctx.selected.has(_for_item0.value.id)"),
+            "Should resolve v-for aliases inside call expressions: {}",
+            code
+        );
+        assert!(
+            code.contains("`kind-${_for_item0.value.kind}`"),
+            "Should resolve v-for aliases inside template literals: {}",
+            code
+        );
+        assert!(
+            code.contains("_ctx.pick(_for_item0.value.id)"),
+            "Should resolve v-for aliases inside inline handlers: {}",
+            code
+        );
+    }
+
+    #[test]
+    fn test_compile_first_dynamic_child_after_static_sibling() {
+        let allocator = Bump::new();
+        let result = compile_vapor(
+            &allocator,
+            r#"<div><span>static</span><button :class="cls">x</button></div>"#,
+            Default::default(),
+        );
+
+        assert!(
+            result.error_messages.is_empty(),
+            "Expected no errors: {:?}",
+            result.error_messages
+        );
+
+        let code = normalize_code(&result.code);
+        assert!(
+            code.contains("_next(_child(n1))"),
+            "Should navigate past static siblings before the first dynamic child: {}",
+            code
+        );
+    }
+
+    #[test]
+    fn test_compile_dynamic_child_after_multiple_static_siblings() {
+        let allocator = Bump::new();
+        let result = compile_vapor(
+            &allocator,
+            r#"<div><header>one</header><p>two</p><button :class="cls">x</button></div>"#,
+            Default::default(),
+        );
+
+        assert!(
+            result.error_messages.is_empty(),
+            "Expected no errors: {:?}",
+            result.error_messages
+        );
+
+        let code = normalize_code(&result.code);
+        assert!(
+            code.contains("_next(_next(_child(n1)))"),
+            "Should chain sibling traversal for offsets greater than one: {}",
+            code
+        );
+        assert!(
+            !code.contains("_next(_child(n1), 2)"),
+            "Should not emit unsupported offset arguments for _next: {}",
+            code
+        );
+    }
+
+    #[test]
+    fn test_compile_first_dynamic_child_after_static_text() {
+        let allocator = Bump::new();
+        let result = compile_vapor(
+            &allocator,
+            r#"<div><span>label <span :class="cls">{{ msg }}</span></span></div>"#,
+            Default::default(),
+        );
+
+        assert!(
+            result.error_messages.is_empty(),
+            "Expected no errors: {:?}",
+            result.error_messages
+        );
+
+        let code = normalize_code(&result.code);
+        assert!(
+            code.contains("_next(_child(n0))"),
+            "Should navigate past static text nodes before the first dynamic child: {}",
+            code
+        );
+    }
+
+    #[test]
+    fn test_compile_self_closing_svg_children_stay_siblings() {
+        let allocator = Bump::new();
+        let result = compile_vapor(
+            &allocator,
+            r#"<svg><path d="a" /><path d="b" /></svg>"#,
+            Default::default(),
+        );
+
+        assert!(
+            result.error_messages.is_empty(),
+            "Expected no errors: {:?}",
+            result.error_messages
+        );
+
+        let code = normalize_code(&result.code);
+        assert!(
+            code.contains(
+                "_template(\"<svg><path d=\\\"a\\\"></path><path d=\\\"b\\\"></path></svg>\", true, 1)"
+            ),
+            "Self-closing SVG children should remain siblings in static templates: {}",
+            code
+        );
+    }
+
+    #[test]
+    fn test_compile_dynamic_siblings_around_control_flow_children() {
+        let allocator = Bump::new();
+        let result = compile_vapor(
+            &allocator,
+            r#"
+            <section>
+              <div class="tabs">
+                <button :class="['tab', { active: activeTab === 'code' }]" @click="activeTab = 'code'">
+                  Code
+                </button>
+                <button
+                  v-if="inputMode === 'sfc'"
+                  :class="['tab', { active: activeTab === 'bindings' }]"
+                  @click="activeTab = 'bindings'"
+                >
+                  Bindings
+                </button>
+                <button
+                  :class="['tab', { active: activeTab === 'helpers' }]"
+                  @click="activeTab = 'helpers'"
+                >
+                  Helpers
+                </button>
+              </div>
+            </section>
+            "#,
+            Default::default(),
+        );
+
+        assert!(
+            result.error_messages.is_empty(),
+            "Expected no errors: {:?}",
+            result.error_messages
+        );
+
+        let code = normalize_code(&result.code);
+        assert!(
+            code.contains("_ctx.activeTab === 'code'"),
+            "Leading dynamic siblings should keep their class expression: {}",
+            code
+        );
+        assert!(
+            code.contains("_ctx.activeTab === 'helpers'"),
+            "Trailing dynamic siblings should keep their class expression: {}",
+            code
+        );
+        assert!(
+            code.contains("_createInvoker(() => (_ctx.activeTab = 'code'))"),
+            "Leading dynamic siblings should keep click handlers: {}",
+            code
+        );
+        assert!(
+            code.contains("_createInvoker(() => (_ctx.activeTab = 'helpers'))"),
+            "Trailing dynamic siblings should keep click handlers: {}",
+            code
+        );
+        assert!(
+            code.contains("_createIf(() => (_ctx.inputMode === 'sfc')"),
+            "Mixed control-flow children should still compile their branch nodes: {}",
+            code
+        );
+    }
 }

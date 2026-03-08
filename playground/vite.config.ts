@@ -3,7 +3,7 @@ import { vize } from "@vizejs/vite-plugin";
 
 export default defineConfig({
   base: process.env.CI ? "/play/" : "/",
-  plugins: [vize()],
+  plugins: [vize({ vapor: true })],
   server: {
     port: 5180,
     strictPort: false,

@@ -141,6 +141,7 @@ export async function compileAll(state: VizePluginState): Promise<void> {
   // Batch compile using native parallel processing
   const result = compileBatch(fileContents, state.cache, {
     ssr: state.mergedOptions.ssr ?? false,
+    vapor: state.mergedOptions.vapor ?? false,
   });
 
   for (const file of changedFiles) {

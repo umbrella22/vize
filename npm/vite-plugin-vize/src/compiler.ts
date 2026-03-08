@@ -6,6 +6,12 @@ import type {
   BatchCompileResultWithFiles,
   StyleBlockInfo,
 } from "./types.js";
+import {
+  buildCompileBatchOptions,
+  buildCompileFileOptions,
+  type CompileBatchOptions,
+  type CompileFileOptions,
+} from "./compile-options.js";
 import { generateScopeId } from "./utils/index.js";
 
 const { compileSfc, compileSfcBatchWithResults } = native;
@@ -35,19 +41,14 @@ export function extractStyleBlocks(source: string): StyleBlockInfo[] {
 export function compileFile(
   filePath: string,
   cache: Map<string, CompiledModule>,
-  options: { sourceMap: boolean; ssr: boolean },
+  options: CompileFileOptions,
   source?: string,
 ): CompiledModule {
   const content = source ?? fs.readFileSync(filePath, "utf-8");
   const scopeId = generateScopeId(filePath);
   const hasScoped = /<style[^>]*\bscoped\b/.test(content);
 
-  const result = compileSfc(content, {
-    filename: filePath,
-    sourceMap: options.sourceMap,
-    ssr: options.ssr,
-    scopeId: hasScoped ? `data-v-${scopeId}` : undefined,
-  });
+  const result = compileSfc(content, buildCompileFileOptions(filePath, content, options));
 
   if (result.errors.length > 0) {
     const errorMsg = result.errors.join("\n");
@@ -84,16 +85,14 @@ export function compileFile(
 export function compileBatch(
   files: { path: string; source: string }[],
   cache: Map<string, CompiledModule>,
-  options: { ssr: boolean },
+  options: CompileBatchOptions,
 ): BatchCompileResultWithFiles {
   const inputs: BatchFileInput[] = files.map((f) => ({
     path: f.path,
     source: f.source,
   }));
 
-  const result = compileSfcBatchWithResults(inputs, {
-    ssr: options.ssr,
-  });
+  const result = compileSfcBatchWithResults(inputs, buildCompileBatchOptions(options));
 
   // Build a map from path -> source for style block extraction
   const sourceMap = new Map<string, string>();

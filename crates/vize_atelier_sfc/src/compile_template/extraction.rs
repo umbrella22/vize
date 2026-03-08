@@ -6,9 +6,12 @@ use super::string_tracking::{
     compact_render_body, count_braces_with_state, count_parens_with_state, StringTrackState,
 };
 
+fn is_vapor_template_declaration(line: &str) -> bool {
+    line.starts_with("const t") && line.contains("_template(")
+}
+
 /// Extract imports, hoisted consts, and render function from compiled template code
 /// Returns (imports, hoisted, render_function) where render_function is the full function definition
-#[cfg(test)]
 pub(crate) fn extract_template_parts_full(template_code: &str) -> (String, String, String) {
     let mut imports = String::default();
     let mut hoisted = String::default();
@@ -23,9 +26,6 @@ pub(crate) fn extract_template_parts_full(template_code: &str) -> (String, Strin
         if trimmed.starts_with("import ") {
             imports.push_str(line);
             imports.push('\n');
-        } else if trimmed.starts_with("const _hoisted_") {
-            hoisted.push_str(line);
-            hoisted.push('\n');
         } else if trimmed.starts_with("export function render(")
             || trimmed.starts_with("function render(")
         {
@@ -35,6 +35,12 @@ pub(crate) fn extract_template_parts_full(template_code: &str) -> (String, Strin
             brace_depth += count_braces_with_state(line, &mut brace_state);
             render_fn.push_str(line);
             render_fn.push('\n');
+        } else if trimmed.starts_with("const _hoisted_")
+            || is_vapor_template_declaration(trimmed)
+            || (!trimmed.is_empty() && !in_render)
+        {
+            hoisted.push_str(line);
+            hoisted.push('\n');
         } else if in_render {
             brace_depth += count_braces_with_state(line, &mut brace_state);
             render_fn.push_str(line);
@@ -59,6 +65,8 @@ pub(crate) fn extract_template_parts(template_code: &str) -> (String, String, St
     let mut preamble = String::default(); // Component/directive resolution statements
     let mut render_body = String::default();
     let mut in_render = false;
+    let mut in_block_render = false;
+    let mut saw_block_render = false;
     let mut in_return = false;
     let mut brace_depth = 0;
     let mut brace_state = StringTrackState::default();
@@ -74,7 +82,7 @@ pub(crate) fn extract_template_parts(template_code: &str) -> (String, String, St
         if trimmed.starts_with("import ") {
             imports.push_str(line);
             imports.push('\n');
-        } else if trimmed.starts_with("const _hoisted_") {
+        } else if trimmed.starts_with("const _hoisted_") || is_vapor_template_declaration(trimmed) {
             // Hoisted template variables
             hoisted.push_str(line);
             hoisted.push('\n');
@@ -82,12 +90,33 @@ pub(crate) fn extract_template_parts(template_code: &str) -> (String, String, St
             || trimmed.starts_with("function render(")
         {
             in_render = true;
+            in_block_render = trimmed.starts_with("function render(") && trimmed.contains("$props");
+            saw_block_render = saw_block_render || in_block_render;
             brace_depth = 0;
             brace_state = StringTrackState::default();
             paren_state = StringTrackState::default();
             brace_depth += count_braces_with_state(line, &mut brace_state);
         } else if in_render {
-            brace_depth += count_braces_with_state(line, &mut brace_state);
+            let brace_delta = count_braces_with_state(line, &mut brace_state);
+            let next_brace_depth = brace_depth + brace_delta;
+
+            if in_block_render {
+                if !(next_brace_depth == 0 && trimmed == "}") {
+                    if !render_body.is_empty() {
+                        render_body.push('\n');
+                    }
+                    render_body.push_str(line);
+                }
+
+                brace_depth = next_brace_depth;
+                if brace_depth == 0 {
+                    in_render = false;
+                    in_block_render = false;
+                }
+                continue;
+            }
+
+            brace_depth = next_brace_depth;
 
             // Extract the return statement inside the render function (may span multiple lines)
             if in_return {
@@ -158,8 +187,12 @@ pub(crate) fn extract_template_parts(template_code: &str) -> (String, String, St
         }
     }
 
-    // Compact the render body to remove unnecessary line breaks inside function calls
-    let compacted = compact_render_body(&render_body);
+    // Compact VDOM-style return expressions, but keep Vapor statement blocks intact.
+    let compacted = if saw_block_render {
+        render_body
+    } else {
+        compact_render_body(&render_body)
+    };
 
     (imports, hoisted, preamble, compacted)
 }

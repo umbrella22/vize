@@ -881,3 +881,264 @@ fn test_define_props_interface_extends_imported_type_alias() {
         result.code
     );
 }
+
+#[test]
+fn test_template_only_sfc_vapor_output_mode() {
+    let source = r#"<template><div>{{ msg }}</div></template>"#;
+
+    let descriptor = parse_sfc(source, SfcParseOptions::default()).expect("Failed to parse SFC");
+    let opts = SfcCompileOptions {
+        vapor: true,
+        ..Default::default()
+    };
+    let result = compile_sfc(&descriptor, opts).expect("Failed to compile SFC");
+
+    assert!(
+        result.code.contains("const t0 = _template"),
+        "Template-only Vapor output should keep template declarations. Got:\n{}",
+        result.code
+    );
+    assert!(
+        result.code.contains("__vapor: true"),
+        "Template-only Vapor output should mark the component as Vapor. Got:\n{}",
+        result.code
+    );
+    assert!(
+        result.code.contains("_sfc_main.render = render"),
+        "Template-only Vapor output should attach render to the component. Got:\n{}",
+        result.code
+    );
+}
+
+#[test]
+fn test_script_setup_sfc_vapor_output_mode() {
+    let source = r#"<script setup lang="ts">
+import { computed, ref } from 'vue'
+
+const count = ref(1)
+const doubled = computed(() => count.value * 2)
+</script>
+
+<template>
+  <div>{{ count }} {{ doubled }}</div>
+</template>"#;
+
+    let descriptor = parse_sfc(source, SfcParseOptions::default()).expect("Failed to parse SFC");
+    let opts = SfcCompileOptions {
+        vapor: true,
+        script: ScriptCompileOptions {
+            is_ts: true,
+            ..Default::default()
+        },
+        template: TemplateCompileOptions {
+            is_ts: true,
+            ..Default::default()
+        },
+        ..Default::default()
+    };
+    let result = compile_sfc(&descriptor, opts).expect("Failed to compile SFC");
+
+    assert!(
+        result.code.contains("_defineVaporComponent"),
+        "Script setup Vapor output should use defineVaporComponent. Got:\n{}",
+        result.code
+    );
+    assert!(
+        result.code.contains("const t0 = _template"),
+        "Script setup Vapor output should include template declarations. Got:\n{}",
+        result.code
+    );
+    assert!(
+        result.code.contains("_renderEffect"),
+        "Script setup Vapor output should retain Vapor render effects. Got:\n{}",
+        result.code
+    );
+    assert!(
+        result
+            .code
+            .contains("getCurrentInstance as _getCurrentInstance"),
+        "Script setup Vapor output should import current instance access for production-safe setupState wiring. Got:\n{}",
+        result.code
+    );
+    assert!(
+        result
+            .code
+            .contains("const __ctx = _proxyRefs(__returned__)"),
+        "Script setup Vapor output should build a proxyRefs render context. Got:\n{}",
+        result.code
+    );
+    assert!(
+        result
+            .code
+            .contains("const __vaporRender = render"),
+        "Script setup Vapor output should alias the template render to avoid local binding collisions. Got:\n{}",
+        result.code
+    );
+    assert!(
+        result
+            .code
+            .contains("return __vaporRender(__ctx, __props, __emit, __attrs, __slots)"),
+        "Script setup Vapor output should return a Vapor block directly from setup. Got:\n{}",
+        result.code
+    );
+}
+
+#[test]
+fn test_script_setup_sfc_vapor_output_avoids_local_render_collision() {
+    let source = r#"<script setup lang="ts">
+function render() {
+  return 'local'
+}
+</script>
+
+<template>
+  <div>Hello</div>
+</template>"#;
+
+    let descriptor = parse_sfc(source, SfcParseOptions::default()).expect("Failed to parse SFC");
+    let opts = SfcCompileOptions {
+        vapor: true,
+        script: ScriptCompileOptions {
+            is_ts: true,
+            ..Default::default()
+        },
+        template: TemplateCompileOptions {
+            is_ts: true,
+            ..Default::default()
+        },
+        ..Default::default()
+    };
+    let result = compile_sfc(&descriptor, opts).expect("Failed to compile SFC");
+
+    assert!(
+        result.code.contains("const __vaporRender = render"),
+        "Vapor output should create a module-scope render alias. Got:\n{}",
+        result.code
+    );
+    assert!(
+        result.code.contains("render: __vaporRender"),
+        "Vapor component options should use the alias to keep template render stable. Got:\n{}",
+        result.code
+    );
+    assert!(
+        result
+            .code
+            .contains("return __vaporRender(__ctx, __props, __emit, __attrs, __slots)"),
+        "Vapor setup should call the aliased template render instead of a local binding. Got:\n{}",
+        result.code
+    );
+}
+
+#[test]
+fn test_script_setup_sfc_vapor_output_keeps_render_block_statements() {
+    let source = r#"<script setup lang="ts">
+import { ref } from 'vue'
+
+const count = ref(1)
+</script>
+
+<template>
+  <div>{{ count }}</div>
+</template>"#;
+
+    let descriptor = parse_sfc(source, SfcParseOptions::default()).expect("Failed to parse SFC");
+    let opts = SfcCompileOptions {
+        vapor: true,
+        script: ScriptCompileOptions {
+            is_ts: true,
+            ..Default::default()
+        },
+        template: TemplateCompileOptions {
+            is_ts: true,
+            ..Default::default()
+        },
+        ..Default::default()
+    };
+    let result = compile_sfc(&descriptor, opts).expect("Failed to compile SFC");
+
+    assert!(
+        result.code.contains("const n0 = t0()"),
+        "Script setup Vapor output should keep render block statements. Got:\n{}",
+        result.code
+    );
+    assert!(
+        result.code.contains("return n0"),
+        "Script setup Vapor output should return the Vapor root node. Got:\n{}",
+        result.code
+    );
+}
+
+#[test]
+fn test_script_setup_sfc_vapor_uses_ctx_bindings_for_imported_components() {
+    let source = r#"<script setup lang="ts">
+import FooPanel from './FooPanel.vue'
+</script>
+
+<template>
+  <FooPanel />
+</template>"#;
+
+    let descriptor = parse_sfc(source, SfcParseOptions::default()).expect("Failed to parse SFC");
+    let opts = SfcCompileOptions {
+        vapor: true,
+        script: ScriptCompileOptions {
+            is_ts: true,
+            ..Default::default()
+        },
+        template: TemplateCompileOptions {
+            is_ts: true,
+            ..Default::default()
+        },
+        ..Default::default()
+    };
+    let result = compile_sfc(&descriptor, opts).expect("Failed to compile SFC");
+
+    assert!(
+        result
+            .code
+            .contains("const _component_FooPanel = _ctx.FooPanel"),
+        "Imported script setup components should be read from _ctx in Vapor mode. Got:\n{}",
+        result.code
+    );
+    assert!(
+        !result.code.contains("_resolveComponent(\"FooPanel\")"),
+        "Imported script setup components should not go through resolveComponent. Got:\n{}",
+        result.code
+    );
+}
+
+#[test]
+fn test_normal_script_sfc_vapor_output_mode() {
+    let source = r#"<script>
+export default {
+  name: 'NormalVapor'
+}
+</script>
+
+<template>
+  <div>Hello</div>
+</template>"#;
+
+    let descriptor = parse_sfc(source, SfcParseOptions::default()).expect("Failed to parse SFC");
+    let opts = SfcCompileOptions {
+        vapor: true,
+        ..Default::default()
+    };
+    let result = compile_sfc(&descriptor, opts).expect("Failed to compile SFC");
+
+    assert!(
+        result.code.contains("const t0 = _template"),
+        "Normal script Vapor output should keep template declarations. Got:\n{}",
+        result.code
+    );
+    assert!(
+        result.code.contains("_sfc_main.__vapor = true"),
+        "Normal script Vapor output should mark the component as Vapor. Got:\n{}",
+        result.code
+    );
+    assert!(
+        result.code.contains("export default _sfc_main"),
+        "Normal script Vapor output should continue exporting _sfc_main. Got:\n{}",
+        result.code
+    );
+}

@@ -256,6 +256,8 @@ pub struct ForIRNode<'a> {
     pub once: bool,
     pub component: bool,
     pub only_child: bool,
+    pub parent: Option<usize>,
+    pub anchor: Option<usize>,
 }
 
 /// Component kind for code generation
@@ -289,6 +291,8 @@ pub struct CreateComponentIRNode<'a> {
     pub is_expr: Option<Box<'a, SimpleExpressionNode<'a>>>,
     /// v-show expression to apply after component creation
     pub v_show: Option<Box<'a, SimpleExpressionNode<'a>>>,
+    pub parent: Option<usize>,
+    pub anchor: Option<usize>,
 }
 
 /// IR slot
@@ -319,6 +323,7 @@ pub struct GetTextChildIRNode {
 pub struct ChildRefIRNode {
     pub child_id: usize,
     pub parent_id: usize,
+    pub offset: usize,
 }
 
 /// Next sibling reference operation (_next helper)

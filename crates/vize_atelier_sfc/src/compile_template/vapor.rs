@@ -1,15 +1,17 @@
 //! Vapor mode template compilation.
 
+use super::string_tracking::{count_braces_with_state, StringTrackState};
 use vize_atelier_vapor::{compile_vapor, VaporCompilerOptions};
 use vize_carton::{Bump, String, ToCompactString};
 
-use crate::types::{SfcError, SfcTemplateBlock};
+use crate::types::{BindingMetadata, SfcError, SfcTemplateBlock};
 
 /// Compile template block using Vapor mode
 pub(crate) fn compile_template_block_vapor(
     template: &SfcTemplateBlock,
     scope_id: &str,
     has_scoped: bool,
+    bindings: Option<&BindingMetadata>,
 ) -> Result<String, SfcError> {
     let allocator = Bump::new();
 
@@ -35,7 +37,6 @@ pub(crate) fn compile_template_block_vapor(
     }
 
     // Process the Vapor output to extract imports and render function
-    let mut output = String::default();
     let scope_attr = if has_scoped {
         let mut attr = String::with_capacity(scope_id.len() + 7);
         attr.push_str("data-v-");
@@ -45,63 +46,12 @@ pub(crate) fn compile_template_block_vapor(
         String::default()
     };
 
-    // Parse the Vapor output to separate imports and function body
-    let code = &result.code;
-
-    // Extract import line
-    if let Some(import_end) = code.find('\n') {
-        let import_line = &code[..import_end];
-        // Rewrite import to use 'vue' instead of 'vue/vapor' for compatibility
-        output.push_str(import_line);
-        output.push('\n');
-
-        // Extract template declarations and function body
-        let rest = &code[import_end + 1..];
-
-        // Find template declarations (const tN = ...)
-        let mut template_decls = Vec::new();
-        let mut func_start = 0;
-        for (i, line) in rest.lines().enumerate() {
-            if line.starts_with("const t") && line.contains("_template(") {
-                // Add scope ID to template if scoped
-                if has_scoped && !scope_attr.is_empty() {
-                    let modified = add_scope_id_to_template(line, &scope_attr);
-                    template_decls.push(modified);
-                } else {
-                    template_decls.push(line.to_compact_string());
-                }
-            } else if line.starts_with("export default") {
-                func_start = i;
-                break;
-            }
-        }
-
-        // Output template declarations
-        for decl in template_decls {
-            output.push_str(&decl);
-            output.push('\n');
-        }
-
-        // Extract and convert the function body
-        let lines: Vec<&str> = rest.lines().collect();
-        if func_start < lines.len() {
-            // Convert "export default () => {" to "function render(_ctx, $props, $emit, $attrs, $slots) {"
-            output.push_str("function render(_ctx, $props, $emit, $attrs, $slots) {\n");
-
-            // Copy function body (skip "export default () => {" and final "}")
-            for line in lines.iter().skip(func_start + 1) {
-                if *line == "}" {
-                    break;
-                }
-                output.push_str(line);
-                output.push('\n');
-            }
-
-            output.push_str("}\n");
-        }
-    }
-
-    Ok(output)
+    transform_vapor_template_output(
+        &result.code,
+        has_scoped.then_some(scope_attr.as_str()),
+        template,
+        bindings,
+    )
 }
 
 /// Add scope ID to template string
@@ -133,4 +83,187 @@ pub(super) fn add_scope_id_to_template(template_line: &str, scope_id: &str) -> S
         }
     }
     template_line.to_compact_string()
+}
+
+fn rewrite_vapor_import(line: &str) -> String {
+    if line.contains("'vue/vapor'") {
+        line.replace("'vue/vapor'", "'vue'").into()
+    } else if line.contains("\"vue/vapor\"") {
+        line.replace("\"vue/vapor\"", "\"vue\"").into()
+    } else {
+        line.to_compact_string()
+    }
+}
+
+fn is_render_signature(line: &str) -> bool {
+    let trimmed = line.trim();
+    trimmed.starts_with("export function render(")
+        || trimmed.starts_with("function render(")
+        || trimmed.starts_with("export default")
+}
+
+pub(super) fn transform_vapor_template_output(
+    code: &str,
+    scope_attr: Option<&str>,
+    template: &SfcTemplateBlock,
+    bindings: Option<&BindingMetadata>,
+) -> Result<String, SfcError> {
+    let lines: Vec<&str> = code.lines().collect();
+    let mut output = String::default();
+    let mut index = 0usize;
+
+    while index < lines.len() {
+        let line = lines[index];
+        let trimmed = line.trim();
+        if trimmed.starts_with("import ") {
+            output.push_str(&rewrite_vapor_import(line));
+            output.push('\n');
+            index += 1;
+            continue;
+        }
+        if trimmed.is_empty() {
+            index += 1;
+            continue;
+        }
+        break;
+    }
+
+    let mut found_render = false;
+    while index < lines.len() {
+        let line = lines[index];
+        let trimmed = line.trim();
+        if is_render_signature(trimmed) {
+            found_render = true;
+            break;
+        }
+
+        if trimmed.starts_with("const t") && trimmed.contains("_template(") {
+            if let Some(scope_id) = scope_attr {
+                output.push_str(&add_scope_id_to_template(line, scope_id));
+            } else {
+                output.push_str(line);
+            }
+            output.push('\n');
+        } else {
+            output.push_str(line);
+            output.push('\n');
+        }
+        index += 1;
+    }
+
+    if !found_render {
+        return Err(SfcError {
+            message: "Vapor template output is missing a render function".to_compact_string(),
+            code: Some("VAPOR_TEMPLATE_ERROR".to_compact_string()),
+            loc: Some(template.loc.clone()),
+        });
+    }
+
+    output.push_str("function render(_ctx, $props, $emit, $attrs, $slots) {\n");
+
+    let mut brace_state = StringTrackState::default();
+    let mut brace_depth = count_braces_with_state(lines[index], &mut brace_state);
+    index += 1;
+
+    while index < lines.len() && brace_depth > 0 {
+        let line = lines[index];
+        let next_depth = brace_depth + count_braces_with_state(line, &mut brace_state);
+        if !(next_depth == 0 && line.trim() == "}") {
+            if let Some(rewritten) = rewrite_bound_component_resolution(line, bindings) {
+                output.push_str(&rewritten);
+            } else {
+                output.push_str(line);
+            }
+            output.push('\n');
+        }
+        brace_depth = next_depth;
+        index += 1;
+    }
+
+    output.push_str("}\n");
+
+    Ok(output)
+}
+
+fn rewrite_bound_component_resolution(
+    line: &str,
+    bindings: Option<&BindingMetadata>,
+) -> Option<String> {
+    let bindings = bindings?;
+    let trimmed = line.trim_start();
+    if !trimmed.starts_with("const _component_") {
+        return None;
+    }
+
+    let resolve_start = trimmed.find(" = _resolveComponent(\"")?;
+    let tag_start = resolve_start + " = _resolveComponent(\"".len();
+    let tag_end = trimmed[tag_start..].find("\")")? + tag_start;
+    let tag = &trimmed[tag_start..tag_end];
+    let binding_name = resolve_component_binding_name(bindings, tag)?;
+
+    let indent_len = line.len().saturating_sub(trimmed.len());
+    let binding_expr = {
+        let mut expr = String::with_capacity(binding_name.len() + 5);
+        expr.push_str("_ctx.");
+        expr.push_str(&binding_name);
+        expr
+    };
+
+    let mut rewritten = String::with_capacity(line.len() + binding_expr.len());
+    rewritten.push_str(&line[..indent_len]);
+    rewritten.push_str(&trimmed[..resolve_start]);
+    rewritten.push_str(" = ");
+    rewritten.push_str(&binding_expr);
+    Some(rewritten)
+}
+
+fn resolve_component_binding_name(bindings: &BindingMetadata, tag: &str) -> Option<String> {
+    if bindings.bindings.contains_key(tag) {
+        return Some(tag.to_compact_string());
+    }
+
+    let camel = camelize_component_name(tag);
+    if bindings.bindings.contains_key(camel.as_str()) {
+        return Some(camel);
+    }
+
+    let pascal = capitalize_component_name(camel.as_str());
+    if bindings.bindings.contains_key(pascal.as_str()) {
+        return Some(pascal);
+    }
+
+    None
+}
+
+fn camelize_component_name(tag: &str) -> String {
+    let mut result = String::with_capacity(tag.len());
+    let mut uppercase_next = false;
+    for ch in tag.chars() {
+        if ch == '-' {
+            uppercase_next = true;
+            continue;
+        }
+
+        if uppercase_next {
+            result.push(ch.to_ascii_uppercase());
+            uppercase_next = false;
+        } else {
+            result.push(ch);
+        }
+    }
+    result
+}
+
+fn capitalize_component_name(tag: &str) -> String {
+    let mut chars = tag.chars();
+    let Some(first) = chars.next() else {
+        return String::default();
+    };
+
+    let mut result = String::with_capacity(tag.len());
+    result.push(first.to_ascii_uppercase());
+    for ch in chars {
+        result.push(ch);
+    }
+    result
 }

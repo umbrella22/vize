@@ -3334,10 +3334,17 @@ name = "vize_atelier_vapor"
 version = "0.23.0"
 dependencies = [
  "insta",
+ "oxc_allocator",
+ "oxc_ast",
+ "oxc_ast_visit",
+ "oxc_parser",
+ "oxc_span",
+ "oxc_syntax",
  "serde",
  "thiserror 2.0.18",
  "vize_atelier_core",
  "vize_carton",
+ "vize_croquis",
 ]
 
 [[package]]

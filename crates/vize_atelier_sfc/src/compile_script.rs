@@ -40,9 +40,12 @@ pub struct ScriptCompileResult {
 pub struct TemplateParts<'a> {
     pub imports: &'a str,
     pub hoisted: &'a str,
+    pub render_fn: &'a str,
     /// Component/directive resolution statements (inside render function, before return)
     pub preamble: &'a str,
     pub render_body: &'a str,
+    /// Whether render_body contains a full statement block instead of a return expression
+    pub render_is_block: bool,
 }
 
 /// Compile script block(s)

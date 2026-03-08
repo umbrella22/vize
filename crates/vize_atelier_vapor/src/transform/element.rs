@@ -7,8 +7,8 @@
 use vize_carton::{append, cstr, Box, String, Vec};
 
 use crate::ir::{
-    BlockIRNode, ChildRefIRNode, ComponentKind, CreateComponentIRNode, IREffect, IRProp, IRSlot,
-    NextRefIRNode, OperationNode, SetTextIRNode, SlotOutletIRNode,
+    BlockIRNode, ChildRefIRNode, ComponentKind, CreateComponentIRNode, IRProp, IRSlot,
+    NextRefIRNode, OperationNode, SetTemplateRefIRNode, SlotOutletIRNode,
 };
 use vize_atelier_core::{
     ElementNode, ElementType, ExpressionNode, PropNode, SimpleExpressionNode, SourceLocation,
@@ -17,7 +17,10 @@ use vize_atelier_core::{
 
 use super::{
     context::TransformContext,
-    control::{transform_for_node, transform_if_node},
+    control::{
+        transform_for_node, transform_for_node_into_parent, transform_if_node,
+        transform_if_node_into_parent,
+    },
     directive::transform_directive,
     text::{transform_interpolation, transform_text, transform_text_children},
     transform_children,
@@ -84,7 +87,7 @@ pub(crate) fn transform_element<'a>(
     // Components handle their own ID allocation (slots consume IDs before the component)
     // Also handle <component :is="..."> (dynamic component) which the parser classifies as Element
     if el.tag_type == ElementType::Component || el.tag.as_str() == "component" {
-        transform_component(ctx, el, block);
+        transform_component(ctx, el, block, None, None, None, true);
         return;
     }
 
@@ -105,6 +108,8 @@ pub(crate) fn transform_element<'a>(
                     }
                 }
             }
+
+            transform_template_ref(ctx, el, element_id, block);
 
             // Check if we have mixed text and interpolation children
             let has_text_or_interpolation = el.children.iter().any(|c| {
@@ -359,6 +364,8 @@ pub(crate) fn transform_element<'a>(
                 kind: crate::ir::ComponentKind::Regular,
                 is_expr: None,
                 v_show: None,
+                parent: None,
+                anchor: None,
             };
 
             block
@@ -411,6 +418,9 @@ pub(crate) fn generate_element_template(el: &ElementNode<'_>) -> String {
     // Add static attributes (skip those overridden by dynamic bindings)
     for prop in el.props.iter() {
         if let PropNode::Attribute(attr) = prop {
+            if is_runtime_only_attr(attr.name.as_str()) {
+                continue;
+            }
             if dynamic_attrs.contains(attr.name.as_str()) {
                 continue;
             }
@@ -422,8 +432,10 @@ pub(crate) fn generate_element_template(el: &ElementNode<'_>) -> String {
         }
     }
 
-    if el.is_self_closing || is_void_element(&el.tag) {
+    if is_void_element(&el.tag) {
         template.push('>');
+    } else if el.is_self_closing {
+        append!(template, "></{}>", el.tag);
     } else {
         template.push('>');
 
@@ -444,8 +456,9 @@ pub(crate) fn generate_element_template(el: &ElementNode<'_>) -> String {
                         template.push_str(&escape_html_text(&text.content));
                     }
                     TemplateChildNode::Element(child_el) => {
-                        // Include child elements in template
-                        template.push_str(&generate_element_template(child_el));
+                        if is_template_backed_element(child_el) {
+                            template.push_str(&generate_element_template(child_el));
+                        }
                     }
                     _ => {
                         // Other dynamic content is handled elsewhere
@@ -478,10 +491,17 @@ pub(crate) fn escape_html_text(s: &str) -> String {
 
 /// Check if an element is static (no dynamic directives)
 pub(crate) fn is_static_element(el: &ElementNode<'_>) -> bool {
-    // Check if any prop is a directive (dynamic)
+    if !matches!(el.tag_type, ElementType::Element) {
+        return false;
+    }
+
+    // Template refs require runtime child lookup even when the rest of the
+    // subtree is static, so they must not be folded into a purely static path.
     for prop in el.props.iter() {
-        if matches!(prop, PropNode::Directive(_)) {
-            return false;
+        match prop {
+            PropNode::Directive(_) => return false,
+            PropNode::Attribute(attr) if is_runtime_only_attr(attr.name.as_str()) => return false,
+            _ => {}
         }
     }
 
@@ -502,6 +522,76 @@ pub(crate) fn is_static_element(el: &ElementNode<'_>) -> bool {
     true
 }
 
+fn is_template_backed_element(el: &ElementNode<'_>) -> bool {
+    matches!(el.tag_type, ElementType::Element)
+}
+
+fn transform_template_ref<'a>(
+    ctx: &mut TransformContext<'a>,
+    el: &ElementNode<'a>,
+    element_id: usize,
+    block: &mut BlockIRNode<'a>,
+) {
+    let Some(value) = extract_template_ref_value(ctx, el) else {
+        return;
+    };
+
+    block
+        .operation
+        .push(OperationNode::SetTemplateRef(SetTemplateRefIRNode {
+            element: element_id,
+            value,
+            ref_for: has_static_ref_for(el),
+        }));
+}
+
+fn extract_template_ref_value<'a>(
+    ctx: &mut TransformContext<'a>,
+    el: &ElementNode<'a>,
+) -> Option<Box<'a, SimpleExpressionNode<'a>>> {
+    for prop in el.props.iter() {
+        match prop {
+            PropNode::Attribute(attr) if attr.name.as_str() == "ref" => {
+                let value = attr.value.as_ref()?;
+                let node =
+                    SimpleExpressionNode::new(value.content.clone(), true, value.loc.clone());
+                return Some(Box::new_in(node, ctx.allocator));
+            }
+            PropNode::Directive(dir) if dir.name.as_str() == "bind" => {
+                let Some(ExpressionNode::Simple(arg)) = dir.arg.as_ref() else {
+                    continue;
+                };
+                if arg.content.as_str() != "ref" {
+                    continue;
+                }
+
+                let Some(ExpressionNode::Simple(exp)) = dir.exp.as_ref() else {
+                    continue;
+                };
+                let node =
+                    SimpleExpressionNode::new(exp.content.clone(), exp.is_static, exp.loc.clone());
+                return Some(Box::new_in(node, ctx.allocator));
+            }
+            _ => {}
+        }
+    }
+
+    None
+}
+
+fn has_static_ref_for(el: &ElementNode<'_>) -> bool {
+    el.props.iter().any(|prop| {
+        matches!(
+            prop,
+            PropNode::Attribute(attr) if attr.name.as_str() == "ref_for"
+        )
+    })
+}
+
+fn is_runtime_only_attr(name: &str) -> bool {
+    matches!(name, "ref" | "ref_for" | "ref_key")
+}
+
 /// Transform an element that has control flow children (v-if/v-for).
 /// The parent element ID is allocated AFTER children so inner IDs come first.
 fn transform_element_with_control_flow_children<'a>(
@@ -510,39 +600,14 @@ fn transform_element_with_control_flow_children<'a>(
     block: &mut BlockIRNode<'a>,
 ) {
     let template = generate_element_template(el);
+    let dynamic_child_indices = collect_dynamic_child_indices(el);
+    let child_ids: std::vec::Vec<usize> = dynamic_child_indices
+        .iter()
+        .map(|_| ctx.next_id())
+        .collect();
 
-    // Save the current returns length so we can remove any returns added by children.
-    // Child control flow nodes (v-if/v-for) push their IDs to block.returns,
-    // but for an element with control flow children, only the parent element
-    // should be returned.
-    let returns_before = block.returns.len();
-
-    // Process children FIRST (before allocating parent ID)
-    for child in el.children.iter() {
-        match child {
-            TemplateChildNode::Interpolation(_) | TemplateChildNode::Text(_) => {
-                // Text/interpolation handled after element_id is known
-            }
-            TemplateChildNode::Element(child_el) => {
-                if !is_static_element(child_el) {
-                    transform_element(ctx, child_el, block);
-                }
-            }
-            TemplateChildNode::If(if_node) => {
-                transform_if_node(ctx, if_node, block);
-            }
-            TemplateChildNode::For(for_node) => {
-                transform_for_node(ctx, for_node, block);
-            }
-            _ => {}
-        }
-    }
-
-    // Remove any returns added by children — they are operations within this
-    // element, not top-level returns.
-    block.returns.truncate(returns_before);
-
-    // NOW allocate parent ID (after all children have consumed their IDs)
+    // Allocate the parent after reserving direct dynamic child IDs so child refs
+    // still sort before the parent, while keeping all nested wiring anchored to it.
     let element_id = ctx.next_id();
 
     // Process props and events
@@ -554,6 +619,8 @@ fn transform_element_with_control_flow_children<'a>(
             PropNode::Attribute(_attr) => {}
         }
     }
+
+    transform_template_ref(ctx, el, element_id, block);
 
     // Handle text content if needed
     let has_text_or_interpolation = el.children.iter().any(|c| {
@@ -571,7 +638,20 @@ fn transform_element_with_control_flow_children<'a>(
         transform_text_children(ctx, &el.children, element_id, block);
     }
 
-    // Register template AFTER children
+    if !dynamic_child_indices.is_empty() {
+        transform_dynamic_children_with_ids(
+            ctx,
+            el,
+            element_id,
+            block,
+            &dynamic_child_indices,
+            &child_ids,
+        );
+    }
+
+    transform_existing_element_control_flow_children(ctx, el, element_id, block);
+
+    // Register template after nested wiring is emitted
     ctx.add_template(element_id, template);
 
     block.returns.push(element_id);
@@ -585,17 +665,7 @@ fn transform_element_with_dynamic_children<'a>(
     el: &ElementNode<'a>,
     block: &mut BlockIRNode<'a>,
 ) {
-    // Collect dynamic element children (those that need child/next refs)
-    let mut dynamic_child_indices: std::vec::Vec<usize> = std::vec::Vec::new();
-    for (i, child) in el.children.iter().enumerate() {
-        if let TemplateChildNode::Element(child_el) = child {
-            if !is_static_element(child_el) {
-                dynamic_child_indices.push(i);
-            }
-        }
-    }
-
-    // Allocate IDs for dynamic children first
+    let dynamic_child_indices = collect_dynamic_child_indices(el);
     let child_ids: std::vec::Vec<usize> = dynamic_child_indices
         .iter()
         .map(|_| ctx.next_id())
@@ -617,91 +687,16 @@ fn transform_element_with_dynamic_children<'a>(
         }
     }
 
-    // Generate ChildRef/NextRef operations for dynamic children
-    // and collect SetText operations into a single combined effect
-    let mut prev_child_id: Option<usize> = None;
-    let mut combined_effect_ops = Vec::new_in(ctx.allocator);
+    transform_template_ref(ctx, el, parent_id, block);
 
-    for (idx, &child_index) in dynamic_child_indices.iter().enumerate() {
-        let child_id = child_ids[idx];
-
-        if idx == 0 {
-            block
-                .operation
-                .push(OperationNode::ChildRef(ChildRefIRNode {
-                    child_id,
-                    parent_id,
-                }));
-        } else {
-            let prev_dyn_index = dynamic_child_indices[idx - 1];
-            let mut offset = 0usize;
-            for i in (prev_dyn_index + 1)..=child_index {
-                if matches!(el.children[i], TemplateChildNode::Element(_)) {
-                    offset += 1;
-                }
-            }
-            block.operation.push(OperationNode::NextRef(NextRefIRNode {
-                child_id,
-                prev_id: prev_child_id.unwrap(),
-                offset,
-            }));
-        }
-        prev_child_id = Some(child_id);
-
-        // Collect child's text content into combined effect
-        if let TemplateChildNode::Element(child_el) = &el.children[child_index] {
-            let has_interpolation = child_el
-                .children
-                .iter()
-                .any(|c| matches!(c, TemplateChildNode::Interpolation(_)));
-            let has_text_or_interpolation = child_el.children.iter().any(|c| {
-                matches!(
-                    c,
-                    TemplateChildNode::Text(_) | TemplateChildNode::Interpolation(_)
-                )
-            });
-
-            if has_interpolation && has_text_or_interpolation {
-                let mut values = Vec::new_in(ctx.allocator);
-                for c in child_el.children.iter() {
-                    match c {
-                        TemplateChildNode::Text(text) => {
-                            let exp = SimpleExpressionNode::new(
-                                text.content.clone(),
-                                true,
-                                SourceLocation::STUB,
-                            );
-                            values.push(Box::new_in(exp, ctx.allocator));
-                        }
-                        TemplateChildNode::Interpolation(interp) => {
-                            if let ExpressionNode::Simple(simple) = &interp.content {
-                                let exp = SimpleExpressionNode::new(
-                                    simple.content.clone(),
-                                    simple.is_static,
-                                    simple.loc.clone(),
-                                );
-                                values.push(Box::new_in(exp, ctx.allocator));
-                            }
-                        }
-                        _ => {}
-                    }
-                }
-                if !values.is_empty() {
-                    combined_effect_ops.push(OperationNode::SetText(SetTextIRNode {
-                        element: child_id,
-                        values,
-                    }));
-                }
-            }
-        }
-    }
-
-    // Add the combined effect with all SetText operations
-    if !combined_effect_ops.is_empty() {
-        block.effect.push(IREffect {
-            operations: combined_effect_ops,
-        });
-    }
+    transform_dynamic_children_with_ids(
+        ctx,
+        el,
+        parent_id,
+        block,
+        &dynamic_child_indices,
+        &child_ids,
+    );
 
     // Register template for parent
     ctx.add_template(parent_id, template);
@@ -709,11 +704,190 @@ fn transform_element_with_dynamic_children<'a>(
     block.returns.push(parent_id);
 }
 
+fn collect_dynamic_child_indices(el: &ElementNode<'_>) -> std::vec::Vec<usize> {
+    let mut dynamic_child_indices = std::vec::Vec::new();
+    for (i, child) in el.children.iter().enumerate() {
+        if let TemplateChildNode::Element(child_el) = child {
+            if !is_static_element(child_el) {
+                dynamic_child_indices.push(i);
+            }
+        }
+    }
+    dynamic_child_indices
+}
+
+fn transform_dynamic_children_with_ids<'a>(
+    ctx: &mut TransformContext<'a>,
+    el: &ElementNode<'a>,
+    parent_id: usize,
+    block: &mut BlockIRNode<'a>,
+    dynamic_child_indices: &[usize],
+    child_ids: &[usize],
+) {
+    let mut prev_template_backed_child: Option<(usize, usize)> = None;
+
+    for (idx, &child_index) in dynamic_child_indices.iter().enumerate() {
+        let child_id = child_ids[idx];
+        let TemplateChildNode::Element(child_el) = &el.children[child_index] else {
+            continue;
+        };
+
+        if is_template_backed_element(child_el) {
+            if let Some((prev_child_id, prev_child_index)) = prev_template_backed_child {
+                let offset =
+                    count_rendered_child_nodes(&el.children, prev_child_index + 1, child_index);
+                block.operation.push(OperationNode::NextRef(NextRefIRNode {
+                    child_id,
+                    prev_id: prev_child_id,
+                    offset,
+                }));
+            } else {
+                let offset =
+                    count_rendered_child_nodes(&el.children, 0, child_index).saturating_sub(1);
+                block
+                    .operation
+                    .push(OperationNode::ChildRef(ChildRefIRNode {
+                        child_id,
+                        parent_id,
+                        offset,
+                    }));
+            }
+
+            prev_template_backed_child = Some((child_id, child_index));
+            transform_existing_element(ctx, child_el, child_id, block);
+        } else {
+            transform_component(
+                ctx,
+                child_el,
+                block,
+                Some(child_id),
+                Some(parent_id),
+                None,
+                false,
+            );
+        }
+    }
+}
+
+fn transform_existing_element<'a>(
+    ctx: &mut TransformContext<'a>,
+    el: &ElementNode<'a>,
+    element_id: usize,
+    block: &mut BlockIRNode<'a>,
+) {
+    let has_control_flow_children = el
+        .children
+        .iter()
+        .any(|c| matches!(c, TemplateChildNode::If(_) | TemplateChildNode::For(_)));
+    let has_dynamic_element_children = el
+        .children
+        .iter()
+        .any(|c| matches!(c, TemplateChildNode::Element(child_el) if !is_static_element(child_el)));
+
+    for prop in el.props.iter() {
+        if let PropNode::Directive(dir) = prop {
+            transform_directive(ctx, dir, element_id, el, block);
+        }
+    }
+
+    transform_template_ref(ctx, el, element_id, block);
+
+    let has_text_or_interpolation = el.children.iter().any(|c| {
+        matches!(
+            c,
+            TemplateChildNode::Text(_) | TemplateChildNode::Interpolation(_)
+        )
+    });
+    let has_interpolation = el
+        .children
+        .iter()
+        .any(|c| matches!(c, TemplateChildNode::Interpolation(_)));
+
+    if has_interpolation && has_text_or_interpolation {
+        transform_text_children(ctx, &el.children, element_id, block);
+    }
+
+    if has_dynamic_element_children {
+        let dynamic_child_indices = collect_dynamic_child_indices(el);
+        let child_ids: std::vec::Vec<usize> = dynamic_child_indices
+            .iter()
+            .map(|_| ctx.next_id())
+            .collect();
+        transform_dynamic_children_with_ids(
+            ctx,
+            el,
+            element_id,
+            block,
+            &dynamic_child_indices,
+            &child_ids,
+        );
+    }
+
+    if has_control_flow_children {
+        transform_existing_element_control_flow_children(ctx, el, element_id, block);
+    }
+}
+
+fn transform_existing_element_control_flow_children<'a>(
+    ctx: &mut TransformContext<'a>,
+    el: &ElementNode<'a>,
+    element_id: usize,
+    block: &mut BlockIRNode<'a>,
+) {
+    for child in el.children.iter() {
+        match child {
+            TemplateChildNode::If(if_node) => {
+                transform_if_node_into_parent(ctx, if_node, block, element_id);
+            }
+            TemplateChildNode::For(for_node) => {
+                transform_for_node_into_parent(ctx, for_node, block, element_id);
+            }
+            _ => {}
+        }
+    }
+}
+
+fn count_rendered_child_nodes(
+    children: &[TemplateChildNode<'_>],
+    start: usize,
+    end: usize,
+) -> usize {
+    let mut count = 0usize;
+    for child in &children[start..=end] {
+        count += count_rendered_nodes_for_child(child);
+    }
+    count
+}
+
+fn count_rendered_nodes_for_child(child: &TemplateChildNode<'_>) -> usize {
+    match child {
+        TemplateChildNode::Element(child_el) => {
+            if child_el.tag_type == ElementType::Template {
+                child_el
+                    .children
+                    .iter()
+                    .map(count_rendered_nodes_for_child)
+                    .sum()
+            } else if is_template_backed_element(child_el) {
+                1
+            } else {
+                0
+            }
+        }
+        TemplateChildNode::Text(_) | TemplateChildNode::Interpolation(_) => 1,
+        _ => 0,
+    }
+}
+
 /// Transform a component element (handles slots, built-in components, dynamic components, v-show)
 fn transform_component<'a>(
     ctx: &mut TransformContext<'a>,
     el: &ElementNode<'a>,
     block: &mut BlockIRNode<'a>,
+    existing_id: Option<usize>,
+    parent: Option<usize>,
+    anchor: Option<usize>,
+    add_return: bool,
 ) {
     let tag = el.tag.as_str();
     let kind = match tag {
@@ -957,7 +1131,7 @@ fn transform_component<'a>(
         }
     }
 
-    let element_id = ctx.next_id();
+    let element_id = existing_id.unwrap_or_else(|| ctx.next_id());
 
     let create_component = CreateComponentIRNode {
         id: element_id,
@@ -970,12 +1144,16 @@ fn transform_component<'a>(
         kind,
         is_expr,
         v_show: v_show_exp,
+        parent,
+        anchor,
     };
 
     block
         .operation
         .push(OperationNode::CreateComponent(create_component));
-    block.returns.push(element_id);
+    if add_return {
+        block.returns.push(element_id);
+    }
 }
 
 /// Transform v-model on component (helper for transform_component)

@@ -12,14 +12,17 @@ mod tests {
         let empty_template = TemplateParts {
             imports: "",
             hoisted: "",
+            render_fn: "",
             preamble: "",
             render_body: "null",
+            render_is_block: false,
         };
         let result = compile_script_setup_inline(
             script_content,
             "TestComponent",
             false, // is_ts = false (JS output, strip TS)
             true,  // source_is_ts = true
+            false, // is_vapor = false
             empty_template,
             None,
             &[], // no css_vars
@@ -35,14 +38,17 @@ mod tests {
         let empty_template = TemplateParts {
             imports: "",
             hoisted: "",
+            render_fn: "",
             preamble: "",
             render_body: "null",
+            render_is_block: false,
         };
         let result = compile_script_setup_inline(
             script_content,
             "TestComponent",
-            true, // is_ts = true (TS output)
-            true, // source_is_ts = true
+            true,  // is_ts = true (TS output)
+            true,  // source_is_ts = true
+            false, // is_vapor = false
             empty_template,
             None,
             &[], // no css_vars
@@ -352,14 +358,17 @@ const x = ref(1)
         let empty_template = TemplateParts {
             imports: "",
             hoisted: "",
+            render_fn: "",
             preamble: "",
             render_body: "",
+            render_is_block: false,
         };
         let result = compile_script_setup_inline(
             script_content,
             "TestComponent",
             false,
             true,
+            false,
             empty_template,
             None,
             &[], // no css_vars
