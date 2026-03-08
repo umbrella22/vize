@@ -30,8 +30,10 @@
     "dev": "tsdown --watch",
     "lint": "oxlint --deny-warnings --type-aware --tsconfig tsconfig.json",
     "lint:fix": "oxlint --type-aware --tsconfig tsconfig.json --fix",
-    "fmt": "oxfmt --write src",
-    "fmt:check": "oxfmt src"
+    "fmt": "oxfmt --write src tsdown.config.ts",
+    "fmt:check": "oxfmt src tsdown.config.ts",
+    "test": "pnpm build && node --import tsx --test src/*.test.ts src/**/*.test.ts",
+    "test:update": "pnpm build && node --import tsx --test --test-update-snapshots src/*.test.ts src/**/*.test.ts"
   },
   "files": [
     "dist"
@@ -62,6 +64,7 @@
     "@rspack/core": "^1.7.7",
     "@types/node": "^22.0.0",
     "tsdown": "^0.9.0",
+    "tsx": "^4.21.0",
     "typescript": "~5.6.0"
   }
 }

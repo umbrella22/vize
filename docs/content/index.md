@@ -26,6 +26,9 @@ features:
   - title: Vite Plugin
     details: Drop-in replacement for @vitejs/plugin-vue with native compilation speed. No code changes required.
     link: guide/vite-plugin.md
+  - title: Experimental Bundler Integrations
+    details: rollup, webpack, esbuild, and a dedicated Rspack path exist, but Vite remains the recommended and most stable integration.
+    link: guide/unplugin.md
   - title: 8.3x Faster
     details: Multi-threaded compilation of 15,000 SFC files (36.9 MB) in under 500ms. Arena allocation, Rayon parallelism, zero GC.
     link: architecture/performance.md

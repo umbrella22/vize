@@ -28,6 +28,11 @@
 > This project is under active development and is not yet ready for production use.
 > APIs and features may change without notice.
 
+> [!NOTE]
+> `@vizejs/vite-plugin` is the recommended bundler integration today.
+> `@vizejs/unplugin` (rollup / webpack / esbuild) and `@vizejs/rspack-plugin` are available, but non-Vite integrations are still unstable and should be tested carefully before adoption.
+> Rspack intentionally keeps a dedicated package because its loader chain, `experiments.css`, and HMR behavior need Rspack-specific handling instead of the shared unplugin path.
+
 ---
 
 ## Features
@@ -53,7 +58,7 @@ vize lint --fix            # Lint & auto-fix
 vize check --strict        # Type check
 ```
 
-See the [documentation](https://vizejs.dev) for detailed usage, Vite plugin setup, WASM bindings, and more.
+See the [documentation](https://vizejs.dev) for detailed usage, Vite plugin setup, experimental bundler integrations, WASM bindings, and more.
 
 ## Performance
 

@@ -6,15 +6,9 @@ const count = ref(0);
 
 <template>
   <div class="counter">
-    <p>
-      Count: {{ count }}
-    </p>
-    <button @click="count++">
-      +
-    </button>
-    <button @click="count--">
-      -
-    </button>
+    <p>Count: {{ count }}</p>
+    <button @click="count++">+</button>
+    <button @click="count--">-</button>
   </div>
 </template>
 
@@ -24,8 +18,8 @@ const count = ref(0);
 }
 
 button {
-  margin: 0 .5rem;
-  padding: .5rem 1rem;
+  margin: 0 0.5rem;
+  padding: 0.5rem 1rem;
   font-size: 1rem;
   cursor: pointer;
 }

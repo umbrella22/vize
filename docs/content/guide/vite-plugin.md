@@ -6,6 +6,10 @@ title: Vite Plugin
 
 > **⚠️ Work in Progress:** Vize is under active development and is not yet ready for production use. Test thoroughly before adopting in non-trivial projects.
 
+> **Bundler status:** `@vizejs/vite-plugin` is currently the most stable bundler integration.
+> For rollup / webpack / esbuild use `@vizejs/unplugin`, and for Rspack use `@vizejs/rspack-plugin`.
+> Those non-Vite paths are still unstable and should be treated as experimental.
+
 `@vizejs/vite-plugin` provides native-speed Vue SFC compilation for Vite projects. It is designed as a **drop-in replacement** for `@vitejs/plugin-vue` — your existing Vue components work without modification.
 
 ## Installation
@@ -117,3 +121,4 @@ See [Nuxt Integration](../integrations/nuxt.md) for more details.
 - Vapor mode compilation is available via `vize_atelier_vapor` (Vue 3.6+)
 - DOM (VDom) compilation uses `vize_atelier_dom`
 - The plugin supports `virtual:vize-styles` for importing all compiled CSS as a module
+- For experimental rollup / webpack / esbuild / Rspack support, see [Experimental Bundler Integrations](./unplugin.md)

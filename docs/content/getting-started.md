@@ -61,6 +61,12 @@ npm install @vizejs/wasm
 # Vite plugin — drop-in replacement for @vitejs/plugin-vue
 npm install @vizejs/vite-plugin
 
+# Experimental unplugin integration — rollup / webpack / esbuild
+npm install @vizejs/unplugin
+
+# Experimental Rspack integration — dedicated path
+npm install @vizejs/rspack-plugin @rspack/core
+
 # Nuxt module — first-class Nuxt integration
 npm install @vizejs/nuxt
 
@@ -70,6 +76,10 @@ npm install @vizejs/vite-plugin-musea
 # MCP server (AI assistant integration)
 npm install @vizejs/musea-mcp-server
 ```
+
+> **Bundler status:** `@vizejs/vite-plugin` is the recommended integration today.
+> `@vizejs/unplugin` and `@vizejs/rspack-plugin` are available for non-Vite build systems, but they are still unstable.
+> Rspack intentionally uses the dedicated `@vizejs/rspack-plugin` path because its loader and CSS integration are Rspack-specific.
 
 ## Quick Start
 
@@ -112,6 +122,16 @@ export default defineConfig({
 ```
 
 The plugin handles SFC compilation, `<script setup>`, scoped CSS, HMR, and SSR — all through Rust-native NAPI bindings. See [Vite Plugin](./guide/vite-plugin.md) for configuration options.
+
+### Using Other Bundlers (Experimental)
+
+For rollup, webpack, or esbuild, use `@vizejs/unplugin`.
+For Rspack, use `@vizejs/rspack-plugin`.
+
+These integrations are still unstable and should be treated as experimental.
+Vite remains the recommended path if you need the most complete and best-tested experience today.
+
+See [Experimental Bundler Integrations](./guide/unplugin.md) for setup details and caveats.
 
 ### Using with Nuxt
 
@@ -200,5 +220,6 @@ vize/
 - [Philosophy](./philosophy.md) — Design principles and vision
 - [CLI Reference](./guide/cli.md) — Full command documentation
 - [Vite Plugin](./guide/vite-plugin.md) — Configuration options
+- [Experimental Bundler Integrations](./guide/unplugin.md) — rollup / webpack / esbuild / Rspack status
 - [Musea](./guide/musea.md) — Component gallery guide
 - [Architecture](./architecture/overview.md) — How Vize works internally

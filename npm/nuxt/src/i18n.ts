@@ -82,9 +82,7 @@ export function injectNuxtI18nHelpers(code: string): string {
     const matchEnd = matchStart + existingMatch[0].length;
 
     return (
-      code.slice(0, matchStart) +
-      `const { ${nextDestructure} } = useI18n();` +
-      code.slice(matchEnd)
+      code.slice(0, matchStart) + `const { ${nextDestructure} } = useI18n();` + code.slice(matchEnd)
     );
   }
 

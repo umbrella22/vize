@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from "vue";
-import Counter from "./Counter.vue";
+import ExampleCounter from "./ExampleCounter.vue";
 
 const message = ref("Hello from Vize!");
 </script>
@@ -10,7 +10,7 @@ const message = ref("Hello from Vize!");
     <h1>
       {{ message }}
     </h1>
-    <Counter />
+    <ExampleCounter />
   </div>
 </template>
 

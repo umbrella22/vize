@@ -91,7 +91,10 @@ export default defineNuxtModule<VizeNuxtOptions>({
 
     // Capture unimport context for composable auto-imports (useRoute, ref, computed, etc.)
     let unimportCtx: {
-      injectImports: (code: string, id?: string) => Promise<{ code: string; s: unknown; imports: unknown[] }>;
+      injectImports: (
+        code: string,
+        id?: string,
+      ) => Promise<{ code: string; s: unknown; imports: unknown[] }>;
     } | null = null;
     nuxt.hook("imports:context", (ctx: unknown) => {
       unimportCtx = ctx as typeof unimportCtx;
@@ -99,19 +102,23 @@ export default defineNuxtModule<VizeNuxtOptions>({
 
     const nuxtComponentResolver = createNuxtComponentResolver({
       buildDir: nuxt.options.buildDir,
-      moduleNames: nuxt.options.modules.filter((moduleName): moduleName is string => typeof moduleName === "string"),
+      moduleNames: nuxt.options.modules.filter(
+        (moduleName): moduleName is string => typeof moduleName === "string",
+      ),
       rootDir: nuxt.options.rootDir,
     });
 
     // Capture component registry for component auto-imports (NuxtPage, NuxtLayout, etc.)
     nuxt.hook("components:extend", (comps: unknown) => {
-      nuxtComponentResolver.register(comps as Array<{
-        pascalName: string;
-        kebabName: string;
-        name: string;
-        filePath: string;
-        export: string;
-      }>);
+      nuxtComponentResolver.register(
+        comps as Array<{
+          pascalName: string;
+          kebabName: string;
+          name: string;
+          filePath: string;
+          export: string;
+        }>,
+      );
     });
 
     addVitePlugin({
@@ -223,15 +230,18 @@ export default defineNuxtModule<VizeNuxtOptions>({
     // via Nuxt's own Vite plugins. Adding nuxtMusea globally would shadow
     // Nuxt's #imports resolution and break the app.
     if (options.musea !== false) {
-      const museaBasePath = options.musea && typeof options.musea === "object" && "basePath" in options.musea
-        ? (options.musea as Record<string, unknown>).basePath as string
-        : "/__musea__";
+      const museaBasePath =
+        options.musea && typeof options.musea === "object" && "basePath" in options.musea
+          ? ((options.musea as Record<string, unknown>).basePath as string)
+          : "/__musea__";
       nuxt.options.vite.plugins.push(...musea(options.musea || {}));
 
       // Print Musea Gallery URL after dev server starts
       nuxt.hook("listen", (_server: unknown, listener: { url: string }) => {
         const url = listener.url?.replace(/\/$/, "") || "http://localhost:3000";
-        console.log(`  \x1b[36m➜\x1b[0m  \x1b[1mMusea Gallery:\x1b[0m \x1b[36m${url}${museaBasePath}\x1b[0m`);
+        console.log(
+          `  \x1b[36m➜\x1b[0m  \x1b[1mMusea Gallery:\x1b[0m \x1b[36m${url}${museaBasePath}\x1b[0m`,
+        );
       });
     }
   },

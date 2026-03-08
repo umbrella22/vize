@@ -23,8 +23,8 @@
     "start": "node dist/cli.js",
     "lint": "oxlint --deny-warnings --type-aware --tsconfig tsconfig.json",
     "lint:fix": "oxlint --type-aware --tsconfig tsconfig.json --fix",
-    "fmt": "oxfmt --write src",
-    "fmt:check": "oxfmt src"
+    "fmt": "oxfmt --write src tsdown.config.ts",
+    "fmt:check": "oxfmt src tsdown.config.ts"
   },
   "keywords": [
     "mcp",

@@ -2,6 +2,13 @@
 
 High-performance Rspack plugin for Vue SFC compilation powered by [Vize](https://github.com/ubugeeei/vize).
 
+> [!NOTE]
+> Rspack intentionally uses the dedicated `@vizejs/rspack-plugin` path instead of an `@vizejs/unplugin/rspack` export.
+> Its loader chain, `experiments.css`, and HMR behavior need Rspack-specific handling.
+>
+> Non-Vite bundler integrations are still unstable.
+> If you need rollup, webpack, or esbuild, use `@vizejs/unplugin` and test carefully before relying on it in production.
+
 ## Features
 
 - ⚡ **Blazing Fast** - Powered by Rust-based `@vizejs/native` compiler

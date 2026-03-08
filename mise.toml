@@ -99,10 +99,21 @@ run = "vize './**/*.vue' -f stats -v"
 # Test
 # =============================================================================
 
-[tasks.test]
-alias = "t"
+[tasks."test:rust"]
+alias = "tr"
 description = "Run all Rust tests"
 run = "cargo test --workspace"
+
+[tasks."test:js"]
+alias = "tj"
+description = "Run JS package tests for bundler integrations"
+depends = ["build:native"]
+run = "pnpm test:js"
+
+[tasks.test]
+alias = "t"
+description = "Run Rust and JS tests"
+depends = ["test:rust", "test:js"]
 
 [tasks."test:playground"]
 alias = "tp"

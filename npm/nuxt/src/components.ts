@@ -25,7 +25,8 @@ export interface NuxtComponentResolverOptions {
 
 const COMPONENT_CALL_RE = /_?resolveComponent\s*\(\s*["'`]([^"'`]+)["'`]\s*(?:,\s*[^)]+)?\)/g;
 const COMPONENT_EXT_RE = /\.(?:[cm]?js|ts|vue)$/;
-const DTS_COMPONENT_RE = /^export const (\w+): (?:LazyComponent<)?typeof import\((["'])(.+?)\2\)(?:\.([A-Za-z_$][\w$]*)|\[['"]([A-Za-z_$][\w$]*)['"]\])>?/;
+const DTS_COMPONENT_RE =
+  /^export const (\w+): (?:LazyComponent<)?typeof import\((["'])(.+?)\2\)(?:\.([A-Za-z_$][\w$]*)|\[['"]([A-Za-z_$][\w$]*)['"]\])>?/;
 const DTS_EXT_RE = /\.d\.ts$/;
 const FILE_EXTS = [".js", ".mjs", ".ts", ".vue"];
 const CLIENT_COMPONENT_RE = /\.client\.(?:[cm]?js|ts|vue)$/;
@@ -51,7 +52,11 @@ function toPascalCase(name: string): string {
     .join("");
 }
 
-function addComponentAlias(map: Map<string, NuxtComponentImport>, name: string | undefined, resolved: NuxtComponentImport): void {
+function addComponentAlias(
+  map: Map<string, NuxtComponentImport>,
+  name: string | undefined,
+  resolved: NuxtComponentImport,
+): void {
   if (!name || map.has(name)) {
     return;
   }
@@ -161,7 +166,9 @@ function loadDtsComponents(rootDir: string, buildDir: string): Map<string, NuxtC
         continue;
       }
 
-      const absoluteImportPath = resolveImportPath(path.resolve(path.dirname(filePath), importPath));
+      const absoluteImportPath = resolveImportPath(
+        path.resolve(path.dirname(filePath), importPath),
+      );
       const componentImport = createComponentImport(
         absoluteImportPath,
         exportName,
@@ -184,10 +191,7 @@ function getProjectPackageNames(moduleNames: string[] | undefined): string[] {
   return Array.from(packageNames);
 }
 
-function walkRuntimeComponentDir(
-  resolved: Map<string, NuxtComponentImport>,
-  dir: string,
-): void {
+function walkRuntimeComponentDir(resolved: Map<string, NuxtComponentImport>, dir: string): void {
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
     const entryPath = path.join(dir, entry.name);
     if (entry.isDirectory()) {
@@ -214,7 +218,10 @@ function walkRuntimeComponentDir(
   }
 }
 
-function loadRuntimeComponents(rootDir: string, moduleNames: string[] | undefined): Map<string, NuxtComponentImport> {
+function loadRuntimeComponents(
+  rootDir: string,
+  moduleNames: string[] | undefined,
+): Map<string, NuxtComponentImport> {
   const resolved = new Map<string, NuxtComponentImport>();
   const requireFromRoot = createRequire(path.join(rootDir, "package.json"));
 
@@ -260,10 +267,7 @@ export function createNuxtComponentResolver(options: NuxtComponentResolverOption
   return {
     register(components: NuxtComponentDescriptor[]): void {
       for (const component of components) {
-        const resolved = createComponentImport(
-          component.filePath,
-          component.export || "default",
-        );
+        const resolved = createComponentImport(component.filePath, component.export || "default");
         addComponentAlias(registered, component.pascalName, resolved);
         addComponentAlias(registered, component.kebabName, resolved);
         addComponentAlias(registered, component.name, resolved);
@@ -312,9 +316,10 @@ export function injectNuxtComponentImports(
       importedComponents.set(importKey, variableName);
       if (resolved.lazy) {
         needsDefineAsyncComponent = true;
-        const exportAccessor = resolved.exportName === "default"
-          ? "module.default"
-          : `module[${JSON.stringify(resolved.exportName)}]`;
+        const exportAccessor =
+          resolved.exportName === "default"
+            ? "module.default"
+            : `module[${JSON.stringify(resolved.exportName)}]`;
         if (resolved.mode === "client") {
           needsCreateClientOnly = true;
           componentImports.push(
@@ -329,10 +334,16 @@ export function injectNuxtComponentImports(
         if (resolved.mode === "client") {
           needsCreateClientOnly = true;
           const rawVariableName = `${variableName}_raw`;
-          componentImports.push(`import ${rawVariableName} from ${JSON.stringify(resolved.filePath)};`);
-          componentImports.push(`const ${variableName} = __nuxt_create_client_only(${rawVariableName});`);
+          componentImports.push(
+            `import ${rawVariableName} from ${JSON.stringify(resolved.filePath)};`,
+          );
+          componentImports.push(
+            `const ${variableName} = __nuxt_create_client_only(${rawVariableName});`,
+          );
         } else {
-          componentImports.push(`import ${variableName} from ${JSON.stringify(resolved.filePath)};`);
+          componentImports.push(
+            `import ${variableName} from ${JSON.stringify(resolved.filePath)};`,
+          );
         }
       } else {
         if (resolved.mode === "client") {
@@ -341,7 +352,9 @@ export function injectNuxtComponentImports(
           componentImports.push(
             `import { ${resolved.exportName} as ${rawVariableName} } from ${JSON.stringify(resolved.filePath)};`,
           );
-          componentImports.push(`const ${variableName} = __nuxt_create_client_only(${rawVariableName});`);
+          componentImports.push(
+            `const ${variableName} = __nuxt_create_client_only(${rawVariableName});`,
+          );
         } else {
           componentImports.push(
             `import { ${resolved.exportName} as ${variableName} } from ${JSON.stringify(resolved.filePath)};`,
@@ -362,7 +375,9 @@ export function injectNuxtComponentImports(
       ? ['import { defineAsyncComponent as __nuxt_define_async_component } from "vue";']
       : []),
     ...(needsCreateClientOnly
-      ? ['import { createClientOnly as __nuxt_create_client_only } from "#app/components/client-only";']
+      ? [
+          'import { createClientOnly as __nuxt_create_client_only } from "#app/components/client-only";',
+        ]
       : []),
     ...componentImports,
   ];

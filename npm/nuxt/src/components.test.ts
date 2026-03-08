@@ -48,10 +48,7 @@ assert.deepEqual(
   npmxResolver.resolve("ScrollToTop"),
   {
     exportName: "default",
-    filePath: path.join(
-      npmxFixtureRoot,
-      "app/components/ScrollToTop.client.vue",
-    ),
+    filePath: path.join(npmxFixtureRoot, "app/components/ScrollToTop.client.vue"),
     mode: "client",
   },
   "Nuxt-generated d.ts should preserve client-only component mode",
@@ -73,10 +70,7 @@ assert.deepEqual(
   elkResolver.resolve("LazyCommonPreviewPrompt"),
   {
     exportName: "default",
-    filePath: path.join(
-      elkFixtureRoot,
-      "app/components/common/CommonPreviewPrompt.vue",
-    ),
+    filePath: path.join(elkFixtureRoot, "app/components/common/CommonPreviewPrompt.vue"),
     lazy: true,
   },
   "Lazy-prefixed component aliases should preserve async component intent",

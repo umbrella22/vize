@@ -16,7 +16,9 @@
   ],
   "scripts": {
     "build": "tsdown",
-    "dev": "tsdown --watch"
+    "dev": "tsdown --watch",
+    "fmt": "oxfmt --write src tsdown.config.ts",
+    "fmt:check": "oxfmt src tsdown.config.ts"
   },
   "keywords": [
     "nuxt",

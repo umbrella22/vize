@@ -1,10 +1,10 @@
-import { defineConfig } from 'tsdown'
+import { defineConfig } from "tsdown";
 
 export default defineConfig({
-  entry: ['src/extension.ts'],
-  outDir: 'dist',
-  format: 'cjs',
-  platform: 'node',
+  entry: ["src/extension.ts"],
+  outDir: "dist",
+  format: "cjs",
+  platform: "node",
   minify: true,
-  external: ['vscode'],
-})
+  external: ["vscode"],
+});
