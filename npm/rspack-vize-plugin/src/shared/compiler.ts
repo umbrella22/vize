@@ -7,7 +7,11 @@ import { createHash } from "node:crypto";
 import path from "node:path";
 import * as native from "@vizejs/native";
 import type { CompiledModule, SfcCompileOptionsNapi } from "../types/index.js";
-import { generateScopeId, extractStyleBlocks, extractCustomBlocks } from "./utils.js";
+import {
+  generateScopeId,
+  extractStyleBlocks,
+  extractCustomBlocks,
+} from "./utils.js";
 import { genHotReloadCode, genCSSModuleHotReloadCode } from "./hotReload.js";
 
 const { compileSfc } = native;
@@ -54,6 +58,7 @@ export function compileFile(
   options: {
     sourceMap?: boolean;
     ssr?: boolean;
+    vapor?: boolean;
     compilerOptions?: SfcCompileOptionsNapi;
     isCustomElement?: boolean;
     rootContext?: string;
@@ -61,17 +66,21 @@ export function compileFile(
   } = {},
 ): CompiledModule {
   // Auto-detect TypeScript from <script lang="ts"> or <script setup lang="ts">
-  const autoIsTs = options.compilerOptions?.isTs ?? /<script[^>]*\blang=["']ts["']/.test(source);
+  const autoIsTs =
+    options.compilerOptions?.isTs ??
+    /<script[^>]*\blang=["']ts["']/.test(source);
 
   // Build a composite cache key that includes compilation-affecting options.
   // Without this, the same file compiled with different ssr/isTs/sourceMap flags
   // would return a stale cached result (e.g. client build reusing SSR output).
   const ssr = options.ssr ?? options.compilerOptions?.ssr ?? false;
-  const sourceMap = options.sourceMap ?? options.compilerOptions?.sourceMap ?? true;
+  const vapor = options.vapor ?? options.compilerOptions?.vapor ?? false;
+  const sourceMap =
+    options.sourceMap ?? options.compilerOptions?.sourceMap ?? true;
   const isCustomElement = options.isCustomElement ?? false;
   const rootCtx = options.rootContext ?? "";
   const isProd = options.isProduction ?? false;
-  const cacheKey = `${filePath}:ssr=${ssr}:ts=${autoIsTs}:map=${sourceMap}:ce=${isCustomElement}:root=${rootCtx}:prod=${isProd}`;
+  const cacheKey = `${filePath}:ssr=${ssr}:vapor=${vapor}:ts=${autoIsTs}:map=${sourceMap}:ce=${isCustomElement}:root=${rootCtx}:prod=${isProd}`;
 
   // Check content-hash cache to skip re-compilation of unchanged files
   const contentHash = computeContentHash(source);
@@ -80,7 +89,12 @@ export function compileFile(
     return cached.result;
   }
 
-  const scopeId = generateScopeId(filePath, options.rootContext, options.isProduction, source);
+  const scopeId = generateScopeId(
+    filePath,
+    options.rootContext,
+    options.isProduction,
+    source,
+  );
   const hasScoped = /<style[^>]*\bscoped\b/.test(source);
 
   const napiOptions: SfcCompileOptionsNapi = {
@@ -88,6 +102,7 @@ export function compileFile(
     filename: filePath,
     sourceMap: options.sourceMap ?? options.compilerOptions?.sourceMap ?? true,
     ssr,
+    vapor,
     isTs: autoIsTs,
     scopeId: hasScoped ? `data-v-${scopeId}` : undefined,
   };
@@ -170,14 +185,18 @@ export function generateOutput(
       // Custom element mode: <style module> is not supported
       const hasModule = compiled.styles.some((s) => s.module);
       if (hasModule) {
-        throw new Error(`[vize] <style module> is not supported in custom elements mode.`);
+        throw new Error(
+          `[vize] <style module> is not supported in custom elements mode.`,
+        );
       }
     }
 
     // Validate: Vue SFC spec allows at most one unnamed <style module>.
     // Multiple unnamed modules would generate duplicate `import $style` bindings,
     // producing invalid ESM code.
-    const unnamedModuleCount = compiled.styles.filter((s) => s.module === true).length;
+    const unnamedModuleCount = compiled.styles.filter(
+      (s) => s.module === true,
+    ).length;
     if (unnamedModuleCount > 1) {
       throw new Error(
         `[vize] Found ${unnamedModuleCount} unnamed <style module> blocks. ` +
@@ -187,12 +206,18 @@ export function generateOutput(
     }
 
     // Filter out empty style blocks that have no content and no external src
-    const activeStyles = compiled.styles.filter((style) => style.src || /\S/.test(style.content));
+    const activeStyles = compiled.styles.filter(
+      (style) => style.src || /\S/.test(style.content),
+    );
 
     // Track CSS Module requests for HMR and __cssModules binding.
     // varName: safe JS identifier used in import statement (e.g. _cssModule_0)
     // bindingName: original module name from <style module="..."> (may not be a valid identifier)
-    const cssModuleHmrEntries: { request: string; varName: string; bindingName: string }[] = [];
+    const cssModuleHmrEntries: {
+      request: string;
+      varName: string;
+      bindingName: string;
+    }[] = [];
 
     const styleImports = activeStyles
       .map((style) => {
@@ -203,7 +228,9 @@ export function generateOutput(
           `lang=${style.lang || "css"}`,
           ...(style.scoped ? [`scoped=${compiled.scopeId}`] : []),
           ...(style.module
-            ? [`module=${typeof style.module === "string" ? style.module : "true"}`]
+            ? [
+                `module=${typeof style.module === "string" ? style.module : "true"}`,
+              ]
             : []),
           ...(isCustomElement ? ["inline"] : []),
         ];
@@ -215,7 +242,8 @@ export function generateOutput(
         }
 
         if (style.module) {
-          const bindingName = typeof style.module === "string" ? style.module : "$style";
+          const bindingName =
+            typeof style.module === "string" ? style.module : "$style";
           // Always use a safe internal variable name for the import binding.
           // The original module name (e.g. "foo-bar") may not be a valid JS
           // identifier, so we use _cssModule_<index> and map it back via
@@ -232,7 +260,9 @@ export function generateOutput(
 
     // Custom element mode: attach styles array to component for shadow DOM
     if (isCustomElement) {
-      const stylesArray = activeStyles.map((s) => `_style_${s.index}`).join(",");
+      const stylesArray = activeStyles
+        .map((s) => `_style_${s.index}`)
+        .join(",");
       output = output.replace(
         /^export default _sfc_main;/m,
         `_sfc_main.styles = [${stylesArray}];\nexport default _sfc_main;`,

@@ -28,14 +28,18 @@ import type { VizeLoaderOptions } from "../types/index.js";
 /** Default pattern: files ending with .ce.vue are custom elements */
 const DEFAULT_CE_PATTERN = /\.ce\.vue$/;
 
-export default function vizeLoader(this: LoaderContext<VizeLoaderOptions>, source: string): void {
+export default function vizeLoader(
+  this: LoaderContext<VizeLoaderOptions>,
+  source: string,
+): void {
   const callback = this.async();
   const options = this.getOptions();
   const resourcePath = this.resourcePath;
   const resourceQuery = this.resourceQuery;
   const requestPath = normalizeRequestPath(this, resourcePath);
 
-  const isProduction = this.mode === "production" || process.env.NODE_ENV === "production";
+  const isProduction =
+    this.mode === "production" || process.env.NODE_ENV === "production";
   const isSsr = options.ssr ?? false;
   const needsHotReload = !isSsr && !isProduction && options.hotReload !== false;
 
@@ -105,14 +109,20 @@ export default function vizeLoader(this: LoaderContext<VizeLoaderOptions>, sourc
 
   try {
     // 0. Determine custom element mode
-    const isCustomElement = resolveCustomElement(resourcePath, options.customElement);
+    const isCustomElement = resolveCustomElement(
+      resourcePath,
+      options.customElement,
+    );
 
     // 1. Resolve <script src="..."> and <template src="..."> external files
     const srcInfo = extractSrcInfo(source);
     let resolvedSource = source;
 
     if (srcInfo.scriptSrc) {
-      const scriptPath = path.resolve(path.dirname(resourcePath), srcInfo.scriptSrc);
+      const scriptPath = path.resolve(
+        path.dirname(resourcePath),
+        srcInfo.scriptSrc,
+      );
       this.addDependency(scriptPath);
       try {
         const scriptContent = fs.readFileSync(scriptPath, "utf-8");
@@ -128,7 +138,10 @@ export default function vizeLoader(this: LoaderContext<VizeLoaderOptions>, sourc
     }
 
     if (srcInfo.templateSrc) {
-      const templatePath = path.resolve(path.dirname(resourcePath), srcInfo.templateSrc);
+      const templatePath = path.resolve(
+        path.dirname(resourcePath),
+        srcInfo.templateSrc,
+      );
       this.addDependency(templatePath);
       try {
         const templateContent = fs.readFileSync(templatePath, "utf-8");
@@ -147,6 +160,7 @@ export default function vizeLoader(this: LoaderContext<VizeLoaderOptions>, sourc
     const compiled = compileFile(resourcePath, resolvedSource, {
       sourceMap: options.sourceMap ?? this.sourceMap ?? true,
       ssr: options.ssr ?? false,
+      vapor: options.vapor ?? false,
       compilerOptions: options.compilerOptions,
       isCustomElement,
       rootContext: this.rootContext,
@@ -164,7 +178,11 @@ export default function vizeLoader(this: LoaderContext<VizeLoaderOptions>, sourc
         this.emitError(new Error(`[vize] ${error}`));
       }
       const errorSummary = compiled.errors.join("\\n");
-      callback(new Error(`[vize] Compilation failed for ${resourcePath}:\n${errorSummary}`));
+      callback(
+        new Error(
+          `[vize] Compilation failed for ${resourcePath}:\n${errorSummary}`,
+        ),
+      );
       return;
     }
 

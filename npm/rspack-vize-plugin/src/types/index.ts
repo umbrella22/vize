@@ -11,6 +11,8 @@ export interface SfcCompileOptionsNapi {
   filename?: string;
   sourceMap?: boolean;
   ssr?: boolean;
+  /** Enable Vapor mode compilation */
+  vapor?: boolean;
   /** Preserve TypeScript in output when true */
   isTs?: boolean;
   /** Scope ID for scoped CSS (e.g., "data-v-abc123") */
@@ -139,6 +141,14 @@ export interface VizeLoaderOptions {
   customElement?: boolean | RegExp;
 
   /**
+   * Enable Vapor mode compilation.
+   * When enabled, SFC templates are compiled using the Vapor compiler backend.
+   *
+   * @default false
+   */
+  vapor?: boolean;
+
+  /**
    * Enable HMR (Hot Module Replacement) for Vue SFCs.
    * Set to `false` to explicitly disable HMR even in development mode.
    *
@@ -160,7 +170,13 @@ export interface VizeStyleLoaderOptions {
 // Preset API Types
 // ============================================================================
 
-export type VizeStyleLanguage = "css" | "scss" | "sass" | "less" | "styl" | "stylus";
+export type VizeStyleLanguage =
+  | "css"
+  | "scss"
+  | "sass"
+  | "less"
+  | "styl"
+  | "stylus";
 
 export interface CreateVizeVueRulesOptions {
   /**
@@ -315,4 +331,6 @@ export interface VizeRspackPluginOptions {
 // ============================================================================
 
 /** Loader entry: either a string (loader name/path) or an object with loader + options */
-export type LoaderEntry = string | { loader: string; options?: Record<string, unknown> };
+export type LoaderEntry =
+  | string
+  | { loader: string; options?: Record<string, unknown> };

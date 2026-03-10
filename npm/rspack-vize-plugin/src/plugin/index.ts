@@ -26,20 +26,18 @@ export class VizePlugin {
 
   apply(compiler: Compiler): void {
     const logger = compiler.getInfrastructureLogger(VizePlugin.name);
-    const isProduction = this.options.isProduction ?? compiler.options.mode === "production";
+    const isProduction =
+      this.options.isProduction ?? compiler.options.mode === "production";
 
-    // Vapor mode: SFC-level compilation is not yet supported in @vizejs/native compileSfc.
-    // Template-level compileVapor exists, but full SFC Vapor output requires Rust-side changes.
-    if (this.options.vapor) {
-      logger.warn(
-        "Vapor mode is enabled but SFC-level Vapor compilation is not yet supported by @vizejs/native. " +
-          "Only `__VUE_PROD_HYDRATION_MISMATCH_DETAILS__` will be set. " +
-          "Track https://github.com/nicepkg/vize for updates.",
-      );
+    // Vapor mode: fully supported by @vizejs/native compileSfc.
+    // Pass `vapor: true` in loader options or compilerOptions to enable.
+    if (this.options.vapor && !isProduction) {
+      logger.debug("Vapor mode is enabled.");
     }
 
     const isCssNativeEnabled = Boolean(
-      (compiler.options as { experiments?: { css?: boolean } }).experiments?.css,
+      (compiler.options as { experiments?: { css?: boolean } }).experiments
+        ?.css,
     );
 
     if (this.options.css?.native && !isCssNativeEnabled) {
@@ -55,7 +53,9 @@ export class VizePlugin {
     // Collect existing definitions from all DefinePlugin instances
     const existingDefines = new Set<string>();
     for (const plugin of compiler.options.plugins ?? []) {
-      const defs = (plugin as unknown as { definitions?: Record<string, unknown> })?.definitions;
+      const defs = (
+        plugin as unknown as { definitions?: Record<string, unknown> }
+      )?.definitions;
       if (defs) {
         for (const key of Object.keys(defs)) {
           existingDefines.add(key);
@@ -71,7 +71,8 @@ export class VizePlugin {
       vueDefines["__VUE_PROD_DEVTOOLS__"] = JSON.stringify(!isProduction);
     }
     if (!existingDefines.has("__VUE_PROD_HYDRATION_MISMATCH_DETAILS__")) {
-      vueDefines["__VUE_PROD_HYDRATION_MISMATCH_DETAILS__"] = JSON.stringify(!isProduction);
+      vueDefines["__VUE_PROD_HYDRATION_MISMATCH_DETAILS__"] =
+        JSON.stringify(!isProduction);
     }
 
     if (Object.keys(vueDefines).length > 0) {

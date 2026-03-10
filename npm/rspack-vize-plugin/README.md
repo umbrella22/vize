@@ -309,7 +309,7 @@ new VizePlugin({
   exclude: string | RegExp | (string | RegExp)[]; // Exclude watched .vue files
   ssr: boolean;             // Enable SSR mode (default: false)
   sourceMap: boolean;       // Enable source maps (default: true in dev)
-  vapor: boolean;           // Enable Vapor mode (default: false, SFC-level not yet supported)
+  vapor: boolean;           // Enable Vapor mode (default: false)
   root: string;             // Root directory (default: Rspack's root)
   css: {
     native: boolean;        // Use experiments.css (default: false), warns if config mismatch
@@ -332,6 +332,7 @@ new VizePlugin({
     exclude: string | RegExp | (string | RegExp)[]; // Safe compile denylist
     sourceMap: boolean;     // Enable source maps (default: true)
     ssr: boolean;           // Enable SSR mode (default: false)
+    vapor: boolean;         // Enable Vapor mode (default: false)
     customElement: boolean | RegExp; // Custom element mode (default: /\.ce\.vue$/)
     hotReload: boolean;     // Enable HMR (default: true in dev, false in prod/SSR)
     compilerOptions: {      // Extra @vizejs/native compileSfc options
@@ -339,6 +340,7 @@ new VizePlugin({
       sourceMap?: boolean;
       ssr?: boolean;
       isTs?: boolean;       // Preserve TypeScript (auto-detected from <script lang="ts">)
+      vapor?: boolean;      // Enable Vapor mode compilation
       scopeId?: string;
     };
   };
