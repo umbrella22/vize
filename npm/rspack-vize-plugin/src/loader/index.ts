@@ -165,6 +165,7 @@ export default function vizeLoader(
       isCustomElement,
       rootContext: this.rootContext,
       isProduction,
+      transformAssetUrls: options.transformAssetUrls,
     });
 
     for (const warning of compiled.warnings) {

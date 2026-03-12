@@ -105,3 +105,99 @@ void test("rspack builds a Vue SFC with dedicated loader and style paths", async
 
   t.assert.snapshot(JSON.stringify(assets, null, 2));
 });
+
+void test("rspack rewrites template asset URLs into import bindings", async (t) => {
+  const compiler = rspack({
+    mode: "development",
+    devtool: false,
+    context: resolveFixturePath("asset-url", "."),
+    entry: {
+      main: resolveFixturePath("asset-url", "entry.ts"),
+    },
+    output: {
+      path: prepareOutputDir("asset-url"),
+      filename: "bundle.js",
+      clean: true,
+    },
+    externals: {
+      vue: "vue",
+    },
+    experiments: {
+      css: true,
+    },
+    infrastructureLogging: {
+      level: "error",
+    },
+    resolve: {
+      extensions: ["...", ".ts", ".js", ".vue"],
+    },
+    module: {
+      rules: [
+        {
+          test: /\.(png|jpe?g|gif|svg|mp4|webm)$/,
+          type: "asset/resource",
+        },
+        ...createVizeVueRules({
+          isProduction: false,
+          nativeCss: true,
+          typescript: true,
+          vizeLoader: path.join(packageRoot, "dist", "loader", "index.js"),
+          vizeStyleLoader: path.join(
+            packageRoot,
+            "dist",
+            "loader",
+            "style-loader.js",
+          ),
+        }),
+      ],
+    },
+    plugins: [
+      new VizePlugin({
+        css: {
+          native: true,
+        },
+      }),
+    ],
+  });
+
+  const stats = await runCompiler(compiler);
+  const info = stats.toJson({
+    all: false,
+    errors: true,
+    warnings: true,
+  });
+
+  // Should compile without errors
+  if (stats.hasErrors()) {
+    throw new Error(JSON.stringify(info.errors, null, 2));
+  }
+
+  const bundleJs = stats.compilation.assets["bundle.js"]?.source().toString() ?? "";
+  const normalized = normalizeSnapshot(bundleJs);
+
+  // Static relative URLs must become import bindings (not remain as string literals)
+  t.assert.ok(
+    !normalized.includes('"./logo.png"'),
+    '"./logo.png" string literal should have been replaced by import binding',
+  );
+  t.assert.ok(
+    !normalized.includes('"./intro.mp4"'),
+    '"./intro.mp4" string literal should have been replaced by import binding',
+  );
+  t.assert.ok(
+    !normalized.includes('"./poster.jpg"'),
+    '"./poster.jpg" string literal should have been replaced by import binding',
+  );
+
+  // External URL must remain unchanged (not transformed into import)
+  t.assert.ok(
+    normalized.includes("https://cdn.example.com/external.png"),
+    "external URL should remain as-is",
+  );
+
+  // Dynamic binding value must not be collected as asset URL
+  t.assert.ok(
+    !normalized.includes("import") || !normalized.includes('from "dynamic.png"'),
+    "dynamic binding value should not become an import",
+  );
+});

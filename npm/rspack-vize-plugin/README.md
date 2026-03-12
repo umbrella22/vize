@@ -335,6 +335,7 @@ new VizePlugin({
     vapor: boolean;         // Enable Vapor mode (default: false)
     customElement: boolean | RegExp; // Custom element mode (default: /\.ce\.vue$/)
     hotReload: boolean;     // Enable HMR (default: true in dev, false in prod/SSR)
+    transformAssetUrls: boolean | Record<string, string[]>; // See below (default: true)
     compilerOptions: {      // Extra @vizejs/native compileSfc options
       filename?: string;
       sourceMap?: boolean;
@@ -351,6 +352,36 @@ If `include/exclude` filters out a `.vue` file matched by this loader rule, the 
 This avoids hard failures while still alerting you to mismatched rule/filter configuration.
 
 Compilation errors cause the loader to fail immediately (`callback(error)`) instead of returning broken code.
+
+#### `transformAssetUrls`
+
+Static asset URLs in template element attributes (e.g. `<img src="./logo.png">`) are automatically rewritten into JavaScript `import` bindings so that Rspack can process them through its asset pipeline.
+
+| Value | Behaviour |
+|-------|-----------|
+| `true` (default) | Apply built-in transforms: `img[src]`, `video[src,poster]`, `source[src]`, `image[xlink:href,href]`, `use[xlink:href,href]` |
+| `false` | Disable the feature entirely — URL strings are left as-is |
+| `Record<string, string[]>` | Custom element/attribute mapping that **replaces** the built-in defaults |
+
+Only relative (`./`, `../`), alias (`@/`), and tilde (`~/`, `~pkg`) URLs are transformed. External (`https://…`), protocol-relative (`//…`), and data URIs are left unchanged.
+
+```js
+// Custom mapping example
+{
+  loader: "@vizejs/rspack-plugin/loader",
+  options: {
+    transformAssetUrls: {
+      "my-image": ["data-src"],
+      img: ["src"],
+    },
+  },
+}
+```
+
+> **Known limitations**
+>
+> - URL rewriting operates via string replacement on the compiled JS output, not on AST nodes. If a `<script>` block contains an identical string literal it will also be replaced (extremely unlikely in practice).
+> - URLs with hash fragments (e.g. `./icons.svg#home`) are split: the base path becomes the `import` specifier and the fragment is concatenated at runtime.
 
 ### VizeStyleLoader
 
@@ -385,8 +416,20 @@ const rules = createVizeVueRules({
     native: true, // match nativeCss setting
   },
   typescript: true, // or a custom LoaderEntry
+  // Forward options to preprocessor loaders (e.g. sass-loader, less-loader)
+  preprocessorOptions: {
+    scss: {
+      additionalData: `@use "src/styles/variables" as *;`,
+      sassOptions: { includePaths: ["./src"], quietDeps: true },
+    },
+    less: {
+      math: "always",
+    },
+  },
 });
 ```
+
+When `preprocessorOptions` is **not** provided (or a language key is absent), the preprocessor loader is emitted as a bare string (`"sass-loader"`). When options **are** provided, it becomes an object entry (`{ loader: "sass-loader", options: { ... } }`). This means existing configurations that don't use `preprocessorOptions` are fully backward-compatible.
 
 ## Comparison
 
@@ -401,6 +444,26 @@ const rules = createVizeVueRules({
 | **Use Case**       | **New projects**               | webpack compatibility  |
 
 ## Known Limitations
+
+### Request Routing: Main vs Style Sub-Requests
+
+> **Critical**: The main `.vue` loader and the style loader **must** see different requests.
+
+When Rspack compiles a `.vue` file, the main loader produces `import './App.vue?vue&type=style&index=0&...'` statements. These style sub-requests must be routed to `@vizejs/rspack-plugin/style-loader` — **not** back into the main loader. If the main loader receives a `?type=style` query it will emit an explicit error.
+
+Use `oneOf` to guarantee mutual exclusion:
+
+```javascript
+{
+  test: /\.vue$/,
+  oneOf: [
+    { resourceQuery: /type=style/, use: [/* style pipeline */] },
+    { use: [/* main vize loader */] },
+  ],
+}
+```
+
+`createVizeVueRules()` generates this structure automatically. If you write rules by hand, ensure that style sub-requests never fall through to the main loader.
 
 ### HMR
 

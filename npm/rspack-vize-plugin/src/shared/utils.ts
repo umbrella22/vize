@@ -5,7 +5,7 @@
 
 import { createHash } from "node:crypto";
 import path from "node:path";
-import type { StyleBlockInfo, CustomBlockInfo, SfcSrcInfo } from "../types/index.js";
+import type { StyleBlockInfo, CustomBlockInfo, SfcSrcInfo, TemplateAssetUrl } from "../types/index.js";
 
 /**
  * Generate a unique scope ID for scoped CSS based on file path.
@@ -149,27 +149,113 @@ function scopeSelectors(group: string, scopeAttr: string): string {
 
 /**
  * Extract custom block metadata from a Vue SFC source string.
- * Parses root-level tags that are not <script>, <template>, or <style>.
+ * Scans for root-level tags that are not <script>, <template>, or <style>.
+ *
+ * Uses a top-level tag scanner that correctly tracks nesting depth, so
+ * tags like `<template #prefix>` inside the main `<template>` block are
+ * not mistakenly treated as custom blocks.
  */
 export function extractCustomBlocks(source: string): CustomBlockInfo[] {
-  // First, strip the content of <script>, <template>, and <style> blocks
-  // so the regex only matches truly root-level custom blocks (not inner HTML).
-  const stripped = source.replace(/<(script|template|style)\b[^>]*>[\s\S]*?<\/\1>/gi, "");
-
   const blocks: CustomBlockInfo[] = [];
-  const blockRegex = /<([a-z][a-z0-9-]*)([^>]*)>([\s\S]*?)<\/\1>/gi;
-  let match;
-  let index = 0;
+  const knownTopLevel = new Set(["script", "template", "style"]);
+  let blockIndex = 0;
+  let pos = 0;
 
-  while ((match = blockRegex.exec(stripped)) !== null) {
-    const type = match[1];
-    const attrsStr = match[2];
-    const content = match[3];
-    const src = attrsStr.match(/\bsrc=["']([^"']+)["']/)?.[1] ?? null;
-    const attrs = parseAttributes(attrsStr);
+  while (pos < source.length) {
+    const ltPos = source.indexOf("<", pos);
+    if (ltPos === -1) break;
 
-    blocks.push({ type, content, src, attrs, index });
-    index++;
+    // Skip HTML comments
+    if (source.startsWith("<!--", ltPos)) {
+      const endComment = source.indexOf("-->", ltPos + 4);
+      pos = endComment === -1 ? source.length : endComment + 3;
+      continue;
+    }
+
+    // Skip closing tags that appear at the top level (malformed SFC)
+    if (source[ltPos + 1] === "/") {
+      const gt = source.indexOf(">", ltPos + 2);
+      pos = gt === -1 ? source.length : gt + 1;
+      continue;
+    }
+
+    // Match an opening tag: <tagName attrs... > or <tagName attrs... />
+    const openTagMatch = /^<([a-zA-Z][a-zA-Z0-9-]*)(\s[^>]*)?\s*\/?>/.exec(
+      source.slice(ltPos),
+    );
+    if (!openTagMatch) {
+      pos = ltPos + 1;
+      continue;
+    }
+
+    const tagName = openTagMatch[1];
+    const attrsStr = (openTagMatch[2] || "").trim();
+    const selfClosing = openTagMatch[0].trimEnd().endsWith("/>");
+    const afterOpenTag = ltPos + openTagMatch[0].length;
+
+    if (selfClosing) {
+      if (!knownTopLevel.has(tagName.toLowerCase())) {
+        blocks.push({
+          type: tagName,
+          content: "",
+          src: attrsStr.match(/\bsrc=["']([^"']+)["']/)?.[1] ?? null,
+          attrs: parseAttributes(attrsStr),
+          index: blockIndex++,
+        });
+      }
+      pos = afterOpenTag;
+      continue;
+    }
+
+    // Find the matching closing tag while tracking same-name nesting depth
+    const tagNameLower = tagName.toLowerCase();
+    let depth = 1;
+    let scanPos = afterOpenTag;
+
+    while (scanPos < source.length && depth > 0) {
+      const nextLt = source.indexOf("<", scanPos);
+      if (nextLt === -1) {
+        scanPos = source.length;
+        break;
+      }
+
+      // Check for closing tag first: </tagName ...>
+      const closeRe = new RegExp(`^</${tagName}\\s*>`, "i");
+      const closeMatch = closeRe.exec(source.slice(nextLt));
+      if (closeMatch) {
+        depth--;
+        if (depth === 0) {
+          const content = source.slice(afterOpenTag, nextLt);
+          if (!knownTopLevel.has(tagNameLower)) {
+            blocks.push({
+              type: tagName,
+              content,
+              src: attrsStr.match(/\bsrc=["']([^"']+)["']/)?.[1] ?? null,
+              attrs: parseAttributes(attrsStr),
+              index: blockIndex++,
+            });
+          }
+          scanPos = nextLt + closeMatch[0].length;
+          break;
+        }
+        scanPos = nextLt + closeMatch[0].length;
+        continue;
+      }
+
+      // Check for nested opening tag of the same name (non-self-closing)
+      const openRe = new RegExp(`^<${tagName}\\b[^>]*>`, "i");
+      const openMatch = openRe.exec(source.slice(nextLt));
+      if (openMatch && !openMatch[0].trimEnd().endsWith("/>")) {
+        depth++;
+        scanPos = nextLt + openMatch[0].length;
+        continue;
+      }
+
+      // Some other tag or text — advance past this '<'
+      scanPos = nextLt + 1;
+    }
+
+    pos = scanPos;
   }
 
   return blocks;
@@ -283,4 +369,186 @@ export function matchesPattern(
     }
     return item.test(normalizedFile);
   });
+}
+
+// ============================================================================
+// Template Asset URL Transformation
+// ============================================================================
+
+/**
+ * Default element→attribute mapping that mirrors Vue's transformAssetUrls defaults.
+ * Static values on these element/attribute pairs are treated as importable asset URLs.
+ */
+export const DEFAULT_ASSET_URL_TAGS: Readonly<Record<string, string[]>> = Object.freeze({
+  img: ["src"],
+  video: ["src", "poster"],
+  source: ["src"],
+  image: ["xlink:href", "href"],
+  use: ["xlink:href", "href"],
+});
+
+/**
+ * Returns true when a template attribute value should be rewritten as an import.
+ * Follows Vue's convention: relative paths (`./`, `../`), alias paths (`@/`),
+ * and tilde module paths (`~/`, `~pkg`) are importable.
+ * External URLs (http/https), protocol-relative (`//`), and data URIs are not.
+ */
+export function isImportableUrl(url: string): boolean {
+  if (!url) return false;
+  // External / protocol-relative / data URIs → not importable
+  if (/^(https?:)?\/\//.test(url) || url.startsWith("data:")) return false;
+  // Relative paths
+  if (url.startsWith("./") || url.startsWith("../")) return true;
+  // Alias and tilde module paths
+  if (url.startsWith("@/") || url.startsWith("~")) return true;
+  return false;
+}
+
+/**
+ * Extract the content of the top-level `<template>` block from an SFC source.
+ * Uses depth-tracking so nested `<template>` elements (e.g. slot templates) are
+ * included in the returned string without confusing the scanner.
+ * Returns null for SFCs without a template block or with malformed markup.
+ */
+function extractSfcTemplateContent(source: string): string | null {
+  let pos = 0;
+
+  while (pos < source.length) {
+    const ltPos = source.indexOf("<", pos);
+    if (ltPos === -1) break;
+
+    // Skip HTML comments
+    if (source.startsWith("<!--", ltPos)) {
+      const end = source.indexOf("-->", ltPos + 4);
+      pos = end === -1 ? source.length : end + 3;
+      continue;
+    }
+
+    // Skip closing tags
+    if (source[ltPos + 1] === "/") {
+      const gt = source.indexOf(">", ltPos + 2);
+      pos = gt === -1 ? source.length : gt + 1;
+      continue;
+    }
+
+    const openMatch = /^<template(\s[^>]*)?>/.exec(source.slice(ltPos));
+    if (!openMatch) {
+      pos = ltPos + 1;
+      continue;
+    }
+
+    // Found the opening <template> tag — track depth to find its closing tag
+    const afterOpen = ltPos + openMatch[0].length;
+    let depth = 1;
+    let scan = afterOpen;
+
+    while (scan < source.length && depth > 0) {
+      const next = source.indexOf("<", scan);
+      if (next === -1) break;
+
+      const closeMatch = /^<\/template\s*>/i.exec(source.slice(next));
+      if (closeMatch) {
+        depth--;
+        if (depth === 0) return source.slice(afterOpen, next);
+        scan = next + closeMatch[0].length;
+        continue;
+      }
+
+      const innerOpenMatch = /^<template\b[^>]*>/i.exec(source.slice(next));
+      if (innerOpenMatch && !innerOpenMatch[0].trimEnd().endsWith("/>")) {
+        depth++;
+        scan = next + innerOpenMatch[0].length;
+        continue;
+      }
+
+      scan = next + 1;
+    }
+
+    return null; // malformed or unclosed template
+  }
+
+  return null; // no <template> found
+}
+
+/** Escape a string for safe inclusion in a RegExp character/literal context */
+function escapeRegex(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/**
+ * Scan a Vue SFC source for static asset URLs that should be rewritten as
+ * JavaScript import bindings (P5: template static-asset URL rewrite).
+ *
+ * How it works:
+ *   1. Extract the top-level `<template>` block content.
+ *   2. For each configured element/attribute pair, find opening tags and scan
+ *      their attribute strings for *static* (non-`v-bind:` / non-`:`) values.
+ *   3. Values that look importable (relative, alias or tilde paths) are collected
+ *      and assigned a unique JS identifier (`_imports_0`, `_imports_1`, …).
+ *
+ * The returned list is deduplicated — the same URL always maps to the same
+ * variable name regardless of how many times it appears in the template.
+ *
+ * @param source   Raw SFC source text (the full `.vue` file)
+ * @param tags     `true` / `undefined` → use {@link DEFAULT_ASSET_URL_TAGS};
+ *                 `false` → disable (return empty);
+ *                 `Record<string, string[]>` → custom element/attribute map
+ */
+export function collectTemplateAssetUrls(
+  source: string,
+  tags?: boolean | Record<string, string[]>,
+): TemplateAssetUrl[] {
+  if (tags === false) return [];
+
+  const tagConfig: Record<string, string[]> =
+    tags == null || tags === true
+      ? (DEFAULT_ASSET_URL_TAGS as Record<string, string[]>)
+      : tags;
+
+  const templateContent = extractSfcTemplateContent(source);
+  if (!templateContent) return [];
+
+  const urlToVar = new Map<string, string>();
+  let counter = 0;
+
+  for (const [tag, attrs] of Object.entries(tagConfig)) {
+    // Match an opening tag (including self-closing).
+    // Attribute values may contain spaces, so we consume everything up to `>`,
+    // skipping over quoted attribute values that might include `>`.
+    const tagRe = new RegExp(
+      `<${escapeRegex(tag)}((?:\\s+[^>]*)?)(?:/>|>)`,
+      "gi",
+    );
+    let tagMatch: RegExpExecArray | null;
+
+    while ((tagMatch = tagRe.exec(templateContent)) !== null) {
+      const attrStr = tagMatch[1] ?? "";
+
+      for (const attr of attrs) {
+        // Static attribute: must be preceded by whitespace (or start of attrStr),
+        // NOT by `:` or `v-bind:` (which mark dynamic bindings).
+        const doubleQuoteRe = new RegExp(
+          `(?:^|\\s)${escapeRegex(attr)}="([^"]+)"`,
+          "i",
+        );
+        const singleQuoteRe = new RegExp(
+          `(?:^|\\s)${escapeRegex(attr)}='([^']+)'`,
+          "i",
+        );
+
+        const m = doubleQuoteRe.exec(attrStr) ?? singleQuoteRe.exec(attrStr);
+        if (m) {
+          const url = m[1];
+          if (isImportableUrl(url) && !urlToVar.has(url)) {
+            urlToVar.set(url, `_imports_${counter++}`);
+          }
+        }
+      }
+    }
+  }
+
+  return Array.from(urlToVar.entries()).map(([url, varName]) => ({
+    url,
+    varName,
+  }));
 }

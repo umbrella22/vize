@@ -76,6 +76,21 @@ export interface SfcSrcInfo {
 }
 
 // ============================================================================
+// Template Asset URL Types
+// ============================================================================
+
+/**
+ * A static asset URL found in a template element attribute that should be
+ * transformed into a JavaScript import binding.
+ */
+export interface TemplateAssetUrl {
+  /** The raw URL value as it appears in the template (e.g., "./logo.png") */
+  url: string;
+  /** Safe JavaScript identifier for the generated import (e.g., "_imports_0") */
+  varName: string;
+}
+
+// ============================================================================
 // Compiled Module Types
 // ============================================================================
 
@@ -92,6 +107,11 @@ export interface CompiledModule {
   customBlocks: CustomBlockInfo[];
   /** Whether this is a custom element SFC (e.g., .ce.vue) */
   isCustomElement: boolean;
+  /**
+   * Static asset URLs collected from the template that need to be rewritten
+   * as import bindings in the JS output. Empty when transformAssetUrls is false.
+   */
+  templateAssetUrls: TemplateAssetUrl[];
 }
 
 // ============================================================================
@@ -155,6 +175,23 @@ export interface VizeLoaderOptions {
    * @default true (enabled in development, disabled in production/SSR)
    */
   hotReload?: boolean;
+
+  /**
+   * Transform static asset URLs in templates into JavaScript import bindings.
+   *
+   * Mirrors Vue's `transformAssetUrls` compiler option:
+   * - `true` (default): apply the built-in set of element/attribute transforms
+   *   (`img[src]`, `video[src,poster]`, `source[src]`, `image[href]`, `use[href]`)
+   * - `false`: disable the feature entirely
+   * - `Record<string, string[]>`: custom element→attribute mapping that replaces
+   *   the built-in defaults
+   *
+   * Relative (`./`, `../`) and alias-prefixed (`@/`, `~`) URLs are turned into
+   * `import` statements so Rspack can process them through the asset pipeline.
+   *
+   * @default true
+   */
+  transformAssetUrls?: boolean | Record<string, string[]>;
 }
 
 export interface VizeStyleLoaderOptions {
@@ -252,6 +289,28 @@ export interface CreateVizeVueRulesOptions {
    * @default false
    */
   typescript?: boolean | LoaderEntry;
+
+  /**
+   * Per-language options forwarded to the preprocessor loader.
+   *
+   * Keys are the language names (matching entries in `styleLanguages`).
+   * Values are passed as the `options` property of the corresponding
+   * preprocessor loader entry (e.g. `sass-loader`, `less-loader`).
+   *
+   * @example
+   * ```ts
+   * createVizeVueRules({
+   *   preprocessorOptions: {
+   *     scss: {
+   *       additionalData: `@use "src/styles" as *;`,
+   *       sassOptions: { includePaths: ['./src'], quietDeps: true },
+   *     },
+   *     less: { math: 'always' },
+   *   },
+   * })
+   * ```
+   */
+  preprocessorOptions?: Partial<Record<VizeStyleLanguage, Record<string, unknown>>>;
 }
 
 // ============================================================================

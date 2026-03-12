@@ -25,6 +25,7 @@ export function createVizeVueRules(
     loaderOptions,
     styleLoaderOptions,
     typescript = false,
+    preprocessorOptions,
   } = options;
 
   const normalizedLanguages = Array.from(new Set(styleLanguages.filter((lang) => lang !== "css")));
@@ -49,6 +50,7 @@ export function createVizeVueRules(
         nativeCss,
         styleLoaderEntry,
         preprocessorLoader,
+        preprocessorLoaderOptions: preprocessorOptions?.[lang],
         isProduction,
         styleInjectLoader,
         styleExtractLoader,
@@ -82,6 +84,7 @@ export function createVizeVueRules(
         nativeCss,
         styleLoaderEntry,
         preprocessorLoader,
+        preprocessorLoaderOptions: preprocessorOptions?.[lang],
         isProduction,
         styleInjectLoader,
         styleExtractLoader,
@@ -156,6 +159,7 @@ function createStyleRule(options: {
   nativeCss: boolean;
   styleLoaderEntry: Record<string, unknown>;
   preprocessorLoader?: string;
+  preprocessorLoaderOptions?: Record<string, unknown>;
   isProduction: boolean;
   styleInjectLoader: LoaderEntry;
   styleExtractLoader?: LoaderEntry;
@@ -167,11 +171,21 @@ function createStyleRule(options: {
     nativeCss,
     styleLoaderEntry,
     preprocessorLoader,
+    preprocessorLoaderOptions,
     isProduction,
     styleInjectLoader,
     styleExtractLoader,
     cssLoader,
   } = options;
+
+  // Resolve preprocessor loader: if options are provided, emit an object entry;
+  // otherwise keep the bare string for simplicity.
+  const resolvedPreprocessorLoader: Record<string, unknown> | string | undefined =
+    preprocessorLoader
+      ? preprocessorLoaderOptions
+        ? { loader: preprocessorLoader, options: preprocessorLoaderOptions }
+        : preprocessorLoader
+      : undefined;
 
   // Build order-independent regex using lookaheads.
   // Each part is wrapped in (?=.*part) so query parameter order doesn't matter.
@@ -191,7 +205,9 @@ function createStyleRule(options: {
     return {
       resourceQuery,
       type: module ? "css/module" : "css/auto",
-      use: preprocessorLoader ? [preprocessorLoader, styleLoaderEntry] : [styleLoaderEntry],
+      use: resolvedPreprocessorLoader
+        ? [resolvedPreprocessorLoader, styleLoaderEntry]
+        : [styleLoaderEntry],
     };
   }
 
@@ -214,7 +230,7 @@ function createStyleRule(options: {
     use: [
       isProduction && styleExtractLoader ? styleExtractLoader : styleInjectLoader,
       cssLoaderEntry,
-      ...(preprocessorLoader ? [preprocessorLoader] : []),
+      ...(resolvedPreprocessorLoader ? [resolvedPreprocessorLoader] : []),
       styleLoaderEntry,
     ],
   };

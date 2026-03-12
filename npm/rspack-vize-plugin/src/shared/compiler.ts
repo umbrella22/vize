@@ -11,6 +11,7 @@ import {
   generateScopeId,
   extractStyleBlocks,
   extractCustomBlocks,
+  collectTemplateAssetUrls,
 } from "./utils.js";
 import { genHotReloadCode, genCSSModuleHotReloadCode } from "./hotReload.js";
 
@@ -63,6 +64,8 @@ export function compileFile(
     isCustomElement?: boolean;
     rootContext?: string;
     isProduction?: boolean;
+    /** @see VizeLoaderOptions.transformAssetUrls */
+    transformAssetUrls?: boolean | Record<string, string[]>;
   } = {},
 ): CompiledModule {
   // Auto-detect TypeScript from <script lang="ts"> or <script setup lang="ts">
@@ -80,7 +83,15 @@ export function compileFile(
   const isCustomElement = options.isCustomElement ?? false;
   const rootCtx = options.rootContext ?? "";
   const isProd = options.isProduction ?? false;
-  const cacheKey = `${filePath}:ssr=${ssr}:vapor=${vapor}:ts=${autoIsTs}:map=${sourceMap}:ce=${isCustomElement}:root=${rootCtx}:prod=${isProd}`;
+  // Normalize transformAssetUrls to a stable string for the cache key
+  const transformAssetUrls = options.transformAssetUrls ?? true;
+  const tauKey =
+    transformAssetUrls === false
+      ? "tau=false"
+      : transformAssetUrls === true
+        ? "tau=true"
+        : `tau=${JSON.stringify(transformAssetUrls)}`;
+  const cacheKey = `${filePath}:ssr=${ssr}:vapor=${vapor}:ts=${autoIsTs}:map=${sourceMap}:ce=${isCustomElement}:root=${rootCtx}:prod=${isProd}:${tauKey}`;
 
   // Check content-hash cache to skip re-compilation of unchanged files
   const contentHash = computeContentHash(source);
@@ -111,6 +122,7 @@ export function compileFile(
 
   const styles = extractStyleBlocks(source);
   const customBlocks = extractCustomBlocks(source);
+  const templateAssetUrls = collectTemplateAssetUrls(source, transformAssetUrls);
 
   const compiled: CompiledModule = {
     code: result.code,
@@ -122,6 +134,7 @@ export function compileFile(
     styles,
     customBlocks,
     isCustomElement,
+    templateAssetUrls,
   };
 
   // Only cache successful compilations (no errors)
@@ -156,6 +169,44 @@ export function generateOutput(
 ): string {
   let output = compiled.code;
   const isCustomElement = compiled.isCustomElement;
+
+  // ── P5: Template static-asset URL rewrite ─────────────────────────────────
+  // The native compiler emits static asset URL strings as plain JS string
+  // literals (e.g. `{ src: "./logo.png" }`).  Rspack cannot bundle them as
+  // assets unless they are turned into `import` bindings.  We post-process the
+  // compiled output here, replacing each known URL literal with the variable
+  // name of a generated import statement.
+  //
+  // String replacement is safe because:
+  //   - We only transform URLs that were explicitly found in the template
+  //     element attributes (img[src], video[src,poster], source[src], …)
+  //   - The native codegen quotes static prop values with double quotes, so
+  //     an exact `"<url>"` match targets only those literals
+  //   - We prepend the import statements before the rest of `output` is
+  //     assembled so Rspack never sees the raw string form
+  // Known limitation: the replacement below operates on the full compiled JS
+  // output via string matching, not on AST nodes.  If a `<script>` block
+  // happens to contain an identical string literal (e.g. `"./logo.png"`), it
+  // will also be replaced.  In practice this is extremely rare because the
+  // match is against the *compiled* output (not the raw SFC source) and URLs
+  // only qualify if they appear as static element attributes.  A future
+  // improvement could narrow the replacement scope to template render code.
+  if (compiled.templateAssetUrls.length > 0) {
+    for (const { url, varName } of compiled.templateAssetUrls) {
+      // Split hash fragment — Rspack cannot resolve "./icon.svg#arrow" as a
+      // module path.  We import the base path and concatenate the fragment at
+      // runtime: `_imports_0 + "#arrow"`.
+      const hashIdx = url.indexOf("#");
+      const fragment = hashIdx >= 0 ? url.slice(hashIdx) : "";
+      const replacement = fragment ? `${varName} + ${JSON.stringify(fragment)}` : varName;
+
+      // Escape the URL for use in a RegExp (e.g. dots in filenames)
+      const escaped = url.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      output = output.replace(new RegExp(`"${escaped}"`, "g"), replacement);
+      output = output.replace(new RegExp(`'${escaped}'`, "g"), replacement);
+    }
+  }
+  // ────────────────────────────────────────────────────────────────────────────
 
   // Handle export default transformation
   const exportDefaultRegex = /^export default /m;
@@ -358,6 +409,28 @@ export function generateOutput(
       `${customBlockImports}\nexport default _sfc_main;`,
     );
   }
+
+  // ── P5: Prepend asset URL import statements ────────────────────────────────
+  // URL string literals were already replaced with variable names above.
+  // Now prepend the corresponding `import` declarations so Rspack can resolve
+  // and bundle the referenced assets through its asset-module pipeline.
+  // We prepend these AFTER all other `output = X + "\n" + output` mutations so
+  // they end up at the very top of the emitted module.
+  if (compiled.templateAssetUrls.length > 0) {
+    const assetImports = compiled.templateAssetUrls
+      .map(({ url, varName }) => {
+        // Strip leading `~` (webpack/Rspack module-request convention)
+        let importPath = url.startsWith("~") ? url.slice(1) : url;
+        // Strip hash fragment — it is not part of the module specifier;
+        // the fragment is re-attached via concatenation in the render code.
+        const hashIdx = importPath.indexOf("#");
+        if (hashIdx >= 0) importPath = importPath.slice(0, hashIdx);
+        return `import ${varName} from ${JSON.stringify(importPath)};`;
+      })
+      .join("\n");
+    output = assetImports + "\n" + output;
+  }
+  // ────────────────────────────────────────────────────────────────────────────
 
   return output;
 }
