@@ -84,7 +84,7 @@ Benchmarks with **15,000 Vue SFC files** (36.9 MB). "User-facing speedup" = trad
 
 \* canon is still in early development and does not yet cover the full feature set of vue-tsc. The speedup partly reflects the difference in work performed.
 
-\*\* Vite Plugin benchmark uses Vite v8.0.0-beta.15 (Rolldown). The plugin replaces only the SFC compilation step; all other Vite internals are unchanged.
+\*\* Vite Plugin benchmark uses Vite v8.0.0 (Rolldown). The plugin replaces only the SFC compilation step; all other Vite internals are unchanged.
 
 Run `mise run bench:all` to reproduce all benchmarks.
 

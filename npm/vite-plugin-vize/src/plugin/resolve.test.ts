@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -45,8 +46,16 @@ const nullResolveContext = {
 };
 
 function expectResolvedId(resolved: Awaited<ReturnType<typeof resolveIdHook>>): string {
-  assert.equal(typeof resolved, "string");
-  return resolved;
+  assert.notEqual(resolved, null);
+  assert.notEqual(resolved, undefined);
+
+  if (typeof resolved === "string") {
+    return resolved;
+  }
+
+  assert.equal(typeof resolved, "object");
+  assert.equal(typeof resolved.id, "string");
+  return resolved.id;
 }
 
 {
@@ -64,18 +73,20 @@ function expectResolvedId(resolved: Awaited<ReturnType<typeof resolveIdHook>>): 
 
 {
   const projectRoot = path.join(workspaceRoot, "tests", "_fixtures", "_git", "vuefes-2025");
-  const importer = toVirtualId(path.join(projectRoot, "app", "pages", "index.vue"));
-  const resolved = await resolveIdHook(
-    nullResolveContext,
-    createState(projectRoot),
-    "@primevue/forms/resolvers/valibot?nuxt_component=async",
-    importer,
-  );
+  if (fs.existsSync(path.join(projectRoot, "package.json"))) {
+    const importer = toVirtualId(path.join(projectRoot, "app", "pages", "index.vue"));
+    const resolved = await resolveIdHook(
+      nullResolveContext,
+      createState(projectRoot),
+      "@primevue/forms/resolvers/valibot?nuxt_component=async",
+      importer,
+    );
 
-  assert.match(
-    expectResolvedId(resolved),
-    /@primevue\/forms\/resolvers\/valibot\/index\.mjs\?nuxt_component=async$/,
-  );
+    assert.match(
+      expectResolvedId(resolved),
+      /@primevue\/forms\/resolvers\/valibot\/index\.mjs\?nuxt_component=async$/,
+    );
+  }
 }
 
 console.log("✅ vite-plugin-vize resolve tests passed!");

@@ -440,7 +440,7 @@ export const elkApp: AppConfig = {
     const elkDir = syncGitFixtureWorktree("elk");
 
     addPnpmOverrides(path.join(elkDir, "package.json"), {
-      vite: "^8.0.0-beta.0",
+      vite: "^8.0.0",
     });
 
     console.log("[elk:setup] pnpm install...");
@@ -519,7 +519,7 @@ export const misskeyApp: AppConfig = {
     );
 
     addPnpmOverrides(path.join(misskeyDir, "package.json"), {
-      vite: "^8.0.0-beta.0",
+      vite: "^8.0.0",
     });
 
     console.log("[misskey:setup] pnpm install...");
@@ -900,7 +900,7 @@ export const vuefesApp: AppConfig = {
     }
 
     addPnpmOverrides(vuefesPackageJson, {
-      vite: "^8.0.0-beta.0",
+      vite: "^8.0.0",
     });
 
     console.log("[vuefes-2025:setup] pnpm install...");

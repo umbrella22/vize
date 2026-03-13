@@ -15,7 +15,7 @@ Vize achieves significant performance improvements over the standard JavaScript-
 | **Machine** | MacBook Pro (M2 Max, 12 cores, 96 GB RAM) |
 | **OS** | macOS (Darwin 24.3.0) |
 | **Node.js** | v24.13.0 |
-| **Vite** | v8.0.0-beta.15 (Rolldown) |
+| **Vite** | v8.0.0 (Rolldown) |
 | **Vue** | v3.6.0-beta.1 |
 
 ## Benchmark: 15,000 SFC Files
