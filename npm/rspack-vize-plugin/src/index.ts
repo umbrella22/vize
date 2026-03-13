@@ -29,12 +29,17 @@
 
 // Plugin
 export { VizePlugin } from "./plugin/index.js";
+export { applyRuleCloning } from "./plugin/ruleCloning.js";
+export type { RuleCloningResult } from "./plugin/ruleCloning.js";
 export type { VizeRspackPluginOptions } from "./types/index.js";
 
 // Loaders (for direct import)
 export { default as vizeLoader } from "./loader/index.js";
 export { default as vizeStyleLoader } from "./loader/style-loader.js";
-export type { VizeLoaderOptions, VizeStyleLoaderOptions } from "./types/index.js";
+export type {
+  VizeLoaderOptions,
+  VizeStyleLoaderOptions,
+} from "./types/index.js";
 
 // Shared utilities (optional export for advanced usage)
 export {
@@ -50,10 +55,11 @@ export {
 
 export { genHotReloadCode } from "./shared/hotReload.js";
 
-export { compileFile, generateOutput, clearCompilationCache } from "./shared/compiler.js";
-
-// Preset API
-export { createVizeVueRules } from "./preset/rules.js";
+export {
+  compileFile,
+  generateOutput,
+  clearCompilationCache,
+} from "./shared/compiler.js";
 
 // Types
 export type {
@@ -64,6 +70,4 @@ export type {
   SfcCompileOptionsNapi,
   SfcCompileResultNapi,
   LoaderEntry,
-  CreateVizeVueRulesOptions,
-  VizeStyleLanguage,
 } from "./types/index.js";

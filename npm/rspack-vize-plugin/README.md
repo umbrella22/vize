@@ -29,15 +29,49 @@ pnpm add -D @vizejs/rspack-plugin @rspack/core
 
 ## Usage
 
-### Auto Preset
+### Simple Mode (Recommended)
 
-Use `createVizeVueRules()` to generate `.vue` rules automatically.
-If you don't call it, write rules manually.
+Write a single `.vue` rule and your normal CSS rules. `VizePlugin` automatically clones your CSS rules for Vue style sub-requests.
 
 ```javascript
 // rspack.config.mjs
-import { rspack } from "@rspack/core";
-import { VizePlugin, createVizeVueRules } from "@vizejs/rspack-plugin";
+import { VizePlugin } from "@vizejs/rspack-plugin";
+
+const isProduction = process.env.NODE_ENV === "production";
+
+export default {
+  mode: isProduction ? "production" : "development",
+
+  experiments: {
+    css: true, // Enable Rspack native CSS
+  },
+
+  module: {
+    rules: [
+      {
+        test: /\.vue$/,
+        use: [{ loader: "@vizejs/rspack-plugin/loader" }],
+      },
+    ],
+  },
+
+  plugins: [
+    new VizePlugin({
+      isProduction,
+      css: { native: true },
+    }),
+  ],
+};
+```
+
+### Native CSS with SCSS (Simple Mode)
+
+Uses Rspack's built-in `experiments.css` for optimal performance. Just add your SCSS rule — VizePlugin handles the rest.
+
+```javascript
+// rspack.config.mjs
+import { VizePlugin } from "@vizejs/rspack-plugin";
+import path from "node:path";
 
 const isProduction = process.env.NODE_ENV === "production";
 
@@ -50,34 +84,36 @@ export default {
 
   module: {
     rules: [
-      ...createVizeVueRules({
-        isProduction,
-        nativeCss: true,
-        typescript: true, // auto-add SWC post-processing to strip TS types
-        styleLanguages: ["scss", "sass", "less", "stylus", "styl"],
-        loaderOptions: {
-          include: [/src\/.*\.vue$/],
-          exclude: [/node_modules/],
-          sourceMap: !isProduction,
-        },
-      }),
+      {
+        test: /\.scss$/,
+        type: "css/auto",
+        use: ["sass-loader"],
+      },
+      {
+        test: /\.vue$/,
+        loader: "@vizejs/rspack-plugin/loader",
+      },
     ],
   },
 
   plugins: [
     new VizePlugin({
       isProduction,
-      include: [/src\/.*\.vue$/],
-      exclude: [/node_modules/],
       css: { native: true },
     }),
   ],
+
+  resolve: {
+    alias: {
+      "@": path.resolve(import.meta.dirname, "src"),
+    },
+  },
 };
 ```
 
-### Option A: Native CSS (Recommended)
+### CssExtractRspackPlugin (Simple Mode)
 
-Uses Rspack's built-in `experiments.css` for optimal performance. CSS is processed by Rust-side LightningCSS.
+Compatible with webpack ecosystem, suitable for projects requiring PostCSS plugin chains.
 
 ```javascript
 // rspack.config.mjs
@@ -90,7 +126,105 @@ const isProduction = process.env.NODE_ENV === "production";
 export default {
   mode: isProduction ? "production" : "development",
 
-  // Enable Rspack native CSS support
+  module: {
+    rules: [
+      {
+        test: /\.css$/,
+        type: "javascript/auto",
+        use: [
+          isProduction ? rspack.CssExtractRspackPlugin.loader : "style-loader",
+          "css-loader",
+        ],
+      },
+      {
+        test: /\.scss$/,
+        type: "javascript/auto",
+        use: [
+          isProduction ? rspack.CssExtractRspackPlugin.loader : "style-loader",
+          "css-loader",
+          "sass-loader",
+        ],
+      },
+
+      {
+        test: /\.vue$/,
+        loader: "@vizejs/rspack-plugin/loader",
+      },
+    ],
+  },
+
+  plugins: [
+    new VizePlugin({
+      isProduction,
+    }),
+
+    ...(isProduction
+      ? [
+          new rspack.CssExtractRspackPlugin({
+            filename: "styles/[name].[contenthash:8].css",
+            chunkFilename: "styles/[name].[contenthash:8].chunk.css",
+          }),
+        ]
+      : []),
+  ],
+
+  resolve: {
+    alias: {
+      "@": path.resolve(import.meta.dirname, "src"),
+    },
+  },
+};
+```
+
+### Advanced: Manual `oneOf` Rules
+
+`VizePlugin` will automatically:
+
+1. Find the `.vue` rule containing the vize loader
+2. Clone your CSS/SCSS/Less/Stylus rules for `?vue&type=style` sub-requests
+3. Inject the vize style-loader at the end of each cloned chain
+4. Build `oneOf` branches inside the `.vue` rule
+5. Add `resourceQuery: { not: [/vue/] }` to original CSS rules so they don't conflict
+
+To opt out and write manual rules, set `autoRules: false`:
+
+```javascript
+new VizePlugin({ autoRules: false });
+```
+
+If you need full control over the loader chain, set `autoRules: false` and write `oneOf` branches manually.
+
+#### Request Routing: Main vs Style Sub-Requests
+
+When writing manual rules, you must ensure the main `.vue` loader and the style loader see different requests.
+
+The main loader produces `import './App.vue?vue&type=style&index=0&...'` statements. These style sub-requests must be routed to `@vizejs/rspack-plugin/style-loader` — **not** back into the main loader. If the main loader receives a `?type=style` query it will emit an explicit error.
+
+Use `oneOf` to guarantee mutual exclusion:
+
+```javascript
+{
+  test: /\.vue$/,
+  oneOf: [
+    { resourceQuery: /type=style/, use: [/* style pipeline */] },
+    { use: [/* main vize loader */] },
+  ],
+}
+```
+
+<details>
+<summary>Native CSS with manual oneOf</summary>
+
+```javascript
+// rspack.config.mjs
+import { VizePlugin } from "@vizejs/rspack-plugin";
+import path from "node:path";
+
+const isProduction = process.env.NODE_ENV === "production";
+
+export default {
+  mode: isProduction ? "production" : "development",
+
   experiments: {
     css: true,
   },
@@ -139,11 +273,6 @@ export default {
             use: [
               {
                 loader: "@vizejs/rspack-plugin/loader",
-                options: {
-                  include: [/src\/.*\.vue$/],
-                  exclude: [/node_modules/],
-                  sourceMap: !isProduction,
-                },
               },
             ],
           },
@@ -155,11 +284,8 @@ export default {
   plugins: [
     new VizePlugin({
       isProduction,
-      include: [/src\/.*\.vue$/],
-      exclude: [/node_modules/],
-      css: {
-        native: true,
-      },
+      autoRules: false,
+      css: { native: true },
     }),
   ],
 
@@ -171,9 +297,10 @@ export default {
 };
 ```
 
-### Option B: CssExtractRspackPlugin
+</details>
 
-Compatible with webpack ecosystem, suitable for projects requiring PostCSS plugin chains.
+<details>
+<summary>CssExtractRspackPlugin with manual oneOf</summary>
 
 ```javascript
 // rspack.config.mjs
@@ -236,11 +363,6 @@ export default {
             use: [
               {
                 loader: "@vizejs/rspack-plugin/loader",
-                options: {
-                  include: [/src\/.*\.vue$/],
-                  exclude: [/node_modules/],
-                  sourceMap: !isProduction,
-                },
               },
             ],
           },
@@ -273,11 +395,9 @@ export default {
   plugins: [
     new VizePlugin({
       isProduction,
-      include: [/src\/.*\.vue$/],
-      exclude: [/node_modules/],
+      autoRules: false,
     }),
 
-    // CSS extraction (production only)
     ...(isProduction
       ? [
           new rspack.CssExtractRspackPlugin({
@@ -295,6 +415,8 @@ export default {
   },
 };
 ```
+
+</details>
 
 ## API
 
@@ -316,6 +438,7 @@ new VizePlugin({
   };
   compilerOptions: {};      // Extra @vizejs/native compileSfc options
   debug: boolean;           // Enable debug logging (default: false)
+  autoRules: boolean;       // Auto-clone CSS rules for Vue style sub-requests (default: true)
 });
 // Debug logging uses Rspack's infrastructure logger.
 // Control verbosity via `infrastructureLogging.level` in your rspack config.
@@ -353,15 +476,25 @@ This avoids hard failures while still alerting you to mismatched rule/filter con
 
 Compilation errors cause the loader to fail immediately (`callback(error)`) instead of returning broken code.
 
+#### TypeScript
+
+`@vizejs/native compileSfc` preserves TypeScript syntax in its output (same behavior as `@vue/compiler-sfc`). A downstream transpiler is needed to strip type annotations:
+
+- **Recommended**: Add a `builtin:swc-loader` post-processing rule for `.vue` files
+- **Custom loader**: Use `esbuild-loader` or any other TS transpiler
+- **Manual**: Add your own `enforce: "post"` rule for `.vue` files (exclude `type=style` requests)
+
+The `isTs` option is auto-detected from `<script lang="ts">` and passed to the native compiler for correct parsing.
+
 #### `transformAssetUrls`
 
 Static asset URLs in template element attributes (e.g. `<img src="./logo.png">`) are automatically rewritten into JavaScript `import` bindings so that Rspack can process them through its asset pipeline.
 
-| Value | Behaviour |
-|-------|-----------|
-| `true` (default) | Apply built-in transforms: `img[src]`, `video[src,poster]`, `source[src]`, `image[xlink:href,href]`, `use[xlink:href,href]` |
-| `false` | Disable the feature entirely — URL strings are left as-is |
-| `Record<string, string[]>` | Custom element/attribute mapping that **replaces** the built-in defaults |
+| Value                      | Behaviour                                                                                                                   |
+| -------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `true` (default)           | Apply built-in transforms: `img[src]`, `video[src,poster]`, `source[src]`, `image[xlink:href,href]`, `use[xlink:href,href]` |
+| `false`                    | Disable the feature entirely — URL strings are left as-is                                                                   |
+| `Record<string, string[]>` | Custom element/attribute mapping that **replaces** the built-in defaults                                                    |
 
 Only relative (`./`, `../`), alias (`@/`), and tilde (`~/`, `~pkg`) URLs are transformed. External (`https://…`), protocol-relative (`//…`), and data URIs are left unchanged.
 
@@ -395,96 +528,7 @@ Only relative (`./`, `../`), alias (`@/`), and tilde (`~/`, `~pkg`) URLs are tra
 }
 ```
 
-### createVizeVueRules
-
-```typescript
-import { createVizeVueRules } from "@vizejs/rspack-plugin";
-
-const rules = createVizeVueRules({
-  isProduction: false,
-  nativeCss: true, // true: css/auto + css/module, false: css-loader chain
-  styleLanguages: ["scss", "sass", "less", "stylus", "styl"],
-  styleInjectLoader: "style-loader",
-  styleExtractLoader: undefined, // e.g. rspack.CssExtractRspackPlugin.loader
-  cssLoader: "css-loader",
-  loaderOptions: {
-    include: [/src\/.*\.vue$/],
-    exclude: [/node_modules/],
-    sourceMap: true,
-  },
-  styleLoaderOptions: {
-    native: true, // match nativeCss setting
-  },
-  typescript: true, // or a custom LoaderEntry
-  // Forward options to preprocessor loaders (e.g. sass-loader, less-loader)
-  preprocessorOptions: {
-    scss: {
-      additionalData: `@use "src/styles/variables" as *;`,
-      sassOptions: { includePaths: ["./src"], quietDeps: true },
-    },
-    less: {
-      math: "always",
-    },
-  },
-});
-```
-
-When `preprocessorOptions` is **not** provided (or a language key is absent), the preprocessor loader is emitted as a bare string (`"sass-loader"`). When options **are** provided, it becomes an object entry (`{ loader: "sass-loader", options: { ... } }`). This means existing configurations that don't use `preprocessorOptions` are fully backward-compatible.
-
-## Comparison
-
-| Feature            | Native CSS (`experiments.css`) | CssExtractRspackPlugin |
-| ------------------ | ------------------------------ | ---------------------- |
-| **CSS Engine**     | Rust (LightningCSS)            | JS (css-loader)        |
-| **CSS Extraction** | Rspack automatic               | CssExtractRspackPlugin |
-| **CSS Modules**    | `type: 'css/module'`           | css-loader config      |
-| **HMR**            | Rspack native                  | style-loader           |
-| **Vendor Prefix**  | LightningCSS built-in          | Requires autoprefixer  |
-| **Performance**    | **Excellent** (Rust)           | Good (JS)              |
-| **Use Case**       | **New projects**               | webpack compatibility  |
-
 ## Known Limitations
-
-### Request Routing: Main vs Style Sub-Requests
-
-> **Critical**: The main `.vue` loader and the style loader **must** see different requests.
-
-When Rspack compiles a `.vue` file, the main loader produces `import './App.vue?vue&type=style&index=0&...'` statements. These style sub-requests must be routed to `@vizejs/rspack-plugin/style-loader` — **not** back into the main loader. If the main loader receives a `?type=style` query it will emit an explicit error.
-
-Use `oneOf` to guarantee mutual exclusion:
-
-```javascript
-{
-  test: /\.vue$/,
-  oneOf: [
-    { resourceQuery: /type=style/, use: [/* style pipeline */] },
-    { use: [/* main vize loader */] },
-  ],
-}
-```
-
-`createVizeVueRules()` generates this structure automatically. If you write rules by hand, ensure that style sub-requests never fall through to the main loader.
-
-### HMR
-
-Script and template changes trigger a component-level hot reload via `module.hot.accept()` + `__VUE_HMR_RUNTIME__.reload()`. CSS Module changes trigger a targeted rerender without full reload. Plain `<style>` HMR is handled natively by Rspack's CSS pipeline.
-
-### Path Resolution
-
-Style imports injected by the main loader are normalized to resolver-friendly request paths.
-In modern Rspack setups this avoids most absolute-path query edge cases, especially across platforms.
-
-### Diagnostics
-
-Compiler diagnostics are emitted via loader APIs:
-
-- Compile errors: `callback(error)` — fails the build immediately
-- Compile warnings: `this.emitWarning(...)`
-- Missing `<style src>` files: build error (fail fast, no silent style loss)
-- Scoped CSS fallback: warning emitted once per file (deduplicated in watch mode)
-
-Scoped preprocessor blocks such as `<style scoped lang="scss">` are currently rejected.
-The fallback transformer only understands plain CSS selectors, so allowing SCSS/Less/Stylus here would silently produce incorrect scoped output.
 
 ### Scoped CSS
 
@@ -501,16 +545,6 @@ The current scoped CSS implementation uses a fallback regex transformer with the
 ### Source Maps
 
 The current `@vizejs/native` NAPI does not yet return a source map field. The type definition reserves a `map?: string` field for forward-compatibility. Once the Rust side implements source map output, the loader will pass it to Rspack automatically.
-
-### TypeScript Output
-
-`@vizejs/native compileSfc` preserves TypeScript syntax in its output (same behavior as `@vue/compiler-sfc`). A downstream transpiler is needed to strip type annotations:
-
-- **Recommended**: Use `createVizeVueRules({ typescript: true })` to auto-add a `builtin:swc-loader` post-processing rule
-- **Custom loader**: Pass a `LoaderEntry` — e.g. `typescript: "esbuild-loader"` or `typescript: { loader: "esbuild-loader", options: { ... } }`
-- **Manual**: Add your own `enforce: "post"` rule for `.vue` files (exclude `type=style` requests)
-
-The `isTs` option is auto-detected from `<script lang="ts">` and passed to the native compiler for correct parsing.
 
 ## License
 

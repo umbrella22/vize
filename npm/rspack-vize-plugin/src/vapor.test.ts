@@ -3,7 +3,6 @@ import path from "node:path";
 import { rspack } from "@rspack/core";
 import "./test/setup.ts";
 import { VizePlugin } from "./plugin/index.js";
-import { createVizeVueRules } from "./preset/rules.js";
 import {
   normalizeSnapshot,
   packageRoot,
@@ -63,21 +62,37 @@ function createVaporCompiler(
     },
     module: {
       rules: [
-        ...createVizeVueRules({
-          isProduction: false,
-          nativeCss: true,
-          typescript: true,
-          vizeLoader: path.join(packageRoot, "dist", "loader", "index.js"),
-          vizeStyleLoader: path.join(
-            packageRoot,
-            "dist",
-            "loader",
-            "style-loader.js",
-          ),
-          loaderOptions: {
-            vapor: true,
+        // TypeScript support
+        {
+          test: /\.ts$/,
+          loader: "builtin:swc-loader",
+          options: {
+            jsc: { parser: { syntax: "typescript" } },
           },
-        }),
+        },
+        // TypeScript post-processing for .vue files
+        {
+          test: /\.vue$/,
+          resourceQuery: { not: [/type=/] },
+          enforce: "post" as const,
+          loader: "builtin:swc-loader",
+          options: {
+            jsc: { parser: { syntax: "typescript" } },
+          },
+          type: "javascript/auto",
+        },
+        // Simple .vue rule — VizePlugin auto-injects style sub-request handling
+        {
+          test: /\.vue$/,
+          use: [
+            {
+              loader: path.join(packageRoot, "dist", "loader", "index.js"),
+              options: {
+                vapor: true,
+              },
+            },
+          ],
+        },
       ],
     },
     plugins: [

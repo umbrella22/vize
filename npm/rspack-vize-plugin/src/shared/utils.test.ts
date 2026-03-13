@@ -5,7 +5,7 @@ import {
   extractStyleBlocks,
   collectTemplateAssetUrls,
   isImportableUrl,
-} from "./utils";
+} from "./utils.js";
 
 describe("extractCustomBlocks", () => {
   test("extracts a simple <i18n> custom block", () => {
@@ -35,7 +35,11 @@ describe("extractCustomBlocks", () => {
 <script setup>console.log("hi")</script>
 `;
     const blocks = extractCustomBlocks(source);
-    assert.equal(blocks.length, 0, "nested <template> slots must not become custom blocks");
+    assert.equal(
+      blocks.length,
+      0,
+      "nested <template> slots must not become custom blocks",
+    );
   });
 
   test("does not treat <template #default> as a custom block", () => {
@@ -78,7 +82,11 @@ const name = ref('')
 </style>
 `;
     const blocks = extractCustomBlocks(source);
-    assert.equal(blocks.length, 0, "HTML tags inside <template> must not become custom blocks");
+    assert.equal(
+      blocks.length,
+      0,
+      "HTML tags inside <template> must not become custom blocks",
+    );
   });
 
   test("extracts multiple custom blocks", () => {
@@ -350,7 +358,10 @@ describe("collectTemplateAssetUrls", () => {
     const result = collectTemplateAssetUrls(source);
     const urls = result.map((r) => r.url);
     assert.ok(urls.includes("./sprite.svg"), "should include image href");
-    assert.ok(urls.includes("./icon.svg#arrow"), "should include use href with fragment");
+    assert.ok(
+      urls.includes("./icon.svg#arrow"),
+      "should include use href with fragment",
+    );
   });
 
   test("URL with hash fragment is collected as-is (fragment split happens in generateOutput)", () => {

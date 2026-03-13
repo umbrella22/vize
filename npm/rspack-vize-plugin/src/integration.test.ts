@@ -3,7 +3,6 @@ import path from "node:path";
 import { rspack } from "@rspack/core";
 import "./test/setup.ts";
 import { VizePlugin } from "./plugin/index.js";
-import { createVizeVueRules } from "./preset/rules.js";
 import {
   normalizeSnapshot,
   packageRoot,
@@ -33,7 +32,7 @@ function runCompiler(compiler: ReturnType<typeof rspack>) {
   });
 }
 
-void test("rspack builds a Vue SFC with dedicated loader and style paths", async (t) => {
+void test("rspack builds a Vue SFC with auto-inject mode", async (t) => {
   const compiler = rspack({
     mode: "development",
     devtool: false,
@@ -60,18 +59,34 @@ void test("rspack builds a Vue SFC with dedicated loader and style paths", async
     },
     module: {
       rules: [
-        ...createVizeVueRules({
-          isProduction: false,
-          nativeCss: true,
-          typescript: true,
-          vizeLoader: path.join(packageRoot, "dist", "loader", "index.js"),
-          vizeStyleLoader: path.join(
-            packageRoot,
-            "dist",
-            "loader",
-            "style-loader.js",
-          ),
-        }),
+        // TypeScript support
+        {
+          test: /\.ts$/,
+          loader: "builtin:swc-loader",
+          options: {
+            jsc: { parser: { syntax: "typescript" } },
+          },
+        },
+        // TypeScript post-processing for .vue files
+        {
+          test: /\.vue$/,
+          resourceQuery: { not: [/type=/] },
+          enforce: "post" as const,
+          loader: "builtin:swc-loader",
+          options: {
+            jsc: { parser: { syntax: "typescript" } },
+          },
+          type: "javascript/auto",
+        },
+        // Simple .vue rule — VizePlugin auto-injects style sub-request handling
+        {
+          test: /\.vue$/,
+          use: [
+            {
+              loader: path.join(packageRoot, "dist", "loader", "index.js"),
+            },
+          ],
+        },
       ],
     },
     plugins: [
@@ -137,18 +152,34 @@ void test("rspack rewrites template asset URLs into import bindings", async (t) 
           test: /\.(png|jpe?g|gif|svg|mp4|webm)$/,
           type: "asset/resource",
         },
-        ...createVizeVueRules({
-          isProduction: false,
-          nativeCss: true,
-          typescript: true,
-          vizeLoader: path.join(packageRoot, "dist", "loader", "index.js"),
-          vizeStyleLoader: path.join(
-            packageRoot,
-            "dist",
-            "loader",
-            "style-loader.js",
-          ),
-        }),
+        // TypeScript support
+        {
+          test: /\.ts$/,
+          loader: "builtin:swc-loader",
+          options: {
+            jsc: { parser: { syntax: "typescript" } },
+          },
+        },
+        // TypeScript post-processing for .vue files
+        {
+          test: /\.vue$/,
+          resourceQuery: { not: [/type=/] },
+          enforce: "post" as const,
+          loader: "builtin:swc-loader",
+          options: {
+            jsc: { parser: { syntax: "typescript" } },
+          },
+          type: "javascript/auto",
+        },
+        // Simple .vue rule — VizePlugin auto-injects style sub-request handling
+        {
+          test: /\.vue$/,
+          use: [
+            {
+              loader: path.join(packageRoot, "dist", "loader", "index.js"),
+            },
+          ],
+        },
       ],
     },
     plugins: [
@@ -172,7 +203,8 @@ void test("rspack rewrites template asset URLs into import bindings", async (t) 
     throw new Error(JSON.stringify(info.errors, null, 2));
   }
 
-  const bundleJs = stats.compilation.assets["bundle.js"]?.source().toString() ?? "";
+  const bundleJs =
+    stats.compilation.assets["bundle.js"]?.source().toString() ?? "";
   const normalized = normalizeSnapshot(bundleJs);
 
   // Static relative URLs must become import bindings (not remain as string literals)
@@ -197,7 +229,8 @@ void test("rspack rewrites template asset URLs into import bindings", async (t) 
 
   // Dynamic binding value must not be collected as asset URL
   t.assert.ok(
-    !normalized.includes("import") || !normalized.includes('from "dynamic.png"'),
+    !normalized.includes("import") ||
+      !normalized.includes('from "dynamic.png"'),
     "dynamic binding value should not become an import",
   );
 });

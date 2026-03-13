@@ -1,19 +1,16 @@
 /**
  * Vize Rspack Plugin
  *
- * Responsibilities (minimal):
+ * Responsibilities:
  * 1. Inject Vue feature flags via DefinePlugin
- * 2. Development mode logging/debugging
- *
- * NOT responsible for:
- * - Style processing (handled by Loader chain)
- * - CSS extraction (handled by Rspack native or CssExtractRspackPlugin)
- * - HMR (handled by Rspack watch mode automatically)
+ * 2. Auto-inject style sub-request rules (VueLoaderPlugin-style rule cloning)
+ * 3. Development mode logging/debugging
  */
 
-import type { Compiler } from "@rspack/core";
+import type { Compiler, RuleSetRule } from "@rspack/core";
 import type { VizeRspackPluginOptions } from "../types/index.js";
 import { matchesPattern } from "../shared/utils.js";
+import { applyRuleCloning } from "./ruleCloning.js";
 
 export class VizePlugin {
   static readonly name = "VizePlugin";
@@ -46,7 +43,27 @@ export class VizePlugin {
       );
     }
 
-    // 1. Inject Vue feature flags (only if not already defined by another plugin)
+    // 1. Auto-inject style sub-request rules (VueLoaderPlugin-style)
+    const autoRules = this.options.autoRules ?? true;
+    if (autoRules) {
+      const rules = compiler.options.module?.rules;
+      if (rules) {
+        const result = applyRuleCloning(
+          rules as (RuleSetRule | "...")[],
+          isCssNativeEnabled,
+        );
+        if (result.applied) {
+          logger.debug(
+            `Auto-injected ${result.clonedCount} style rule(s) for Vue SFC sub-requests.`,
+          );
+        }
+        for (const w of result.warnings) {
+          logger.warn(w);
+        }
+      }
+    }
+
+    // 2. Inject Vue feature flags (only if not already defined by another plugin)
     // Use compiler.webpack to get DefinePlugin for webpack/Rspack compatibility
     const { DefinePlugin } = compiler.webpack;
 
@@ -79,7 +96,7 @@ export class VizePlugin {
       new DefinePlugin(vueDefines).apply(compiler);
     }
 
-    // 2. Development mode logging (using Rspack infrastructure logger)
+    // 3. Development mode logging (using Rspack infrastructure logger)
     if (!isProduction) {
       compiler.hooks.watchRun.tap(VizePlugin.name, (comp) => {
         const changed = comp.modifiedFiles;

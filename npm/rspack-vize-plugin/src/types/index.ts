@@ -204,116 +204,6 @@ export interface VizeStyleLoaderOptions {
 }
 
 // ============================================================================
-// Preset API Types
-// ============================================================================
-
-export type VizeStyleLanguage =
-  | "css"
-  | "scss"
-  | "sass"
-  | "less"
-  | "styl"
-  | "stylus";
-
-export interface CreateVizeVueRulesOptions {
-  /**
-   * Production mode flag
-   * @default false
-   */
-  isProduction?: boolean;
-
-  /**
-   * Use Rspack native CSS pipeline (`experiments.css`)
-   * @default true
-   */
-  nativeCss?: boolean;
-
-  /**
-   * Extra languages to handle automatically in addition to `css`
-   * @default ["scss", "sass", "less", "stylus", "styl"]
-   */
-  styleLanguages?: VizeStyleLanguage[];
-
-  /**
-   * Loader entry for the main `.vue` compiler loader
-   * @default "@vizejs/rspack-plugin/loader"
-   */
-  vizeLoader?: string;
-
-  /**
-   * Loader entry for the `.vue` style extractor loader
-   * @default "@vizejs/rspack-plugin/style-loader"
-   */
-  vizeStyleLoader?: string;
-
-  /**
-   * Dev style injector / prod extractor loader entry used in non-native CSS mode
-   * @default "style-loader"
-   */
-  styleInjectLoader?: LoaderEntry;
-
-  /**
-   * Production CSS extractor loader entry used in non-native CSS mode
-   * (e.g. `rspack.CssExtractRspackPlugin.loader`)
-   */
-  styleExtractLoader?: LoaderEntry;
-
-  /**
-   * css-loader entry used in non-native CSS mode
-   * @default "css-loader"
-   */
-  cssLoader?: LoaderEntry;
-
-  /**
-   * Main vize loader options
-   */
-  loaderOptions?: VizeLoaderOptions;
-
-  /**
-   * Vize style loader options
-   */
-  styleLoaderOptions?: VizeStyleLoaderOptions;
-
-  /**
-   * Add a post-processing rule to strip TypeScript type annotations from
-   * the compiled `.vue` output.
-   *
-   * This is needed because `@vizejs/native compileSfc` preserves TypeScript
-   * syntax in its output (same as `@vue/compiler-sfc`), and a downstream
-   * transpiler must strip the types before the browser/runtime can execute it.
-   *
-   * - `true`:  use Rspack built-in SWC loader (`builtin:swc-loader`)
-   * - `LoaderEntry`: use a custom loader (e.g. `esbuild-loader`)
-   * - `false` / omitted: no post-processing (user handles it separately)
-   *
-   * @default false
-   */
-  typescript?: boolean | LoaderEntry;
-
-  /**
-   * Per-language options forwarded to the preprocessor loader.
-   *
-   * Keys are the language names (matching entries in `styleLanguages`).
-   * Values are passed as the `options` property of the corresponding
-   * preprocessor loader entry (e.g. `sass-loader`, `less-loader`).
-   *
-   * @example
-   * ```ts
-   * createVizeVueRules({
-   *   preprocessorOptions: {
-   *     scss: {
-   *       additionalData: `@use "src/styles" as *;`,
-   *       sassOptions: { includePaths: ['./src'], quietDeps: true },
-   *     },
-   *     less: { math: 'always' },
-   *   },
-   * })
-   * ```
-   */
-  preprocessorOptions?: Partial<Record<VizeStyleLanguage, Record<string, unknown>>>;
-}
-
-// ============================================================================
 // Plugin Options Types
 // ============================================================================
 
@@ -383,6 +273,20 @@ export interface VizeRspackPluginOptions {
    * @default false
    */
   debug?: boolean;
+
+  /**
+   * Automatically clone CSS / preprocessor rules for Vue style sub-requests.
+   *
+   * When enabled (the default), VizePlugin scans `module.rules` for the vize
+   * main loader and any CSS / preprocessor rules, then generates the `oneOf`
+   * branches needed to route `?vue&type=style` sub-requests — just like
+   * `VueLoaderPlugin` does in `vue-loader`.
+   *
+   * Set to `false` if you prefer writing manual `oneOf` rules.
+   *
+   * @default true
+   */
+  autoRules?: boolean;
 }
 
 // ============================================================================
