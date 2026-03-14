@@ -7,7 +7,7 @@
     "dev": "vp dev",
     "build": "pnpm check && vp build",
     "preview": "vp preview",
-    "check": "vize check && vp check src vite.config.ts playwright.config.ts",
+    "check": "cargo run --quiet --manifest-path ../../Cargo.toml -p vize -- check && vp check src vite.config.ts playwright.config.ts",
     "check:fix": "vp check --fix src vite.config.ts playwright.config.ts",
     "fmt": "vp fmt --write src vite.config.ts playwright.config.ts",
     "vrt": "musea-vrt",
