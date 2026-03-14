@@ -1,11 +1,11 @@
 <script setup lang="ts">
 defineProps<{
-  direction: 'horizontal' | 'vertical';
+  direction: "horizontal" | "vertical";
   isResizing?: boolean;
 }>();
 
 const emit = defineEmits<{
-  (e: 'mousedown', event: MouseEvent): void;
+  (e: "mousedown", event: MouseEvent): void;
 }>();
 </script>
 
@@ -14,7 +14,7 @@ const emit = defineEmits<{
     :class="[
       'resize-handle',
       `resize-handle--${direction}`,
-      { 'resize-handle--active': isResizing }
+      { 'resize-handle--active': isResizing },
     ]"
     @mousedown="emit('mousedown', $event)"
   >

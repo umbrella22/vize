@@ -2,9 +2,26 @@
   "name": "@vizejs/unplugin",
   "version": "0.33.0",
   "description": "Experimental unplugin-based Vue SFC integration for rollup, webpack, and esbuild powered by Vize",
-  "publishConfig": {
-    "access": "public"
+  "keywords": [
+    "compiler",
+    "esbuild",
+    "fast",
+    "native",
+    "plugin",
+    "rollup",
+    "unplugin",
+    "vue",
+    "webpack"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ubugeeei/vize",
+    "directory": "npm/unplugin-vize"
   },
+  "files": [
+    "dist"
+  ],
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -30,36 +47,18 @@
       "default": "./dist/webpack.js"
     }
   },
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
-    "build": "tsdown",
-    "dev": "tsdown --watch",
-    "lint": "oxlint --deny-warnings --type-aware --tsconfig tsconfig.json",
-    "lint:fix": "oxlint --type-aware --tsconfig tsconfig.json --fix",
-    "fmt": "oxfmt --write src tsdown.config.ts",
-    "fmt:check": "oxfmt src tsdown.config.ts",
+    "build": "vp pack",
+    "dev": "vp pack --watch",
+    "check": "vp check src vite.config.ts",
+    "check:fix": "vp check --fix src vite.config.ts",
+    "fmt": "vp fmt --write src vite.config.ts",
     "test": "node --import tsx --test src/*.test.ts src/**/*.test.ts",
     "test:update": "node --import tsx --test --test-update-snapshots src/*.test.ts src/**/*.test.ts"
   },
-  "files": [
-    "dist"
-  ],
-  "keywords": [
-    "unplugin",
-    "rollup",
-    "webpack",
-    "esbuild",
-    "vue",
-    "plugin",
-    "compiler",
-    "native",
-    "fast"
-  ],
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/ubugeeei/vize",
-    "directory": "npm/unplugin-vize"
-  },
-  "license": "MIT",
   "dependencies": {
     "@vizejs/native": "workspace:*",
     "oxc-transform": "^0.116.0",
@@ -69,9 +68,9 @@
     "@types/node": "^22.0.0",
     "esbuild": "^0.25.11",
     "rollup": "^4.52.4",
-    "tsdown": "^0.9.0",
     "tsx": "^4.21.0",
     "typescript": "~5.6.0",
+    "vite-plus": "catalog:",
     "vue": "3.6.0-beta.1",
     "webpack": "^5.101.3"
   }

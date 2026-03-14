@@ -15,11 +15,13 @@
 **Atelier** (/ˌætəlˈjeɪ/) is a French word for an artist's workshop or studio - a dedicated space where master craftspeople practice their specific art form. Just as Renaissance artists had specialized ateliers for painting, sculpture, or metalwork, `vize_atelier_dom` is a specialized workshop focused on one specific compilation target: the Virtual DOM.
 
 In the art world, an atelier:
+
 - **Specializes** - Focuses on a particular craft or technique
 - **Transforms** - Converts raw materials into refined artworks
 - **Masters** - Applies deep expertise to its domain
 
 Similarly, `vize_atelier_dom` provides:
+
 - **DOM-specific transforms** - v-model, v-show, v-text, v-html, v-on
 - **Virtual DOM codegen** - Generates optimized render functions
 - **Platform-specific optimization** - Browser DOM-aware compilation
@@ -54,14 +56,14 @@ let (root, errors, result) = compile_template_with_options(
 
 `vize_atelier_dom` is part of the Vize compiler's art-themed crate collection:
 
-| Crate | Art Term | Role |
-|-------|----------|------|
-| vize_carton | Carton (Portfolio Case) | Shared utilities & allocator |
-| vize_atelier_core | - | AST & Parser (core) |
-| **vize_atelier_dom** | **Atelier (Workshop)** | **DOM compiler (this crate)** |
-| vize_atelier_vapor | Atelier (Workshop) | Vapor mode compiler |
-| vize_atelier_sfc | Atelier (Workshop) | SFC compiler |
-| vize_vitrine | Vitrine (Display Case) | Bindings (Node.js/WASM) |
+| Crate                | Art Term                | Role                          |
+| -------------------- | ----------------------- | ----------------------------- |
+| vize_carton          | Carton (Portfolio Case) | Shared utilities & allocator  |
+| vize_atelier_core    | -                       | AST & Parser (core)           |
+| **vize_atelier_dom** | **Atelier (Workshop)**  | **DOM compiler (this crate)** |
+| vize_atelier_vapor   | Atelier (Workshop)      | Vapor mode compiler           |
+| vize_atelier_sfc     | Atelier (Workshop)      | SFC compiler                  |
+| vize_vitrine         | Vitrine (Display Case)  | Bindings (Node.js/WASM)       |
 
 ## License
 

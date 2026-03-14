@@ -12,19 +12,19 @@ npm install @vizejs/vite-plugin-musea
 
 ```ts
 // vite.config.ts
-import { defineConfig } from 'vite'
-import { musea } from '@vizejs/vite-plugin-musea'
+import { defineConfig } from "vite";
+import { musea } from "@vizejs/vite-plugin-musea";
 
 export default defineConfig({
   plugins: [
     musea({
       // Art files pattern
-      include: '**/*.art.vue',
+      include: "**/*.art.vue",
       // Output directory
-      outDir: '.musea'
-    })
-  ]
-})
+      outDir: ".musea",
+    }),
+  ],
+});
 ```
 
 ## Art File Format

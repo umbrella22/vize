@@ -136,11 +136,12 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Setup Vite+ and Node.js
+        uses: voidzero-dev/setup-vp@v1
         with:
-          node-version: "20"
-          cache: pnpm
+          node-version-file: ".node-version"
+          cache: true
+          run-install: false
 
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile --no-frozen-lockfile
@@ -194,12 +195,12 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Setup Vite+ and Node.js
+        uses: voidzero-dev/setup-vp@v1
         with:
-          node-version: "20"
-          registry-url: "https://registry.npmjs.org"
-          cache: pnpm
+          node-version-file: ".node-version"
+          cache: true
+          run-install: false
 
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
@@ -278,12 +279,12 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Setup Vite+ and Node.js
+        uses: voidzero-dev/setup-vp@v1
         with:
-          node-version: "20"
-          registry-url: "https://registry.npmjs.org"
-          cache: pnpm
+          node-version-file: ".node-version"
+          cache: true
+          run-install: false
 
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
@@ -381,11 +382,11 @@ jobs:
           # Restore the correct package.json (wasm-bindgen overwrites it with crate name)
           git checkout npm/vize-wasm/package.json
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Setup Vite+ and Node.js
+        uses: voidzero-dev/setup-vp@v1
         with:
-          node-version: "20"
-          registry-url: "https://registry.npmjs.org"
+          node-version-file: ".node-version"
+          run-install: false
 
       - name: Install npm with OIDC support
         run: npm install -g npm@latest
@@ -419,18 +420,18 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Setup Vite+ and Node.js
+        uses: voidzero-dev/setup-vp@v1
         with:
-          node-version: "20"
-          registry-url: "https://registry.npmjs.org"
-          cache: pnpm
+          node-version-file: ".node-version"
+          cache: true
+          run-install: false
 
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
 
       - name: Build vite-plugin
-        run: pnpm -C npm/vite-plugin-vize build
+        run: vp run --filter './npm/vite-plugin-vize' build
 
       - name: Install npm with OIDC support
         run: npm install -g npm@latest
@@ -464,18 +465,18 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Setup Vite+ and Node.js
+        uses: voidzero-dev/setup-vp@v1
         with:
-          node-version: "20"
-          registry-url: "https://registry.npmjs.org"
-          cache: pnpm
+          node-version-file: ".node-version"
+          cache: true
+          run-install: false
 
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
 
       - name: Build unplugin-vize
-        run: pnpm -C npm/unplugin-vize build
+        run: vp run --filter './npm/unplugin-vize' build
 
       - name: Install npm with OIDC support
         run: npm install -g npm@latest
@@ -509,18 +510,18 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Setup Vite+ and Node.js
+        uses: voidzero-dev/setup-vp@v1
         with:
-          node-version: "20"
-          registry-url: "https://registry.npmjs.org"
-          cache: pnpm
+          node-version-file: ".node-version"
+          cache: true
+          run-install: false
 
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
 
       - name: Build fresco
-        run: pnpm -C npm/fresco build
+        run: vp run --filter './npm/fresco' build
 
       - name: Install npm with OIDC support
         run: npm install -g npm@latest
@@ -554,18 +555,18 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Setup Vite+ and Node.js
+        uses: voidzero-dev/setup-vp@v1
         with:
-          node-version: "20"
-          registry-url: "https://registry.npmjs.org"
-          cache: pnpm
+          node-version-file: ".node-version"
+          cache: true
+          run-install: false
 
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
 
       - name: Build musea-mcp-server
-        run: pnpm -C npm/musea-mcp-server build
+        run: vp run --filter './npm/musea-mcp-server' build
 
       - name: Install npm with OIDC support
         run: npm install -g npm@latest
@@ -599,21 +600,21 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Setup Vite+ and Node.js
+        uses: voidzero-dev/setup-vp@v1
         with:
-          node-version: "20"
-          registry-url: "https://registry.npmjs.org"
-          cache: pnpm
+          node-version-file: ".node-version"
+          cache: true
+          run-install: false
 
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
 
       - name: Build vite-plugin-musea
-        run: pnpm -C npm/vite-plugin-musea build
+        run: vp run --filter './npm/vite-plugin-musea' build
 
       - name: Build musea gallery
-        run: pnpm -C npm/vite-plugin-musea build:gallery
+        run: vp run --filter './npm/vite-plugin-musea' build:gallery
 
       - name: Install npm with OIDC support
         run: npm install -g npm@latest
@@ -647,18 +648,18 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Setup Vite+ and Node.js
+        uses: voidzero-dev/setup-vp@v1
         with:
-          node-version: "20"
-          registry-url: "https://registry.npmjs.org"
-          cache: pnpm
+          node-version-file: ".node-version"
+          cache: true
+          run-install: false
 
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
 
       - name: Build rspack-vize-plugin
-        run: pnpm -C npm/rspack-vize-plugin build
+        run: vp run --filter './npm/rspack-vize-plugin' build
 
       - name: Install npm with OIDC support
         run: npm install -g npm@latest
@@ -692,18 +693,18 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Setup Vite+ and Node.js
+        uses: voidzero-dev/setup-vp@v1
         with:
-          node-version: "20"
-          registry-url: "https://registry.npmjs.org"
-          cache: pnpm
+          node-version-file: ".node-version"
+          cache: true
+          run-install: false
 
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
 
       - name: Build musea-nuxt
-        run: pnpm -C npm/musea-nuxt build
+        run: vp run --filter './npm/musea-nuxt' build
 
       - name: Install npm with OIDC support
         run: npm install -g npm@latest
@@ -737,18 +738,18 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Setup Vite+ and Node.js
+        uses: voidzero-dev/setup-vp@v1
         with:
-          node-version: "20"
-          registry-url: "https://registry.npmjs.org"
-          cache: pnpm
+          node-version-file: ".node-version"
+          cache: true
+          run-install: false
 
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
 
       - name: Build @vizejs/nuxt
-        run: pnpm -C npm/nuxt build
+        run: vp run --filter './npm/nuxt' build
 
       - name: Install npm with OIDC support
         run: npm install -g npm@latest
@@ -794,7 +795,22 @@ jobs:
   create-github-release:
     name: Create GitHub Release
     runs-on: ubuntu-latest
-    needs: [build-cli, release-npm-native, release-npm-fresco-native, release-npm-fresco, release-npm-wasm, release-npm-vite-plugin, release-npm-unplugin, release-npm-rspack-plugin, release-npm-musea-mcp-server, release-npm-vite-plugin-musea, release-npm-musea-nuxt, release-npm-nuxt, release-crates]
+    needs:
+      [
+        build-cli,
+        release-npm-native,
+        release-npm-fresco-native,
+        release-npm-fresco,
+        release-npm-wasm,
+        release-npm-vite-plugin,
+        release-npm-unplugin,
+        release-npm-rspack-plugin,
+        release-npm-musea-mcp-server,
+        release-npm-vite-plugin-musea,
+        release-npm-musea-nuxt,
+        release-npm-nuxt,
+        release-crates,
+      ]
     steps:
       - uses: actions/checkout@v4
 
@@ -834,11 +850,11 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Setup Vite+ and Node.js
+        uses: voidzero-dev/setup-vp@v1
         with:
-          node-version: "20"
-          registry-url: "https://registry.npmjs.org"
+          node-version-file: ".node-version"
+          run-install: false
 
       - name: Install npm with OIDC support
         run: npm install -g npm@latest
@@ -863,7 +879,7 @@ jobs:
 
       - name: Build vize CLI package
         working-directory: npm/vize
-        run: pnpm install --no-frozen-lockfile && pnpm build
+        run: pnpm install --no-frozen-lockfile && vp pack
 
       - name: Publish vize CLI package
         working-directory: npm/vize

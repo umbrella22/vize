@@ -6,7 +6,7 @@ title: Musea
 
 > **⚠️ Work in Progress:** Vize is under active development and is not yet ready for production use. Musea's API and art file format may change without notice.
 
-Musea (*/mjuːˈziːə/*) is Vize's built-in component gallery — a Storybook alternative for exploring, documenting, and developing Vue components. The name is the plural of "museum": a place to display and appreciate works of art.
+Musea (_/mjuːˈziːə/_) is Vize's built-in component gallery — a Storybook alternative for exploring, documenting, and developing Vue components. The name is the plural of "museum": a place to display and appreciate works of art.
 
 Unlike Storybook, which requires a separate build pipeline and its own configuration ecosystem, Musea is integrated directly into the Vize toolchain. It uses `*.art.vue` files to define component stories with a declarative, Vue-native syntax.
 
@@ -34,8 +34,8 @@ vize musea
 
 ```javascript
 // vite.config.js
-import { defineConfig } from 'vite';
-import musea from '@vizejs/vite-plugin-musea';
+import { defineConfig } from "vite";
+import musea from "@vizejs/vite-plugin-musea";
 
 export default defineConfig({
   plugins: [musea()],
@@ -47,13 +47,13 @@ export default defineConfig({
 ```typescript
 // nuxt.config.ts
 export default defineNuxtConfig({
-  modules: ['@vizejs/nuxt'],
+  modules: ["@vizejs/nuxt"],
   vize: {
     musea: {
-      include: ['**/*.art.vue'],
-      tokensPath: 'assets/tokens.json',
-      previewCss: ['assets/styles/main.css'],
-      previewSetup: 'musea.preview.ts',
+      include: ["**/*.art.vue"],
+      tokensPath: "assets/tokens.json",
+      previewCss: ["assets/styles/main.css"],
+      previewSetup: "musea.preview.ts",
     },
   },
 });
@@ -95,17 +95,17 @@ import MyButton from './MyButton.vue'
 
 ### Art File Anatomy
 
-| Element | Description |
-|---------|-------------|
-| `<script setup>` | Import the target component and any dependencies |
-| `<art>` | Root element containing metadata and variants |
-| `title` | Display name in the gallery |
-| `component` | Relative path to the source component |
-| `category` | Grouping in the sidebar (e.g., "Components", "Preview") |
-| `status` | Component status badge: `ready`, `wip`, `deprecated` |
-| `tags` | Comma-separated tags for search and filtering |
-| `<variant>` | A named configuration of the component |
-| `default` attribute | Marks the variant shown by default |
+| Element             | Description                                             |
+| ------------------- | ------------------------------------------------------- |
+| `<script setup>`    | Import the target component and any dependencies        |
+| `<art>`             | Root element containing metadata and variants           |
+| `title`             | Display name in the gallery                             |
+| `component`         | Relative path to the source component                   |
+| `category`          | Grouping in the sidebar (e.g., "Components", "Preview") |
+| `status`            | Component status badge: `ready`, `wip`, `deprecated`    |
+| `tags`              | Comma-separated tags for search and filtering           |
+| `<variant>`         | A named configuration of the component                  |
+| `default` attribute | Marks the variant shown by default                      |
 
 ### Real-World Example
 
@@ -185,8 +185,8 @@ Configure the tokens path in your Musea configuration:
 
 ```javascript
 musea({
-  tokensPath: 'assets/tokens.json',
-})
+  tokensPath: "assets/tokens.json",
+});
 ```
 
 The token file should follow the [Style Dictionary](https://amzn.github.io/style-dictionary/) format or a compatible JSON structure.
@@ -201,11 +201,8 @@ Inject stylesheets into the preview iframe to ensure components render with your
 
 ```javascript
 musea({
-  previewCss: [
-    'assets/styles/main.css',
-    'assets/styles/musea-preview.css',
-  ],
-})
+  previewCss: ["assets/styles/main.css", "assets/styles/musea-preview.css"],
+});
 ```
 
 ### Preview Setup
@@ -214,39 +211,44 @@ Provide a setup function that runs before each preview. This is useful for insta
 
 ```typescript
 // musea.preview.ts
-import { createI18n } from 'vue-i18n'
-import { createRouter, createMemoryHistory } from 'vue-router'
-import type { MuseaPreviewSetup } from '@vizejs/vite-plugin-musea'
+import { createI18n } from "vue-i18n";
+import { createRouter, createMemoryHistory } from "vue-router";
+import type { MuseaPreviewSetup } from "@vizejs/vite-plugin-musea";
 
 export default ((app) => {
   // Install i18n
   const i18n = createI18n({
-    locale: 'en',
-    messages: { en: { /* ... */ }, ja: { /* ... */ } },
-  })
-  app.use(i18n)
+    locale: "en",
+    messages: {
+      en: {
+        /* ... */
+      },
+      ja: {
+        /* ... */
+      },
+    },
+  });
+  app.use(i18n);
 
   // Install router (with stub routes for NuxtLink compatibility)
   const router = createRouter({
     history: createMemoryHistory(),
-    routes: [
-      { path: '/', component: { template: '<div />' } },
-    ],
-  })
-  app.use(router)
-}) satisfies MuseaPreviewSetup
+    routes: [{ path: "/", component: { template: "<div />" } }],
+  });
+  app.use(router);
+}) satisfies MuseaPreviewSetup;
 ```
 
 ## Features
 
 ### Keyboard Shortcuts
 
-| Shortcut | Action |
-|----------|--------|
-| `⌘K` | Open component search |
-| `⌘B` | Toggle sidebar |
-| `Alt+O` | Toggle outline mode |
-| `Alt+M` | Toggle measurement overlay |
+| Shortcut | Action                     |
+| -------- | -------------------------- |
+| `⌘K`     | Open component search      |
+| `⌘B`     | Toggle sidebar             |
+| `Alt+O`  | Toggle outline mode        |
+| `Alt+M`  | Toggle measurement overlay |
 
 ### Component Search
 

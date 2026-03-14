@@ -53,7 +53,7 @@ Key dependencies: `oxc_parser`, `oxc_ast`, `oxc_span`, `oxc_allocator`, `dashmap
 
 ## Compilation Crates
 
-### vize\_atelier\_core
+### vize_atelier_core
 
 **The Core Workshop** — Shared transforms and code generation utilities used by all compilation backends.
 
@@ -62,7 +62,7 @@ Key dependencies: `oxc_parser`, `oxc_ast`, `oxc_span`, `oxc_allocator`, `dashmap
 - **Source map generation** — Maps generated JavaScript back to the original `.vue` source for debugging.
 - **OXC integration** — Full OXC stack (`oxc_parser`, `oxc_ast`, `oxc_codegen`, `oxc_semantic`, `oxc_transformer`) for JavaScript/TypeScript code generation and transformation.
 
-### vize\_atelier\_dom
+### vize_atelier_dom
 
 **The DOM Workshop** — Generates code targeting Vue's virtual DOM runtime.
 
@@ -71,7 +71,7 @@ Key dependencies: `oxc_parser`, `oxc_ast`, `oxc_span`, `oxc_allocator`, `dashmap
 - **Static hoisting** — Lifts static subtrees out of the render function into module-level constants, avoiding re-creation on every render.
 - **Block tree optimization** — Uses `openBlock()`/`createBlock()` for optimized VDOM patching.
 
-### vize\_atelier\_vapor
+### vize_atelier_vapor
 
 **The Vapor Workshop** — Generates code targeting Vue 3.6's Vapor mode.
 
@@ -80,7 +80,7 @@ Key dependencies: `oxc_parser`, `oxc_ast`, `oxc_span`, `oxc_allocator`, `dashmap
 - **No runtime overhead** — Vapor components have zero VDOM overhead. Only the reactive subscriptions and their effects exist at runtime.
 - **Template-level optimization** — Analyzes the template to determine the minimal set of reactive effects needed.
 
-### vize\_atelier\_sfc
+### vize_atelier_sfc
 
 **The SFC Workshop** — Orchestrates the compilation of complete Single File Components.
 
@@ -92,7 +92,7 @@ Key dependencies: `oxc_parser`, `oxc_ast`, `oxc_span`, `oxc_allocator`, `dashmap
 
 Key dependencies: all `vize_atelier_*` crates + `lightningcss` + full OXC stack
 
-### vize\_atelier\_ssr
+### vize_atelier_ssr
 
 **The SSR Workshop** — Generates code optimized for server-side rendering.
 
@@ -191,12 +191,12 @@ Both targets expose the same compilation pipeline, ensuring consistent output.
 
 ## npm Packages
 
-| Package | Source Crate | Description |
-|---------|-------------|-------------|
-| `vize` | `vize` | Main CLI package (binary) |
-| `@vizejs/native` | `vize_vitrine` (napi) | Node.js NAPI bindings |
-| `@vizejs/wasm` | `vize_vitrine` (wasm) | WASM bindings for browser |
-| `@vizejs/vite-plugin` | — | Vite plugin (drop-in replacement for `@vitejs/plugin-vue`) |
-| `@vizejs/nuxt` | — | Nuxt module (first-class Nuxt integration) |
-| `@vizejs/vite-plugin-musea` | — | Musea Vite plugin |
-| `@vizejs/musea-mcp-server` | — | MCP server for AI assistant integration |
+| Package                     | Source Crate          | Description                                                |
+| --------------------------- | --------------------- | ---------------------------------------------------------- |
+| `vize`                      | `vize`                | Main CLI package (binary)                                  |
+| `@vizejs/native`            | `vize_vitrine` (napi) | Node.js NAPI bindings                                      |
+| `@vizejs/wasm`              | `vize_vitrine` (wasm) | WASM bindings for browser                                  |
+| `@vizejs/vite-plugin`       | —                     | Vite plugin (drop-in replacement for `@vitejs/plugin-vue`) |
+| `@vizejs/nuxt`              | —                     | Nuxt module (first-class Nuxt integration)                 |
+| `@vizejs/vite-plugin-musea` | —                     | Musea Vite plugin                                          |
+| `@vizejs/musea-mcp-server`  | —                     | MCP server for AI assistant integration                    |

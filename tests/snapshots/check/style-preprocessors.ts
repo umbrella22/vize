@@ -14,9 +14,7 @@ const app = stylePreprocessorsApp;
 describe(`${app.name} check (type checker)`, () => {
   before(() => {
     if (!fs.existsSync(VIZE_BIN) || !fs.existsSync(TSGO_BIN)) {
-      console.log(
-        `Skipping: vize=${fs.existsSync(VIZE_BIN)}, tsgo=${fs.existsSync(TSGO_BIN)}`,
-      );
+      console.log(`Skipping: vize=${fs.existsSync(VIZE_BIN)}, tsgo=${fs.existsSync(TSGO_BIN)}`);
       process.exit(0);
     }
   });
@@ -38,9 +36,7 @@ describe(`${app.name} check (type checker)`, () => {
       if (e.status === 1 && e.stdout) {
         stdout = e.stdout.toString();
       } else {
-        throw new Error(
-          `vize check crashed (exit code ${e.status}): ${e.stderr?.toString()}`,
-        );
+        throw new Error(`vize check crashed (exit code ${e.status}): ${e.stderr?.toString()}`);
       }
     }
 
@@ -49,8 +45,8 @@ describe(`${app.name} check (type checker)`, () => {
     assert.ok(parsed.fileCount > 0, "fileCount should be > 0");
     assert.equal(parsed.errorCount, 0, "errorCount should be 0 (style lang does not affect TS)");
 
-    const prettyOutput = JSON.stringify(parsed, null, 2)
-      .replaceAll(checkConfig.cwd, "<cwd>") + "\n";
+    const prettyOutput =
+      JSON.stringify(parsed, null, 2).replaceAll(checkConfig.cwd, "<cwd>") + "\n";
     assertSnapshot(SNAPSHOT_DIR, `${app.name}-check`, prettyOutput);
   });
 });

@@ -59,18 +59,18 @@ vize -j 4             # Set thread count
 
 `vize` is the command-line interface for the Vize compiler's art-themed crate collection:
 
-| Crate | Art Term | Role |
-|-------|----------|------|
-| vize_carton | Carton (Portfolio Case) | Shared utilities & allocator |
-| vize_atelier_core | - | AST & Parser (core) |
-| vize_atelier_dom | Atelier (Workshop) | DOM compiler |
-| vize_atelier_vapor | Atelier (Workshop) | Vapor compiler |
-| vize_atelier_sfc | Atelier (Workshop) | SFC compiler |
-| vize_vitrine | Vitrine (Display Case) | Bindings (Node.js/WASM) |
-| vize_canon | Canon (Standard) | Type checker |
-| vize_glyph | Glyph (Letterform) | Formatter |
-| vize_patina | Patina (Aged Surface) | Linter |
-| **vize** | **-** | **CLI (this crate)** |
+| Crate              | Art Term                | Role                         |
+| ------------------ | ----------------------- | ---------------------------- |
+| vize_carton        | Carton (Portfolio Case) | Shared utilities & allocator |
+| vize_atelier_core  | -                       | AST & Parser (core)          |
+| vize_atelier_dom   | Atelier (Workshop)      | DOM compiler                 |
+| vize_atelier_vapor | Atelier (Workshop)      | Vapor compiler               |
+| vize_atelier_sfc   | Atelier (Workshop)      | SFC compiler                 |
+| vize_vitrine       | Vitrine (Display Case)  | Bindings (Node.js/WASM)      |
+| vize_canon         | Canon (Standard)        | Type checker                 |
+| vize_glyph         | Glyph (Letterform)      | Formatter                    |
+| vize_patina        | Patina (Aged Surface)   | Linter                       |
+| **vize**           | **-**                   | **CLI (this crate)**         |
 
 ## License
 

@@ -24,7 +24,7 @@ Syntax highlighting for Vize Art files (`*.art.vue`).
 </art>
 
 <script setup lang="ts">
-import Button from './Button.vue'
+import Button from "./Button.vue";
 </script>
 ```
 
@@ -49,6 +49,7 @@ Then press F5 in VS Code to launch the Extension Development Host.
 ## Supported Attributes
 
 ### Art Block (`<art>`)
+
 - `title` - Component title (required)
 - `component` - Path to component file
 - `description` - Component description
@@ -58,6 +59,7 @@ Then press F5 in VS Code to launch the Extension Development Host.
 - `order` - Display order
 
 ### Variant Block (`<variant>`)
+
 - `name` - Variant name (required)
 - `default` - Boolean flag for default variant
 - `args` - JSON object with prop values

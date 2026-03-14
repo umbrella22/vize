@@ -1,63 +1,67 @@
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
-import { Marked } from 'marked'
-import { markedHighlight } from 'marked-highlight'
-import hljs from 'highlight.js/lib/core'
-import xml from 'highlight.js/lib/languages/xml'
-import javascript from 'highlight.js/lib/languages/javascript'
-import typescript from 'highlight.js/lib/languages/typescript'
-import css from 'highlight.js/lib/languages/css'
-import bash from 'highlight.js/lib/languages/bash'
-import { fetchDocs } from '../api'
+import { ref, computed, watch } from "vue";
+import { Marked } from "marked";
+import { markedHighlight } from "marked-highlight";
+import hljs from "highlight.js/lib/core";
+import xml from "highlight.js/lib/languages/xml";
+import javascript from "highlight.js/lib/languages/javascript";
+import typescript from "highlight.js/lib/languages/typescript";
+import css from "highlight.js/lib/languages/css";
+import bash from "highlight.js/lib/languages/bash";
+import { fetchDocs } from "../api";
 
-hljs.registerLanguage('xml', xml)
-hljs.registerLanguage('html', xml)
-hljs.registerLanguage('vue', xml)
-hljs.registerLanguage('javascript', javascript)
-hljs.registerLanguage('js', javascript)
-hljs.registerLanguage('typescript', typescript)
-hljs.registerLanguage('ts', typescript)
-hljs.registerLanguage('css', css)
-hljs.registerLanguage('bash', bash)
-hljs.registerLanguage('sh', bash)
+hljs.registerLanguage("xml", xml);
+hljs.registerLanguage("html", xml);
+hljs.registerLanguage("vue", xml);
+hljs.registerLanguage("javascript", javascript);
+hljs.registerLanguage("js", javascript);
+hljs.registerLanguage("typescript", typescript);
+hljs.registerLanguage("ts", typescript);
+hljs.registerLanguage("css", css);
+hljs.registerLanguage("bash", bash);
+hljs.registerLanguage("sh", bash);
 
 const markedInstance = new Marked(
   markedHighlight({
     highlight(code: string, lang: string) {
       if (lang && hljs.getLanguage(lang)) {
-        return hljs.highlight(code, { language: lang }).value
+        return hljs.highlight(code, { language: lang }).value;
       }
-      return code
+      return code;
     },
   }),
-)
+);
 
 const props = defineProps<{
-  artPath: string
-}>()
+  artPath: string;
+}>();
 
-const markdown = ref('')
-const loading = ref(false)
-const error = ref<string | null>(null)
+const markdown = ref("");
+const loading = ref(false);
+const error = ref<string | null>(null);
 
 const renderedHtml = computed(() => {
-  if (!markdown.value) return ''
-  return markedInstance.parse(markdown.value) as string
-})
+  if (!markdown.value) return "";
+  return markedInstance.parse(markdown.value) as string;
+});
 
-watch(() => props.artPath, async (path) => {
-  if (!path) return
-  loading.value = true
-  error.value = null
-  try {
-    const data = await fetchDocs(path)
-    markdown.value = data.markdown
-  } catch (e) {
-    error.value = e instanceof Error ? e.message : String(e)
-  } finally {
-    loading.value = false
-  }
-}, { immediate: true })
+watch(
+  () => props.artPath,
+  async (path) => {
+    if (!path) return;
+    loading.value = true;
+    error.value = null;
+    try {
+      const data = await fetchDocs(path);
+      markdown.value = data.markdown;
+    } catch (e) {
+      error.value = e instanceof Error ? e.message : String(e);
+    } finally {
+      loading.value = false;
+    }
+  },
+  { immediate: true },
+);
 </script>
 
 <template>
@@ -105,7 +109,9 @@ watch(() => props.artPath, async (path) => {
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .docs-error {
@@ -174,7 +180,7 @@ watch(() => props.artPath, async (path) => {
   background: var(--musea-bg-tertiary);
   padding: 0.125rem 0.375rem;
   border-radius: 4px;
-  font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+  font-family: "SF Mono", "Fira Code", "Consolas", monospace;
   font-size: 0.8125rem;
 }
 

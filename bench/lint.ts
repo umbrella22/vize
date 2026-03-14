@@ -17,30 +17,24 @@ import os from "node:os";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const INPUT_DIR = join(__dirname, "__in__");
 const CPU_COUNT = os.cpus().length;
-const VIZE_BIN =
-  join(__dirname, "..", "target", "release", "vize");
+const VIZE_BIN = join(__dirname, "..", "target", "release", "vize");
 const GLOB_PATTERN = join(INPUT_DIR, "*.vue");
 
 // Check input files
 if (!existsSync(INPUT_DIR)) {
-  console.error(
-    `Error: Input directory not found: ${INPUT_DIR}\nRun 'node generate.mjs' first.`
-  );
+  console.error(`Error: Input directory not found: ${INPUT_DIR}\nRun 'node generate.mjs' first.`);
   process.exit(1);
 }
 
 const vueFiles = readdirSync(INPUT_DIR).filter((f) => f.endsWith(".vue"));
 if (vueFiles.length === 0) {
-  console.error(
-    `Error: No .vue files found in ${INPUT_DIR}\nRun 'node generate.mjs' first.`
-  );
+  console.error(`Error: No .vue files found in ${INPUT_DIR}\nRun 'node generate.mjs' first.`);
   process.exit(1);
 }
 
 const totalSize = vueFiles.reduce(
-  (sum, f) =>
-    sum + readFileSync(join(INPUT_DIR, f), "utf-8").length,
-  0
+  (sum, f) => sum + readFileSync(join(INPUT_DIR, f), "utf-8").length,
+  0,
 );
 
 // Format helpers
@@ -113,7 +107,7 @@ async function runEslintMultiThread(): Promise<number> {
       new Promise((resolve, reject) => {
         worker.on("message", resolve);
         worker.on("error", reject);
-      })
+      }),
     );
   }
 
@@ -134,15 +128,11 @@ function execIgnoreExit(cmd: string): void {
 function runVizeLintSingleThread(): number {
   // Warmup
   for (let i = 0; i < 3; i++) {
-    execIgnoreExit(
-      `RAYON_NUM_THREADS=1 ${VIZE_BIN} lint '${GLOB_PATTERN}'`
-    );
+    execIgnoreExit(`RAYON_NUM_THREADS=1 ${VIZE_BIN} lint '${GLOB_PATTERN}'`);
   }
 
   const start = performance.now();
-  execIgnoreExit(
-    `RAYON_NUM_THREADS=1 ${VIZE_BIN} lint '${GLOB_PATTERN}'`
-  );
+  execIgnoreExit(`RAYON_NUM_THREADS=1 ${VIZE_BIN} lint '${GLOB_PATTERN}'`);
   return performance.now() - start;
 }
 
@@ -177,7 +167,7 @@ console.log();
 
 const eslintSingle = await runEslintSingleThread();
 console.log(
-  `   eslint-plugin-vue : ${formatTime(eslintSingle).padStart(8)}  (${formatThroughput(vueFiles.length, eslintSingle)})`
+  `   eslint-plugin-vue : ${formatTime(eslintSingle).padStart(8)}  (${formatThroughput(vueFiles.length, eslintSingle)})`,
 );
 
 let vizeSingle = 0;
@@ -185,7 +175,7 @@ if (existsSync(VIZE_BIN)) {
   vizeSingle = runVizeLintSingleThread();
   const speedup = (eslintSingle / vizeSingle).toFixed(1);
   console.log(
-    `   Vize (patina)     : ${formatTime(vizeSingle).padStart(8)}  (${formatThroughput(vueFiles.length, vizeSingle)})  ${speedup}x faster`
+    `   Vize (patina)     : ${formatTime(vizeSingle).padStart(8)}  (${formatThroughput(vueFiles.length, vizeSingle)})  ${speedup}x faster`,
   );
 } else {
   console.log("   Vize (patina)     : SKIPPED (vize CLI not found)");
@@ -198,7 +188,7 @@ console.log();
 
 const eslintMulti = await runEslintMultiThread();
 console.log(
-  `   eslint-plugin-vue : ${formatTime(eslintMulti).padStart(8)}  (${formatThroughput(vueFiles.length, eslintMulti)})`
+  `   eslint-plugin-vue : ${formatTime(eslintMulti).padStart(8)}  (${formatThroughput(vueFiles.length, eslintMulti)})`,
 );
 
 let vizeMulti = 0;
@@ -206,7 +196,7 @@ if (existsSync(VIZE_BIN)) {
   vizeMulti = runVizeLintMultiThread();
   const speedup = (eslintMulti / vizeMulti).toFixed(1);
   console.log(
-    `   Vize (patina)     : ${formatTime(vizeMulti).padStart(8)}  (${formatThroughput(vueFiles.length, vizeMulti)})  ${speedup}x faster`
+    `   Vize (patina)     : ${formatTime(vizeMulti).padStart(8)}  (${formatThroughput(vueFiles.length, vizeMulti)})  ${speedup}x faster`,
   );
 } else {
   console.log("   Vize (patina)     : SKIPPED (vize CLI not found)");

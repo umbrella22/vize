@@ -1,24 +1,27 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
-import type { DesignToken } from '../../api'
+import { ref, watch } from "vue";
+import type { DesignToken } from "../../api";
 
 const props = defineProps<{
-  isOpen: boolean
-  tokenPath: string
-  token?: DesignToken
-  dependents?: string[]
-}>()
+  isOpen: boolean;
+  tokenPath: string;
+  token?: DesignToken;
+  dependents?: string[];
+}>();
 
 const emit = defineEmits<{
-  close: []
-  confirm: []
-}>()
+  close: [];
+  confirm: [];
+}>();
 
-const confirming = ref(false)
+const confirming = ref(false);
 
-watch(() => props.isOpen, (open) => {
-  if (open) confirming.value = false
-})
+watch(
+  () => props.isOpen,
+  (open) => {
+    if (open) confirming.value = false;
+  },
+);
 </script>
 
 <template>
@@ -29,12 +32,22 @@ watch(() => props.isOpen, (open) => {
           <h3 class="modal-title">Delete Token</h3>
 
           <p class="delete-message">
-            Are you sure you want to delete <code class="token-path">{{ tokenPath }}</code>?
+            Are you sure you want to delete <code class="token-path">{{ tokenPath }}</code
+            >?
           </p>
 
           <div v-if="dependents && dependents.length > 0" class="dependents-warning">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path
+                d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"
+              />
               <line x1="12" y1="9" x2="12" y2="13" />
               <line x1="12" y1="17" x2="12.01" y2="17" />
             </svg>
@@ -45,15 +58,15 @@ watch(() => props.isOpen, (open) => {
                   <code>{{ dep }}</code>
                 </li>
               </ul>
-              <p class="warning-note">Deleting this token will leave these references unresolved.</p>
+              <p class="warning-note">
+                Deleting this token will leave these references unresolved.
+              </p>
             </div>
           </div>
 
           <div class="modal-footer">
             <button type="button" class="btn btn--secondary" @click="emit('close')">Cancel</button>
-            <button type="button" class="btn btn--danger" @click="emit('confirm')">
-              Delete
-            </button>
+            <button type="button" class="btn btn--danger" @click="emit('confirm')">Delete</button>
           </div>
         </div>
       </div>

@@ -1,11 +1,14 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { defineConfig } from "vite";
+import { defineConfig } from "vite-plus";
 import { oxContent, defineTheme, defaultTheme } from "@ox-content/vite-plugin";
 
 const artVueGrammar = {
   ...JSON.parse(
-    readFileSync(resolve(import.meta.dirname, "../npm/vscode-art/syntaxes/art.tmLanguage.json"), "utf-8"),
+    readFileSync(
+      resolve(import.meta.dirname, "../npm/vscode-art/syntaxes/art.tmLanguage.json"),
+      "utf-8",
+    ),
   ),
   name: "art-vue",
 };

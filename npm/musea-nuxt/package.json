@@ -2,6 +2,23 @@
   "name": "@vizejs/musea-nuxt",
   "version": "0.33.0",
   "description": "Nuxt mock layer for Musea - enables Nuxt component isolation in galleries",
+  "keywords": [
+    "component-gallery",
+    "mock",
+    "musea",
+    "nuxt",
+    "vite-plugin"
+  ],
+  "license": "MIT",
+  "author": "ubugeeei",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ubugeeei/vize.git",
+    "directory": "npm/musea-nuxt"
+  },
+  "files": [
+    "dist"
+  ],
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -11,34 +28,21 @@
       "types": "./dist/index.d.ts"
     }
   },
-  "files": [
-    "dist"
-  ],
-  "scripts": {
-    "build": "tsdown",
-    "dev": "tsdown --watch",
-    "fmt": "oxfmt --write src tsdown.config.ts",
-    "fmt:check": "oxfmt src tsdown.config.ts"
+  "publishConfig": {
+    "access": "public"
   },
-  "keywords": [
-    "nuxt",
-    "musea",
-    "vite-plugin",
-    "component-gallery",
-    "mock"
-  ],
-  "author": "ubugeeei",
-  "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/ubugeeei/vize.git",
-    "directory": "npm/musea-nuxt"
+  "scripts": {
+    "build": "vp pack",
+    "dev": "vp pack --watch",
+    "check": "vp check src vite.config.ts",
+    "check:fix": "vp check --fix src vite.config.ts",
+    "fmt": "vp fmt --write src vite.config.ts"
   },
   "dependencies": {},
   "devDependencies": {
-    "tsdown": "^0.9.0",
     "typescript": "^5.7.0",
-    "vite": "^8.0.0",
+    "vite": "catalog:",
+    "vite-plus": "catalog:",
     "vue": "^3.5.0",
     "vue-router": "^4.5.0"
   },
@@ -46,8 +50,5 @@
     "vite": "^8.0.0",
     "vue": "^3.5.0",
     "vue-router": "^4.5.0"
-  },
-  "publishConfig": {
-    "access": "public"
   }
 }

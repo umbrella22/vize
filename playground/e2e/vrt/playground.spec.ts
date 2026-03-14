@@ -1,14 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 
-const TABS = [
-  "atelier",
-  "patina",
-  "glyph",
-  "canon",
-  "croquis",
-  "cross-file",
-  "musea",
-] as const;
+const TABS = ["atelier", "patina", "glyph", "canon", "croquis", "cross-file", "musea"] as const;
 
 /**
  * Selectors that confirm the tab's output has fully rendered.

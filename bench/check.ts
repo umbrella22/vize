@@ -21,24 +21,20 @@ const GLOB_PATTERN = join(INPUT_DIR, "*.vue");
 
 // Check input files
 if (!existsSync(INPUT_DIR)) {
-  console.error(
-    `Error: Input directory not found: ${INPUT_DIR}\nRun 'node generate.mjs' first.`
-  );
+  console.error(`Error: Input directory not found: ${INPUT_DIR}\nRun 'node generate.mjs' first.`);
   process.exit(1);
 }
 
 if (!existsSync(join(INPUT_DIR, "tsconfig.json"))) {
   console.error(
-    `Error: tsconfig.json not found in ${INPUT_DIR}\nRun 'node generate.mjs' first to generate it.`
+    `Error: tsconfig.json not found in ${INPUT_DIR}\nRun 'node generate.mjs' first to generate it.`,
   );
   process.exit(1);
 }
 
 const vueFiles = readdirSync(INPUT_DIR).filter((f) => f.endsWith(".vue"));
 if (vueFiles.length === 0) {
-  console.error(
-    `Error: No .vue files found in ${INPUT_DIR}\nRun 'node generate.mjs' first.`
-  );
+  console.error(`Error: No .vue files found in ${INPUT_DIR}\nRun 'node generate.mjs' first.`);
   process.exit(1);
 }
 
@@ -88,9 +84,7 @@ function runVueTscMultiThread(): number {
 
 // Vize (canon) single-thread
 function runVizeCheckSingleThread(): number {
-  return benchmarkCommand(
-    `RAYON_NUM_THREADS=1 ${VIZE_BIN} check '${GLOB_PATTERN}'`
-  );
+  return benchmarkCommand(`RAYON_NUM_THREADS=1 ${VIZE_BIN} check '${GLOB_PATTERN}'`);
 }
 
 // Vize (canon) multi-thread
@@ -117,7 +111,7 @@ console.log();
 const vueTscSingle = runVueTscSingleThread();
 if (vueTscSingle >= 0) {
   console.log(
-    `   vue-tsc       : ${formatTime(vueTscSingle).padStart(8)}  (${formatThroughput(vueFiles.length, vueTscSingle)})`
+    `   vue-tsc       : ${formatTime(vueTscSingle).padStart(8)}  (${formatThroughput(vueFiles.length, vueTscSingle)})`,
   );
 } else {
   console.log("   vue-tsc       : SKIPPED (not found)");
@@ -129,11 +123,11 @@ if (existsSync(VIZE_BIN)) {
   if (vueTscSingle >= 0) {
     const speedup = (vueTscSingle / vizeSingle).toFixed(1);
     console.log(
-      `   Vize (canon)  : ${formatTime(vizeSingle).padStart(8)}  (${formatThroughput(vueFiles.length, vizeSingle)})  ${speedup}x faster`
+      `   Vize (canon)  : ${formatTime(vizeSingle).padStart(8)}  (${formatThroughput(vueFiles.length, vizeSingle)})  ${speedup}x faster`,
     );
   } else {
     console.log(
-      `   Vize (canon)  : ${formatTime(vizeSingle).padStart(8)}  (${formatThroughput(vueFiles.length, vizeSingle)})`
+      `   Vize (canon)  : ${formatTime(vizeSingle).padStart(8)}  (${formatThroughput(vueFiles.length, vizeSingle)})`,
     );
   }
 } else {
@@ -148,7 +142,7 @@ console.log();
 const vueTscMulti = runVueTscMultiThread();
 if (vueTscMulti >= 0) {
   console.log(
-    `   vue-tsc       : ${formatTime(vueTscMulti).padStart(8)}  (${formatThroughput(vueFiles.length, vueTscMulti)})`
+    `   vue-tsc       : ${formatTime(vueTscMulti).padStart(8)}  (${formatThroughput(vueFiles.length, vueTscMulti)})`,
   );
 } else {
   console.log("   vue-tsc       : SKIPPED (not found)");
@@ -160,11 +154,11 @@ if (existsSync(VIZE_BIN)) {
   if (vueTscMulti >= 0) {
     const speedup = (vueTscMulti / vizeMulti).toFixed(1);
     console.log(
-      `   Vize (canon)  : ${formatTime(vizeMulti).padStart(8)}  (${formatThroughput(vueFiles.length, vizeMulti)})  ${speedup}x faster`
+      `   Vize (canon)  : ${formatTime(vizeMulti).padStart(8)}  (${formatThroughput(vueFiles.length, vizeMulti)})  ${speedup}x faster`,
     );
   } else {
     console.log(
-      `   Vize (canon)  : ${formatTime(vizeMulti).padStart(8)}  (${formatThroughput(vueFiles.length, vizeMulti)})`
+      `   Vize (canon)  : ${formatTime(vizeMulti).padStart(8)}  (${formatThroughput(vueFiles.length, vizeMulti)})`,
     );
   }
 } else {
@@ -183,9 +177,7 @@ if (vueTscSingle >= 0 && vizeSingle > 0 && vizeMulti > 0) {
   const crossSpeedup = (vueTscSingle / vizeMulti).toFixed(1);
   console.log(`   vue-tsc ST vs Vize ST : ${stSpeedup}x`);
   console.log(`   vue-tsc MT vs Vize MT : ${mtSpeedup}x`);
-  console.log(
-    `   vue-tsc ST vs Vize MT : ${crossSpeedup}x  (user-facing speedup)`
-  );
+  console.log(`   vue-tsc ST vs Vize MT : ${crossSpeedup}x  (user-facing speedup)`);
 }
 
 console.log();

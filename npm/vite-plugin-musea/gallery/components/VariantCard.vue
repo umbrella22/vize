@@ -1,12 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
-import {
-  mdiContentCopy,
-  mdiCheck,
-  mdiCodeTags,
-  mdiFullscreen,
-  mdiOpenInNew,
-} from "@mdi/js";
+import { mdiContentCopy, mdiCheck, mdiCodeTags, mdiFullscreen, mdiOpenInNew } from "@mdi/js";
 import type { ArtVariant } from "../../src/types/index.js";
 import { getPreviewUrl } from "../api";
 import { useAddons } from "../composables/useAddons";
@@ -29,9 +23,7 @@ function resolveSelfReferences(template: string): string {
     .replace(/<\/Self>/g, `</${props.componentName}>`);
 }
 
-const resolvedTemplate = computed(() =>
-  resolveSelfReferences(props.variant.template),
-);
+const resolvedTemplate = computed(() => resolveSelfReferences(props.variant.template));
 
 async function copyTemplate() {
   try {
@@ -45,9 +37,7 @@ async function copyTemplate() {
   }
 }
 
-const previewUrl = computed(() =>
-  getPreviewUrl(props.artPath, props.variant.name),
-);
+const previewUrl = computed(() => getPreviewUrl(props.artPath, props.variant.name));
 
 const iframeRef = ref<HTMLIFrameElement | null>(null);
 const iframeReady = ref(false);

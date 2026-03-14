@@ -15,11 +15,13 @@
 **Carton** (/kɑːˈtɒn/) is an artist's portfolio case or art supply box - a container that holds all the essential tools and materials an artist needs for their work. Just as a carton organizes brushes, paints, and canvases for an artist, `vize_carton` organizes the fundamental utilities and data structures needed for the Vize compiler.
 
 In the art world, a carton typically contains:
+
 - **Brushes & Tools** - The instruments for creating
 - **Paints & Pigments** - The raw materials
 - **Canvas preparation supplies** - The foundation
 
 Similarly, `vize_carton` provides:
+
 - **Arena Allocator** - Efficient memory management for AST construction
 - **Shared Data Structures** - Common types used across the compiler
 - **Utility Functions** - Helper functions for string manipulation, tag validation, etc.
@@ -27,6 +29,7 @@ Similarly, `vize_carton` provides:
 ## Features
 
 ### Arena Allocation
+
 High-performance arena-based memory allocation optimized for compiler workloads:
 
 ```rust
@@ -44,6 +47,7 @@ vec.push(2);
 ### Shared Utilities
 
 #### DOM Tag Configuration
+
 ```rust
 use vize_carton::{is_html_tag, is_svg_tag, is_void_tag};
 
@@ -53,6 +57,7 @@ assert!(is_void_tag("br"));
 ```
 
 #### String Transformations
+
 ```rust
 use vize_carton::{camelize, hyphenate, capitalize};
 
@@ -62,6 +67,7 @@ assert_eq!(capitalize("hello"), "Hello");
 ```
 
 #### Optimization Flags
+
 ```rust
 use vize_carton::{PatchFlags, ShapeFlags, SlotFlags};
 
@@ -73,13 +79,13 @@ assert!(flags.contains(PatchFlags::TEXT));
 
 `vize_carton` is part of the Vize compiler's art-themed crate collection:
 
-| Crate | Art Term | Role |
-|-------|----------|------|
-| **vize_carton** | Carton (Portfolio Case) | Shared utilities & allocator |
-| vize_relief | Relief (Sculpted Surface) | AST structures |
-| vize_atelier_core | Armature (Sculpture Framework) | Parser & tokenizer |
-| vize_atelier | Atelier (Artist's Studio) | Compilers |
-| vize_vitrine | Vitrine (Display Case) | Bindings |
+| Crate             | Art Term                       | Role                         |
+| ----------------- | ------------------------------ | ---------------------------- |
+| **vize_carton**   | Carton (Portfolio Case)        | Shared utilities & allocator |
+| vize_relief       | Relief (Sculpted Surface)      | AST structures               |
+| vize_atelier_core | Armature (Sculpture Framework) | Parser & tokenizer           |
+| vize_atelier      | Atelier (Artist's Studio)      | Compilers                    |
+| vize_vitrine      | Vitrine (Display Case)         | Bindings                     |
 
 ## License
 

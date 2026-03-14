@@ -2,9 +2,28 @@
   "name": "vize",
   "version": "0.33.0",
   "description": "Vize - High-performance Vue.js toolchain in Rust",
-  "publishConfig": {
-    "access": "public"
+  "keywords": [
+    "cli",
+    "compiler",
+    "formatter",
+    "linter",
+    "rust",
+    "vize",
+    "vue"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ubugeeei/vize"
   },
+  "bin": {
+    "vize": "bin/vize"
+  },
+  "files": [
+    "bin",
+    "dist",
+    "src"
+  ],
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -18,54 +37,34 @@
       "types": "./dist/config.d.ts"
     }
   },
-  "bin": {
-    "vize": "bin/vize"
+  "publishConfig": {
+    "access": "public"
   },
-  "files": [
-    "bin",
-    "dist",
-    "src"
-  ],
   "scripts": {
-    "build": "tsdown",
-    "lint": "oxlint --deny-warnings --type-aware --tsconfig tsconfig.json",
-    "lint:fix": "oxlint --type-aware --tsconfig tsconfig.json --fix",
-    "fmt": "oxfmt --write src tsdown.config.ts",
-    "fmt:check": "oxfmt src tsdown.config.ts"
-  },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/ubugeeei/vize"
-  },
-  "keywords": [
-    "vue",
-    "compiler",
-    "rust",
-    "cli",
-    "vize",
-    "formatter",
-    "linter"
-  ],
-  "license": "MIT",
-  "engines": {
-    "node": ">=18"
-  },
-  "optionalDependencies": {
-    "@vizejs/native-darwin-x64": "0.0.1-alpha.114",
-    "@vizejs/native-darwin-arm64": "0.0.1-alpha.114",
-    "@vizejs/native-win32-x64-msvc": "0.0.1-alpha.114",
-    "@vizejs/native-win32-arm64-msvc": "0.0.1-alpha.114",
-    "@vizejs/native-linux-x64-gnu": "0.0.1-alpha.114",
-    "@vizejs/native-linux-x64-musl": "0.0.1-alpha.114",
-    "@vizejs/native-linux-arm64-gnu": "0.0.1-alpha.114",
-    "@vizejs/native-linux-arm64-musl": "0.0.1-alpha.114"
+    "build": "vp pack",
+    "check": "vp check src vite.config.ts",
+    "check:fix": "vp check --fix src vite.config.ts",
+    "fmt": "vp fmt --write src vite.config.ts"
   },
   "dependencies": {
     "oxc-transform": "^0.56.0"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
-    "tsdown": "^0.9.0",
-    "typescript": "~5.6.0"
+    "typescript": "~5.6.0",
+    "vite-plus": "catalog:"
+  },
+  "optionalDependencies": {
+    "@vizejs/native-darwin-arm64": "0.0.1-alpha.114",
+    "@vizejs/native-darwin-x64": "0.0.1-alpha.114",
+    "@vizejs/native-linux-arm64-gnu": "0.0.1-alpha.114",
+    "@vizejs/native-linux-arm64-musl": "0.0.1-alpha.114",
+    "@vizejs/native-linux-x64-gnu": "0.0.1-alpha.114",
+    "@vizejs/native-linux-x64-musl": "0.0.1-alpha.114",
+    "@vizejs/native-win32-arm64-msvc": "0.0.1-alpha.114",
+    "@vizejs/native-win32-x64-msvc": "0.0.1-alpha.114"
+  },
+  "engines": {
+    "node": ">=18"
   }
 }

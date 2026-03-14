@@ -3,9 +3,9 @@
  * Generate SFC files for benchmarking
  * Usage: node generate.mjs [count]
  */
-import { writeFileSync, mkdirSync, readdirSync, statSync } from 'fs';
-import { join, dirname } from 'path';
-import { fileURLToPath } from 'url';
+import { writeFileSync, mkdirSync, readdirSync, statSync } from "fs";
+import { join, dirname } from "path";
+import { fileURLToPath } from "url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const FILE_COUNT = parseInt(process.argv[2]) || 2000;
@@ -340,7 +340,7 @@ function openImage(message) { console.log('Open image', message.imageUrl) }
 `,
 ];
 
-const benchDir = join(__dirname, '__in__');
+const benchDir = join(__dirname, "__in__");
 
 // Ensure directory exists
 mkdirSync(benchDir, { recursive: true });
@@ -349,7 +349,7 @@ console.log(`Generating ${FILE_COUNT} SFC files in ${benchDir}...`);
 
 for (let i = 0; i < FILE_COUNT; i++) {
   const template = templates[i % templates.length];
-  const filename = `Component${String(i).padStart(4, '0')}.vue`;
+  const filename = `Component${String(i).padStart(4, "0")}.vue`;
   const filepath = join(benchDir, filename);
   writeFileSync(filepath, template);
 
@@ -361,7 +361,7 @@ for (let i = 0; i < FILE_COUNT; i++) {
 console.log(`Done! Generated ${FILE_COUNT} SFC files.`);
 
 // Calculate total size
-const files = readdirSync(benchDir).filter(f => f.endsWith('.vue'));
+const files = readdirSync(benchDir).filter((f) => f.endsWith(".vue"));
 const totalSize = files.reduce((sum, f) => sum + statSync(join(benchDir, f)).size, 0);
 console.log(`Total size: ${(totalSize / 1024 / 1024).toFixed(2)} MB`);
 
@@ -376,13 +376,13 @@ const tsconfig = {
     noEmit: true,
     skipLibCheck: true,
     paths: {
-      "vue": ["../node_modules/vue"]
-    }
+      vue: ["../node_modules/vue"],
+    },
   },
-  include: ["./*.vue"]
+  include: ["./*.vue"],
 };
-writeFileSync(join(benchDir, 'tsconfig.json'), JSON.stringify(tsconfig, null, 2));
-console.log('Generated tsconfig.json');
+writeFileSync(join(benchDir, "tsconfig.json"), JSON.stringify(tsconfig, null, 2));
+console.log("Generated tsconfig.json");
 
 // Generate eslint.config.mjs for eslint-plugin-vue
 const eslintConfig = `import pluginVue from "eslint-plugin-vue";
@@ -397,29 +397,29 @@ export default [
   },
 ];
 `;
-writeFileSync(join(benchDir, 'eslint.config.mjs'), eslintConfig);
-console.log('Generated eslint.config.mjs');
+writeFileSync(join(benchDir, "eslint.config.mjs"), eslintConfig);
+console.log("Generated eslint.config.mjs");
 
 // Generate vite entry file for vite-plugin benchmark
 const viteEntryImports = [];
 const viteEntryComponents = [];
 const entryCount = FILE_COUNT; // import all files for fair vite benchmark
 for (let i = 0; i < entryCount; i++) {
-  const name = `Component${String(i).padStart(4, '0')}`;
+  const name = `Component${String(i).padStart(4, "0")}`;
   viteEntryImports.push(`import ${name} from './${name}.vue'`);
   viteEntryComponents.push(name);
 }
-const viteEntry = `${viteEntryImports.join('\n')}
+const viteEntry = `${viteEntryImports.join("\n")}
 import { createApp, h } from 'vue'
 
 const app = createApp({
   render() {
-    return h('div', [${viteEntryComponents.map(c => `h(${c})`).join(', ')}])
+    return h('div', [${viteEntryComponents.map((c) => `h(${c})`).join(", ")}])
   }
 })
 app.mount('#app')
 `;
-writeFileSync(join(benchDir, 'main.ts'), viteEntry);
+writeFileSync(join(benchDir, "main.ts"), viteEntry);
 console.log(`Generated main.ts (imports ${entryCount} components)`);
 
 // Generate index.html for vite
@@ -432,5 +432,5 @@ const indexHtml = `<!DOCTYPE html>
 </body>
 </html>
 `;
-writeFileSync(join(benchDir, 'index.html'), indexHtml);
-console.log('Generated index.html');
+writeFileSync(join(benchDir, "index.html"), indexHtml);
+console.log("Generated index.html");

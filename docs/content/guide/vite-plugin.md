@@ -22,8 +22,8 @@ npm install @vizejs/vite-plugin
 
 ```javascript
 // vite.config.js
-import { defineConfig } from 'vite';
-import vize from '@vizejs/vite-plugin';
+import { defineConfig } from "vite";
+import vize from "@vizejs/vite-plugin";
 
 export default defineConfig({
   plugins: [vize()],
@@ -57,18 +57,18 @@ The plugin intercepts `.vue` file requests and compiles them using Vize's Rust-n
 
 ## Comparison
 
-| Feature | @vitejs/plugin-vue | @vizejs/vite-plugin |
-|---------|-------------------|---------------------|
-| Language | JavaScript | Rust (NAPI) |
-| SFC Compilation | Yes | Yes |
-| Template Compilation | Yes | Yes |
-| Script Setup | Yes | Yes |
-| CSS Scoping | Yes | Yes |
-| SSR Support | Yes | Yes |
-| HMR | Yes | Yes (style-only optimization) |
-| Batch Pre-compilation | No | Yes (parallel via Rayon) |
-| CSS Extraction | Per-component | Merged single file |
-| Vapor Mode | Experimental | First-class (`vize_atelier_vapor`) |
+| Feature               | @vitejs/plugin-vue | @vizejs/vite-plugin                |
+| --------------------- | ------------------ | ---------------------------------- |
+| Language              | JavaScript         | Rust (NAPI)                        |
+| SFC Compilation       | Yes                | Yes                                |
+| Template Compilation  | Yes                | Yes                                |
+| Script Setup          | Yes                | Yes                                |
+| CSS Scoping           | Yes                | Yes                                |
+| SSR Support           | Yes                | Yes                                |
+| HMR                   | Yes                | Yes (style-only optimization)      |
+| Batch Pre-compilation | No                 | Yes (parallel via Rayon)           |
+| CSS Extraction        | Per-component      | Merged single file                 |
+| Vapor Mode            | Experimental       | First-class (`vize_atelier_vapor`) |
 
 ## Advanced Features
 
@@ -106,7 +106,7 @@ The plugin exposes a compatibility shim for tools that probe for `@vitejs/plugin
 ```typescript
 // nuxt.config.ts — using the dedicated Nuxt module
 export default defineNuxtConfig({
-  modules: ['@vizejs/nuxt'],
+  modules: ["@vizejs/nuxt"],
   vize: {
     compiler: true,
   },

@@ -2,9 +2,25 @@
   "name": "@vizejs/rspack-plugin",
   "version": "0.33.0",
   "description": "High-performance Rspack plugin for Vue SFC compilation powered by Vize",
-  "publishConfig": {
-    "access": "public"
+  "keywords": [
+    "compiler",
+    "fast",
+    "loader",
+    "native",
+    "plugin",
+    "rspack",
+    "sfc",
+    "vue"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ubugeeei/vize",
+    "directory": "npm/rspack-vize-plugin"
   },
+  "files": [
+    "dist"
+  ],
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -30,46 +46,29 @@
       "default": "./dist/loader/scope-loader.js"
     }
   },
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
-    "build": "tsdown",
-    "dev": "tsdown --watch",
-    "lint": "oxlint --deny-warnings --type-aware --tsconfig tsconfig.json",
-    "lint:fix": "oxlint --type-aware --tsconfig tsconfig.json --fix",
-    "fmt": "oxfmt --write src tsdown.config.ts",
-    "fmt:check": "oxfmt src tsdown.config.ts",
+    "build": "vp pack",
+    "dev": "vp pack --watch",
+    "check": "vp check src vite.config.ts",
+    "check:fix": "vp check --fix src vite.config.ts",
+    "fmt": "vp fmt --write src vite.config.ts",
     "test": "pnpm build && node --import tsx --test src/*.test.ts src/**/*.test.ts",
     "test:update": "pnpm build && node --import tsx --test --test-update-snapshots src/*.test.ts src/**/*.test.ts"
   },
-  "files": [
-    "dist"
-  ],
-  "keywords": [
-    "rspack",
-    "vue",
-    "plugin",
-    "loader",
-    "sfc",
-    "compiler",
-    "native",
-    "fast"
-  ],
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/ubugeeei/vize",
-    "directory": "npm/rspack-vize-plugin"
-  },
-  "license": "MIT",
   "dependencies": {
     "@vizejs/native": "workspace:*"
-  },
-  "peerDependencies": {
-    "@rspack/core": ">=1.0.0"
   },
   "devDependencies": {
     "@rspack/core": "^1.7.7",
     "@types/node": "^22.0.0",
-    "tsdown": "^0.9.0",
     "tsx": "^4.21.0",
-    "typescript": "~5.6.0"
+    "typescript": "~5.6.0",
+    "vite-plus": "catalog:"
+  },
+  "peerDependencies": {
+    "@rspack/core": ">=1.0.0"
   }
 }

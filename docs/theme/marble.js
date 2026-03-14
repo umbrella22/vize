@@ -1,11 +1,11 @@
 // Marble Veining — Three.js Interactive Shader
-;(() => {
-  if (typeof THREE === 'undefined') {
-    console.warn('[marble] Three.js not loaded');
+(() => {
+  if (typeof THREE === "undefined") {
+    console.warn("[marble] Three.js not loaded");
     return;
   }
 
-  const canvas = document.getElementById('marble-canvas');
+  const canvas = document.getElementById("marble-canvas");
   if (!canvas) return;
 
   // --- Renderer ---
@@ -43,44 +43,59 @@
   scene.add(mesh);
 
   // --- Mouse tracking with smooth lerp ---
-  let mouseX = 0.5, mouseY = 0.5;
-  let targetX = 0.5, targetY = 0.5;
+  let mouseX = 0.5,
+    mouseY = 0.5;
+  let targetX = 0.5,
+    targetY = 0.5;
   let mouseVel = 0.0;
-  let prevMX = 0.5, prevMY = 0.5;
+  let prevMX = 0.5,
+    prevMY = 0.5;
 
-  document.addEventListener('mousemove', (e) => {
-    targetX = e.clientX / window.innerWidth;
-    targetY = 1.0 - e.clientY / window.innerHeight;
-  }, { passive: true });
+  document.addEventListener(
+    "mousemove",
+    (e) => {
+      targetX = e.clientX / window.innerWidth;
+      targetY = 1.0 - e.clientY / window.innerHeight;
+    },
+    { passive: true },
+  );
 
-  document.addEventListener('touchmove', (e) => {
-    if (e.touches.length > 0) {
-      targetX = e.touches[0].clientX / window.innerWidth;
-      targetY = 1.0 - e.touches[0].clientY / window.innerHeight;
-    }
-  }, { passive: true });
+  document.addEventListener(
+    "touchmove",
+    (e) => {
+      if (e.touches.length > 0) {
+        targetX = e.touches[0].clientX / window.innerWidth;
+        targetY = 1.0 - e.touches[0].clientY / window.innerHeight;
+      }
+    },
+    { passive: true },
+  );
 
   // --- Scroll ---
   let scrollY = 0;
-  const header = document.querySelector('.header');
-  window.addEventListener('scroll', () => {
-    scrollY = window.scrollY;
-    // Show header after scrolling past hero
-    if (header && document.body.classList.contains('entry-page')) {
-      if (scrollY > 100) {
-        header.classList.add('header-visible');
-      } else {
-        header.classList.remove('header-visible');
+  const header = document.querySelector(".header");
+  window.addEventListener(
+    "scroll",
+    () => {
+      scrollY = window.scrollY;
+      // Show header after scrolling past hero
+      if (header && document.body.classList.contains("entry-page")) {
+        if (scrollY > 100) {
+          header.classList.add("header-visible");
+        } else {
+          header.classList.remove("header-visible");
+        }
       }
-    }
-  }, { passive: true });
+    },
+    { passive: true },
+  );
 
   // --- Dark mode detection ---
   const isDark = () => {
-    const theme = document.documentElement.getAttribute('data-theme');
-    if (theme === 'dark') return true;
-    if (theme === 'light') return false;
-    return window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const theme = document.documentElement.getAttribute("data-theme");
+    if (theme === "dark") return true;
+    if (theme === "light") return false;
+    return window.matchMedia("(prefers-color-scheme: dark)").matches;
   };
 
   // --- Resize ---
@@ -88,7 +103,7 @@
     renderer.setSize(canvas.clientWidth, canvas.clientHeight, false);
     uniforms.u_resolution.value.set(canvas.width, canvas.height);
   };
-  window.addEventListener('resize', resize);
+  window.addEventListener("resize", resize);
   resize();
 
   // --- Animation loop ---
@@ -125,6 +140,6 @@
   // Theme change observer
   new MutationObserver(() => {}).observe(document.documentElement, {
     attributes: true,
-    attributeFilter: ['data-theme'],
+    attributeFilter: ["data-theme"],
   });
 })();

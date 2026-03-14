@@ -15,11 +15,13 @@
 **Relief** (/rɪˈliːf/) is a sculptural technique where figures project from a flat background, creating depth and dimension. Like bas-relief, mezzo-relief, and high-relief in sculpture, the AST "relief" reveals the structure hidden within Vue template source code.
 
 In the art world, relief:
+
 - **Projects** - Raises forms from a flat surface
 - **Reveals** - Exposes depth and structure
 - **Defines** - Creates clear, distinct forms
 
 Similarly, `vize_relief` provides:
+
 - **AST definitions** - Complete Vue template node types
 - **Type safety** - Strongly typed node structures
 - **Arena allocation** - Zero-copy JavaScript interop
@@ -37,18 +39,18 @@ Similarly, `vize_relief` provides:
 
 `vize_relief` is the AST foundation of the Vize compiler's art-themed crate collection:
 
-| Crate | Art Term | Role |
-|-------|----------|------|
-| vize_carton | Carton (Portfolio Case) | Shared utilities & allocator |
-| **vize_relief** | **Relief (Sculptured Surface)** | **AST definitions (this crate)** |
-| vize_atelier_core | Atelier (Workshop) | Parser, transforms, codegen |
-| vize_atelier_dom | Atelier (Workshop) | DOM compiler |
-| vize_atelier_vapor | Atelier (Workshop) | Vapor compiler |
-| vize_atelier_sfc | Atelier (Workshop) | SFC compiler |
-| vize_vitrine | Vitrine (Display Case) | Bindings (Node.js/WASM) |
-| vize_canon | Canon (Standard) | Type checker |
-| vize_glyph | Glyph (Letterform) | Formatter |
-| vize_patina | Patina (Aged Surface) | Linter |
+| Crate              | Art Term                        | Role                             |
+| ------------------ | ------------------------------- | -------------------------------- |
+| vize_carton        | Carton (Portfolio Case)         | Shared utilities & allocator     |
+| **vize_relief**    | **Relief (Sculptured Surface)** | **AST definitions (this crate)** |
+| vize_atelier_core  | Atelier (Workshop)              | Parser, transforms, codegen      |
+| vize_atelier_dom   | Atelier (Workshop)              | DOM compiler                     |
+| vize_atelier_vapor | Atelier (Workshop)              | Vapor compiler                   |
+| vize_atelier_sfc   | Atelier (Workshop)              | SFC compiler                     |
+| vize_vitrine       | Vitrine (Display Case)          | Bindings (Node.js/WASM)          |
+| vize_canon         | Canon (Standard)                | Type checker                     |
+| vize_glyph         | Glyph (Letterform)              | Formatter                        |
+| vize_patina        | Patina (Aged Surface)           | Linter                           |
 
 ## License
 

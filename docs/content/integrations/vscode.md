@@ -14,14 +14,14 @@ Full language support for Vue files powered by Vize's LSP (Maestro).
 
 ### Features
 
-| Feature | Description |
-|---------|-------------|
-| **IntelliSense** | Auto-completion for component names, props, events, slots, directives, and template expressions |
-| **Diagnostics** | Real-time compilation errors and lint warnings as you type (powered by Armature + Patina) |
-| **Go to definition** | Navigate to component definitions, prop declarations, and imported values |
-| **Hover** | Type information, prop documentation, and component descriptions on hover |
-| **Code actions** | Quick fixes for lint violations (auto-fix) and common refactorings |
-| **Formatting** | Format `.vue` files using Glyph (template, script, and style blocks) |
+| Feature              | Description                                                                                     |
+| -------------------- | ----------------------------------------------------------------------------------------------- |
+| **IntelliSense**     | Auto-completion for component names, props, events, slots, directives, and template expressions |
+| **Diagnostics**      | Real-time compilation errors and lint warnings as you type (powered by Armature + Patina)       |
+| **Go to definition** | Navigate to component definitions, prop declarations, and imported values                       |
+| **Hover**            | Type information, prop documentation, and component descriptions on hover                       |
+| **Code actions**     | Quick fixes for lint violations (auto-fix) and common refactorings                              |
+| **Formatting**       | Format `.vue` files using Glyph (template, script, and style blocks)                            |
 
 ### How It Works
 
@@ -58,11 +58,11 @@ Syntax highlighting for `*.art.vue` files used by Musea.
 
 ### Features
 
-| Feature | Description |
-|---------|-------------|
+| Feature                 | Description                                                                |
+| ----------------------- | -------------------------------------------------------------------------- |
 | **Syntax highlighting** | Full syntax highlighting for `<art>`, `<variant>`, and standard Vue blocks |
-| **File icon** | Custom file icon for `.art.vue` files in the explorer |
-| **Language detection** | Automatic language mode detection for art files |
+| **File icon**           | Custom file icon for `.art.vue` files in the explorer                      |
+| **Language detection**  | Automatic language mode detection for art files                            |
 
 ### What Art Files Look Like
 
@@ -103,10 +103,10 @@ git clone https://github.com/ubugeeei/vize.git
 cd vize
 
 # Build the LSP extension
-cd npm/vscode-vize && pnpm install && pnpm build
+cd npm/vscode-vize && pnpm install --ignore-workspace && pnpm build
 
 # Build the Art extension
-cd npm/vscode-art && pnpm install && pnpm build
+cd npm/vscode-art && pnpm install --ignore-workspace && pnpm build
 ```
 
 ### Using with Other Editors

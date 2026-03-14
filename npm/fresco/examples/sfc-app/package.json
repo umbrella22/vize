@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite-node main.ts",
-    "build": "vite build"
+    "build": "vp build"
   },
   "dependencies": {
     "@vizejs/fresco": "workspace:*",
@@ -13,8 +13,9 @@
   },
   "devDependencies": {
     "@vizejs/vite-plugin": "workspace:*",
-    "vite": "^8.0.0",
+    "vite": "catalog:",
     "vite-node": "^5.0.0",
+    "vite-plus": "catalog:",
     "vue": "^3.5.0"
   }
 }

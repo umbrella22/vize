@@ -89,10 +89,7 @@ function createVizeSymlinks(nodeModulesDir: string): void {
   }
 }
 
-function patchNuxtConfig(
-  configPath: string,
-  opts?: { removeModules?: string[] },
-): void {
+function patchNuxtConfig(configPath: string, opts?: { removeModules?: string[] }): void {
   let config = fs.readFileSync(configPath, "utf-8");
   let changed = false;
 
@@ -108,9 +105,7 @@ function patchNuxtConfig(
   // Remove modules that cause issues in the e2e environment
   if (opts?.removeModules) {
     for (const mod of opts.removeModules) {
-      const re = new RegExp(
-        `\\s*'${mod.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}',?\\n?`,
-      );
+      const re = new RegExp(`\\s*'${mod.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}',?\\n?`);
       if (re.test(config)) {
         config = config.replace(re, "\n");
         changed = true;
@@ -143,9 +138,7 @@ function hoistPnpmPackage(nodeModulesDir: string, packageName: string): void {
   }
   const pnpmDir = path.join(nodeModulesDir, ".pnpm");
   if (!fs.existsSync(pnpmDir)) return;
-  const candidates = fs
-    .readdirSync(pnpmDir)
-    .filter((d) => d.startsWith(`${packageName}@`));
+  const candidates = fs.readdirSync(pnpmDir).filter((d) => d.startsWith(`${packageName}@`));
   for (const candidate of candidates) {
     const target = path.join(pnpmDir, candidate, "node_modules", packageName);
     if (fs.existsSync(target)) {
@@ -155,10 +148,7 @@ function hoistPnpmPackage(nodeModulesDir: string, packageName: string): void {
   }
 }
 
-function addPnpmOverrides(
-  packageJsonPath: string,
-  overrides: Record<string, string>,
-): void {
+function addPnpmOverrides(packageJsonPath: string, overrides: Record<string, string>): void {
   const pkg = JSON.parse(fs.readFileSync(packageJsonPath, "utf-8"));
   if (!pkg.pnpm) pkg.pnpm = {};
   if (!pkg.pnpm.overrides) pkg.pnpm.overrides = {};
@@ -417,17 +407,7 @@ export const elkApp: AppConfig = {
   name: "elk",
   cwd: ELK_WORK_DIR,
   command: "npx",
-  args: [
-    "-y",
-    "pnpm@10",
-    "exec",
-    "nuxt",
-    "dev",
-    "--port",
-    "5314",
-    "--host",
-    "0.0.0.0",
-  ],
+  args: ["-y", "pnpm@10", "exec", "nuxt", "dev", "--port", "5314", "--host", "0.0.0.0"],
   port: 5314,
   url: "http://127.0.0.1:5314",
   mountSelector: "#__nuxt",
@@ -564,7 +544,10 @@ export const misskeyApp: AppConfig = {
     removeManualChunksObject(viteConfigPath);
     removeManualChunksObject(path.join(misskeyDir, "packages", "frontend-embed", "vite.config.ts"));
     mirrorLoaderAssetsForViteBase(path.join(frontendDir, "public"), "vite");
-    mirrorLoaderAssetsForViteBase(path.join(misskeyDir, "packages", "frontend-embed", "public"), "embed_vite");
+    mirrorLoaderAssetsForViteBase(
+      path.join(misskeyDir, "packages", "frontend-embed", "public"),
+      "embed_vite",
+    );
 
     const clientServerServicePath = path.join(
       misskeyDir,
@@ -578,7 +561,10 @@ export const misskeyApp: AppConfig = {
     let clientServerService = fs.readFileSync(clientServerServicePath, "utf-8");
     let clientServerServiceChanged = false;
     if (clientServerService.includes("rewritePrefix: '/vite',")) {
-      clientServerService = clientServerService.replace("rewritePrefix: '/vite',", "rewritePrefix: '',");
+      clientServerService = clientServerService.replace(
+        "rewritePrefix: '/vite',",
+        "rewritePrefix: '',",
+      );
       clientServerServiceChanged = true;
     }
     if (clientServerService.includes("rewritePrefix: '/embed_vite',")) {
@@ -600,7 +586,9 @@ export const misskeyApp: AppConfig = {
         `\texeca('pnpm', ['--filter', 'backend...', 'build'], {\n\t\tcwd: _dirname + '/../',\n\t\tstdout: process.stdout,\n\t\tstderr: process.stderr,\n\t}),\n\texeca('pnpm', ['--filter', 'frontend', 'build'], {\n\t\tcwd: _dirname + '/../',\n\t\tstdout: process.stdout,\n\t\tstderr: process.stderr,\n\t}),\n\texeca('pnpm', ['--filter', 'frontend-embed', 'build'], {\n\t\tcwd: _dirname + '/../',\n\t\tstdout: process.stdout,\n\t\tstderr: process.stderr,\n\t}),`,
       );
     }
-    if (!misskeyDevScript.includes("await execa('pnpm', ['--filter', 'icons-subsetter', 'build']")) {
+    if (
+      !misskeyDevScript.includes("await execa('pnpm', ['--filter', 'icons-subsetter', 'build']")
+    ) {
       misskeyDevScript = misskeyDevScript.replace(
         "await Promise.all([",
         `await execa('pnpm', ['--filter', 'icons-subsetter', 'build'], {\n\tcwd: _dirname + '/../',\n\tstdout: process.stdout,\n\tstderr: process.stderr,\n});\n\nawait Promise.all([`,
@@ -623,11 +611,7 @@ export const misskeyApp: AppConfig = {
       const _origFetch = window.fetch;
       window.fetch = function (input, init) {
         const url =
-          typeof input === "string"
-            ? input
-            : input instanceof URL
-              ? input.toString()
-              : input.url;
+          typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
         if (url.includes("/api/")) {
           let body = "{}";
           if (url.includes("/api/meta")) {
@@ -713,10 +697,8 @@ export const misskeyApp: AppConfig = {
                 pageLoadError: "An error occurred while loading the page.",
                 pageLoadErrorDescription:
                   "This is usually caused by a network error or the browser's cache.",
-                serverIsDead:
-                  "Server is not responding. Please wait a moment and try again.",
-                youShouldUpgradeClient:
-                  "Please refresh the page to use the updated client.",
+                serverIsDead: "Server is not responding. Please wait a moment and try again.",
+                youShouldUpgradeClient: "Please refresh the page to use the updated client.",
                 enterListName: "Enter list name",
                 privacy: "Privacy",
                 makeFollowManuallyApprove: "Follow requests require approval",
@@ -765,17 +747,7 @@ export const npmxApp: AppConfig = {
   name: "npmx.dev",
   cwd: NPMX_WORK_DIR,
   command: "npx",
-  args: [
-    "-y",
-    "pnpm@10",
-    "exec",
-    "nuxt",
-    "dev",
-    "--port",
-    "3001",
-    "--host",
-    "0.0.0.0",
-  ],
+  args: ["-y", "pnpm@10", "exec", "nuxt", "dev", "--port", "3001", "--host", "0.0.0.0"],
   port: 3001,
   url: "http://127.0.0.1:3001",
   mountSelector: "#__nuxt",
@@ -852,17 +824,7 @@ export const vuefesApp: AppConfig = {
   name: "vuefes-2025",
   cwd: VUEFES_WORK_DIR,
   command: "npx",
-  args: [
-    "-y",
-    "pnpm@10",
-    "exec",
-    "nuxt",
-    "dev",
-    "--port",
-    "3003",
-    "--host",
-    "0.0.0.0",
-  ],
+  args: ["-y", "pnpm@10", "exec", "nuxt", "dev", "--port", "3003", "--host", "0.0.0.0"],
   port: 3003,
   url: "http://127.0.0.1:3003",
   mountSelector: "#__nuxt",
@@ -893,10 +855,7 @@ export const vuefesApp: AppConfig = {
       changed = true;
     }
     if (changed) {
-      fs.writeFileSync(
-        vuefesPackageJson,
-        JSON.stringify(pkg, null, "\t") + "\n",
-      );
+      fs.writeFileSync(vuefesPackageJson, JSON.stringify(pkg, null, "\t") + "\n");
     }
 
     addPnpmOverrides(vuefesPackageJson, {

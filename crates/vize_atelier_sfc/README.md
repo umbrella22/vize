@@ -15,11 +15,13 @@
 **Atelier** (/ˌætəlˈjeɪ/) is a French word for an artist's workshop or studio. While `vize_atelier_dom` and `vize_atelier_vapor` focus on template compilation for specific rendering modes, `vize_atelier_sfc` is the master workshop that orchestrates the complete Single File Component compilation process.
 
 In the art world, an atelier:
+
 - **Orchestrates** - Coordinates multiple artistic disciplines
 - **Integrates** - Combines different mediums into a unified work
 - **Completes** - Produces finished, exhibition-ready pieces
 
 Similarly, `vize_atelier_sfc` provides:
+
 - **SFC Parsing** - Parse `.vue` files into descriptor blocks
 - **Script Compilation** - Process `<script>` and `<script setup>` blocks
 - **Template Integration** - Delegate to DOM or Vapor ateliers
@@ -77,14 +79,14 @@ println!("{}", result.code);
 
 `vize_atelier_sfc` is part of the Vize compiler's art-themed crate collection:
 
-| Crate | Art Term | Role |
-|-------|----------|------|
-| vize_carton | Carton (Portfolio Case) | Shared utilities & allocator |
-| vize_atelier_core | - | AST & Parser (core) |
-| vize_atelier_dom | Atelier (Workshop) | DOM compiler |
-| vize_atelier_vapor | Atelier (Workshop) | Vapor compiler |
-| **vize_atelier_sfc** | **Atelier (Workshop)** | **SFC compiler (this crate)** |
-| vize_vitrine | Vitrine (Display Case) | Bindings (Node.js/WASM) |
+| Crate                | Art Term                | Role                          |
+| -------------------- | ----------------------- | ----------------------------- |
+| vize_carton          | Carton (Portfolio Case) | Shared utilities & allocator  |
+| vize_atelier_core    | -                       | AST & Parser (core)           |
+| vize_atelier_dom     | Atelier (Workshop)      | DOM compiler                  |
+| vize_atelier_vapor   | Atelier (Workshop)      | Vapor compiler                |
+| **vize_atelier_sfc** | **Atelier (Workshop)**  | **SFC compiler (this crate)** |
+| vize_vitrine         | Vitrine (Display Case)  | Bindings (Node.js/WASM)       |
 
 ## License
 

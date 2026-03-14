@@ -29,7 +29,7 @@ code --install-extension vize-0.26.0.vsix
 
 ```bash
 cd npm/vscode-vize
-pnpm install
+pnpm install --ignore-workspace
 pnpm run build
 # Press F5 to launch Extension Development Host
 ```

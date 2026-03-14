@@ -7,8 +7,9 @@ Vizeのツールをローカル環境で試すためのサンプル集です。
 プロジェクトルートで以下を実行してビルドしておく必要があります：
 
 ```bash
-mise install && mise setup
-mise cli  # vize CLIコマンドを有効化
+vp env install
+vp install
+vp run --workspace-root cli  # vize CLIコマンドを有効化
 ```
 
 または Cargo から直接実行：
@@ -25,11 +26,11 @@ cargo build --release
 
 ### ファイル構成
 
-| ファイル | 説明 |
-|----------|------|
-| `src/App.vue` | 正常にフォーマット済みのVueファイル |
-| `src/Unformatted.vue` | フォーマットが必要なVueファイル |
-| `src/HasErrors.vue` | リントエラーを含むVueファイル |
+| ファイル              | 説明                                |
+| --------------------- | ----------------------------------- |
+| `src/App.vue`         | 正常にフォーマット済みのVueファイル |
+| `src/Unformatted.vue` | フォーマットが必要なVueファイル     |
+| `src/HasErrors.vue`   | リントエラーを含むVueファイル       |
 
 ### フォーマッター (vize fmt)
 
@@ -49,15 +50,15 @@ vize fmt examples/cli/src/*.vue --single-quote --no-semi --print-width 80
 
 **オプション一覧：**
 
-| オプション | 説明 | デフォルト |
-|-----------|------|-----------|
-| `--check` | 変更が必要な場合にエラー終了 | - |
-| `--write`, `-w` | ファイルに書き込み | - |
-| `--single-quote` | シングルクォートを使用 | false |
-| `--no-semi` | セミコロンを省略 | false |
-| `--print-width` | 行の長さ | 100 |
-| `--tab-width` | インデント幅 | 2 |
-| `--use-tabs` | タブを使用 | false |
+| オプション       | 説明                         | デフォルト |
+| ---------------- | ---------------------------- | ---------- |
+| `--check`        | 変更が必要な場合にエラー終了 | -          |
+| `--write`, `-w`  | ファイルに書き込み           | -          |
+| `--single-quote` | シングルクォートを使用       | false      |
+| `--no-semi`      | セミコロンを省略             | false      |
+| `--print-width`  | 行の長さ                     | 100        |
+| `--tab-width`    | インデント幅                 | 2          |
+| `--use-tabs`     | タブを使用                   | false      |
 
 ### リンター (vize lint)
 
@@ -77,12 +78,12 @@ vize lint examples/cli/src/*.vue --quiet
 
 **オプション一覧：**
 
-| オプション | 説明 | デフォルト |
-|-----------|------|-----------|
-| `--format`, `-f` | 出力形式 (text/json) | text |
-| `--max-warnings` | 警告数の上限 | - |
-| `--quiet`, `-q` | サマリーのみ表示 | false |
-| `--fix` | 自動修正（未実装） | false |
+| オプション       | 説明                 | デフォルト |
+| ---------------- | -------------------- | ---------- |
+| `--format`, `-f` | 出力形式 (text/json) | text       |
+| `--max-warnings` | 警告数の上限         | -          |
+| `--quiet`, `-q`  | サマリーのみ表示     | false      |
+| `--fix`          | 自動修正（未実装）   | false      |
 
 ### LSPサーバー (vize lsp)
 
@@ -100,6 +101,7 @@ vize lsp --debug
 **エディタ設定例 (VS Code):**
 
 `.vscode/settings.json`:
+
 ```json
 {
   "vize.lsp.path": "/path/to/vize",
@@ -129,11 +131,11 @@ pnpm dev
 
 ### ファイル構成
 
-| ファイル | 説明 |
-|----------|------|
-| `src/components/Button.vue` | Buttonコンポーネント |
+| ファイル                        | 説明                                    |
+| ------------------------------- | --------------------------------------- |
+| `src/components/Button.vue`     | Buttonコンポーネント                    |
 | `src/components/Button.art.vue` | Museaのアートファイル（バリアント定義） |
-| `vite.config.ts` | Vite + Musea設定 |
+| `vite.config.ts`                | Vite + Musea設定                        |
 
 ### Art ファイルの書き方
 
@@ -150,25 +152,25 @@ pnpm dev
 </art>
 
 <script setup lang="ts">
-import Button from './Button.vue'
+import Button from "./Button.vue";
 </script>
 ```
 
 **`<art>` 属性：**
 
-| 属性 | 説明 |
-|------|------|
-| `title` | コンポーネントのタイトル（必須） |
-| `component` | 対象コンポーネントへのパス |
-| `category` | カテゴリ |
-| `status` | ステータス (draft/ready/deprecated) |
+| 属性        | 説明                                |
+| ----------- | ----------------------------------- |
+| `title`     | コンポーネントのタイトル（必須）    |
+| `component` | 対象コンポーネントへのパス          |
+| `category`  | カテゴリ                            |
+| `status`    | ステータス (draft/ready/deprecated) |
 
 **`<variant>` 属性：**
 
-| 属性 | 説明 |
-|------|------|
-| `name` | バリアント名（必須） |
-| `default` | デフォルトバリアントとしてマーク |
+| 属性       | 説明                                    |
+| ---------- | --------------------------------------- |
+| `name`     | バリアント名（必須）                    |
+| `default`  | デフォルトバリアントとしてマーク        |
 | `skip-vrt` | VRT（Visual Regression Test）をスキップ |
 
 ---
@@ -178,8 +180,8 @@ import Button from './Button.vue'
 ### `vize` コマンドが見つからない
 
 ```bash
-# mise を使用している場合
-mise cli
+# vp run から CLI を有効化
+vp run --workspace-root cli
 
 # または直接 cargo run を使用
 cargo run --release -- fmt examples/cli/src/*.vue
@@ -190,5 +192,5 @@ cargo run --release -- fmt examples/cli/src/*.vue
 Museaプラグインを使用する場合、`@vizejs/native` がビルドされている必要があります：
 
 ```bash
-pnpm build:native
+vp run --workspace-root build:native
 ```

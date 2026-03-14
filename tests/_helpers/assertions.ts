@@ -1,9 +1,6 @@
 import type { Page } from "@playwright/test";
 
-export async function collectConsoleErrors(
-  page: Page,
-  appName: string,
-): Promise<string[]> {
+export async function collectConsoleErrors(page: Page, appName: string): Promise<string[]> {
   const errors: string[] = [];
 
   page.on("console", (msg) => {
@@ -67,10 +64,12 @@ export async function collectHydrationErrors(page: Page): Promise<string[]> {
 
 export async function verifyScopedCssAttributes(page: Page): Promise<number> {
   return page.evaluate(() => {
-    return document.querySelectorAll("[data-v-]").length
-      || Array.from(document.querySelectorAll("*")).filter(
-        (el) => Array.from(el.attributes).some((attr) => attr.name.startsWith("data-v-")),
-      ).length;
+    return (
+      document.querySelectorAll("[data-v-]").length ||
+      Array.from(document.querySelectorAll("*")).filter((el) =>
+        Array.from(el.attributes).some((attr) => attr.name.startsWith("data-v-")),
+      ).length
+    );
   });
 }
 

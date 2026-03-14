@@ -32,16 +32,11 @@ regenerateInput();
 
 const vueFiles = readdirSync(INPUT_DIR).filter((f) => f.endsWith(".vue"));
 if (vueFiles.length === 0) {
-  console.error(
-    `Error: No .vue files found in ${INPUT_DIR}\ngenerate.mjs failed.`
-  );
+  console.error(`Error: No .vue files found in ${INPUT_DIR}\ngenerate.mjs failed.`);
   process.exit(1);
 }
 
-const totalSize = vueFiles.reduce(
-  (sum, f) => sum + statSync(join(INPUT_DIR, f)).size,
-  0
-);
+const totalSize = vueFiles.reduce((sum, f) => sum + statSync(join(INPUT_DIR, f)).size, 0);
 
 // Format helpers
 function formatTime(ms: number): string {
@@ -51,8 +46,7 @@ function formatTime(ms: number): string {
 
 function formatThroughput(fileCount: number, ms: number): string {
   const filesPerSec = (fileCount / ms) * 1000;
-  if (filesPerSec >= 1000)
-    return `${(filesPerSec / 1000).toFixed(1)}k files/s`;
+  if (filesPerSec >= 1000) return `${(filesPerSec / 1000).toFixed(1)}k files/s`;
   return `${filesPerSec.toFixed(0)} files/s`;
 }
 
@@ -92,17 +86,13 @@ function runVizeFmtSingleThread(): number {
   // Warmup
   regenerateInput();
   for (let i = 0; i < 3; i++) {
-    execIgnoreExit(
-      `RAYON_NUM_THREADS=1 ${VIZE_BIN} fmt --write '${GLOB_PATTERN}'`
-    );
+    execIgnoreExit(`RAYON_NUM_THREADS=1 ${VIZE_BIN} fmt --write '${GLOB_PATTERN}'`);
     regenerateInput();
   }
 
   regenerateInput();
   const start = performance.now();
-  execIgnoreExit(
-    `RAYON_NUM_THREADS=1 ${VIZE_BIN} fmt --write '${GLOB_PATTERN}'`
-  );
+  execIgnoreExit(`RAYON_NUM_THREADS=1 ${VIZE_BIN} fmt --write '${GLOB_PATTERN}'`);
   return performance.now() - start;
 }
 
@@ -137,7 +127,7 @@ console.log();
 
 const prettierTime = runPrettier();
 console.log(
-  `   Prettier (CLI)      : ${formatTime(prettierTime).padStart(8)}  (${formatThroughput(vueFiles.length, prettierTime)}, ${formatBytesPerSec(totalSize, prettierTime)})`
+  `   Prettier (CLI)      : ${formatTime(prettierTime).padStart(8)}  (${formatThroughput(vueFiles.length, prettierTime)}, ${formatBytesPerSec(totalSize, prettierTime)})`,
 );
 
 let vizeSingle = 0;
@@ -147,13 +137,13 @@ if (existsSync(VIZE_BIN)) {
   vizeSingle = runVizeFmtSingleThread();
   const stSpeedup = (prettierTime / vizeSingle).toFixed(1);
   console.log(
-    `   Vize glyph (1T)     : ${formatTime(vizeSingle).padStart(8)}  (${formatThroughput(vueFiles.length, vizeSingle)}, ${formatBytesPerSec(totalSize, vizeSingle)})  ${stSpeedup}x faster`
+    `   Vize glyph (1T)     : ${formatTime(vizeSingle).padStart(8)}  (${formatThroughput(vueFiles.length, vizeSingle)}, ${formatBytesPerSec(totalSize, vizeSingle)})  ${stSpeedup}x faster`,
   );
 
   vizeMulti = runVizeFmtMultiThread();
   const mtSpeedup = (prettierTime / vizeMulti).toFixed(1);
   console.log(
-    `   Vize glyph (${CPU_COUNT}T)    : ${formatTime(vizeMulti).padStart(8)}  (${formatThroughput(vueFiles.length, vizeMulti)}, ${formatBytesPerSec(totalSize, vizeMulti)})  ${mtSpeedup}x faster`
+    `   Vize glyph (${CPU_COUNT}T)    : ${formatTime(vizeMulti).padStart(8)}  (${formatThroughput(vueFiles.length, vizeMulti)}, ${formatBytesPerSec(totalSize, vizeMulti)})  ${mtSpeedup}x faster`,
   );
 } else {
   console.log("   Vize (glyph)  : SKIPPED (vize CLI not found)");

@@ -17,7 +17,15 @@ crate-type = ["cdylib", "rlib"]
 [features]
 default = ["glyph"]
 glyph = ["dep:vize_glyph"]
-napi = ["dep:napi", "dep:napi-derive", "dep:glob", "dep:rayon", "dep:ignore", "vize_atelier_sfc/native", "glyph"]
+napi = [
+  "dep:napi",
+  "dep:napi-derive",
+  "dep:glob",
+  "dep:rayon",
+  "dep:ignore",
+  "vize_atelier_sfc/native",
+  "glyph",
+]
 wasm = ["dep:wasm-bindgen", "dep:serde-wasm-bindgen", "dep:js-sys", "dep:web-sys", "glyph"]
 
 [dependencies]

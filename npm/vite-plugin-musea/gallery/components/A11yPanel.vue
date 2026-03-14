@@ -1,70 +1,82 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
-import { mdiPlay, mdiLoading, mdiCheckCircle, mdiOpenInNew, mdiChevronDown, mdiChevronUp } from '@mdi/js'
-import { useA11y, type A11yViolation, type A11yResult } from '../composables/useA11y'
-import { getPreviewUrl } from '../api'
-import MdiIcon from './MdiIcon.vue'
+import { ref, computed, onMounted } from "vue";
+import {
+  mdiPlay,
+  mdiLoading,
+  mdiCheckCircle,
+  mdiOpenInNew,
+  mdiChevronDown,
+  mdiChevronUp,
+} from "@mdi/js";
+import { useA11y, type A11yViolation, type A11yResult } from "../composables/useA11y";
+import { getPreviewUrl } from "../api";
+import MdiIcon from "./MdiIcon.vue";
 
 const props = defineProps<{
-  artPath: string
-  defaultVariantName?: string
-}>()
+  artPath: string;
+  defaultVariantName?: string;
+}>();
 
-const { isKeyRunning, init, runA11y, getResult } = useA11y()
+const { isKeyRunning, init, runA11y, getResult } = useA11y();
 
-const iframeRef = ref<HTMLIFrameElement | null>(null)
-const iframeReady = ref(false)
-const hasRun = ref(false)
-const expandedViolation = ref<string | null>(null)
+const iframeRef = ref<HTMLIFrameElement | null>(null);
+const iframeReady = ref(false);
+const hasRun = ref(false);
+const expandedViolation = ref<string | null>(null);
 
-const key = computed(() => `${props.artPath}:${props.defaultVariantName || 'default'}`)
-const result = computed<A11yResult | undefined>(() => getResult(key.value))
+const key = computed(() => `${props.artPath}:${props.defaultVariantName || "default"}`);
+const result = computed<A11yResult | undefined>(() => getResult(key.value));
 
 const previewUrl = computed(() => {
-  if (!props.defaultVariantName) return ''
-  return getPreviewUrl(props.artPath, props.defaultVariantName)
-})
+  if (!props.defaultVariantName) return "";
+  return getPreviewUrl(props.artPath, props.defaultVariantName);
+});
 
 onMounted(() => {
-  init()
-})
+  init();
+});
 
 function onIframeLoad() {
-  iframeReady.value = true
+  iframeReady.value = true;
 }
 
 function runTest() {
-  if (!iframeRef.value || !iframeReady.value) return
-  hasRun.value = true
-  runA11y(iframeRef.value, key.value)
+  if (!iframeRef.value || !iframeReady.value) return;
+  hasRun.value = true;
+  runA11y(iframeRef.value, key.value);
 }
 
 function toggleViolation(id: string) {
-  expandedViolation.value = expandedViolation.value === id ? null : id
+  expandedViolation.value = expandedViolation.value === id ? null : id;
 }
 
 function getImpactColor(impact: string): string {
   switch (impact) {
-    case 'critical': return '#f87171'
-    case 'serious': return '#fb923c'
-    case 'moderate': return '#fbbf24'
-    case 'minor': return '#60a5fa'
-    default: return '#7b8494'
+    case "critical":
+      return "#f87171";
+    case "serious":
+      return "#fb923c";
+    case "moderate":
+      return "#fbbf24";
+    case "minor":
+      return "#60a5fa";
+    default:
+      return "#7b8494";
   }
 }
 
 const summary = computed(() => {
-  if (!result.value) return null
-  const violations = result.value.violations
+  if (!result.value) return null;
+  const violations = result.value.violations;
   return {
     total: violations.length,
-    critical: violations.filter(v => v.impact === 'critical').length,
-    serious: violations.filter(v => v.impact === 'serious').length,
-    moderate: violations.filter(v => v.impact === 'moderate').length,
-    minor: violations.filter(v => v.impact === 'minor').length,
+    critical: violations.filter((v) => v.impact === "critical").length,
+    serious: violations.filter((v) => v.impact === "serious").length,
+    moderate: violations.filter((v) => v.impact === "moderate").length,
+    minor: violations.filter((v) => v.impact === "minor").length,
     passes: result.value.passes,
-  }
-})
+  };
+});
 </script>
 
 <template>
@@ -88,7 +100,7 @@ const summary = computed(() => {
       >
         <MdiIcon v-if="isKeyRunning(key)" class="spin" :path="mdiLoading" :size="14" />
         <MdiIcon v-else :path="mdiPlay" :size="14" />
-        {{ isKeyRunning(key) ? 'Running...' : 'Run Test' }}
+        {{ isKeyRunning(key) ? "Running..." : "Run Test" }}
       </button>
     </div>
 
@@ -163,7 +175,9 @@ const summary = computed(() => {
               <div class="a11y-nodes">
                 <div v-for="(node, i) in violation.nodes" :key="i" class="a11y-node">
                   <pre class="a11y-node-html">{{ node.html }}</pre>
-                  <p v-if="node.failureSummary" class="a11y-node-summary">{{ node.failureSummary }}</p>
+                  <p v-if="node.failureSummary" class="a11y-node-summary">
+                    {{ node.failureSummary }}
+                  </p>
                 </div>
               </div>
             </div>
@@ -275,12 +289,24 @@ const summary = computed(() => {
   letter-spacing: 0.05em;
 }
 
-.a11y-stat.has-issues .a11y-stat-value { color: #f87171; }
-.a11y-stat.critical .a11y-stat-value { color: #f87171; }
-.a11y-stat.serious .a11y-stat-value { color: #fb923c; }
-.a11y-stat.moderate .a11y-stat-value { color: #fbbf24; }
-.a11y-stat.minor .a11y-stat-value { color: #60a5fa; }
-.a11y-stat.passes .a11y-stat-value { color: #4ade80; }
+.a11y-stat.has-issues .a11y-stat-value {
+  color: #f87171;
+}
+.a11y-stat.critical .a11y-stat-value {
+  color: #f87171;
+}
+.a11y-stat.serious .a11y-stat-value {
+  color: #fb923c;
+}
+.a11y-stat.moderate .a11y-stat-value {
+  color: #fbbf24;
+}
+.a11y-stat.minor .a11y-stat-value {
+  color: #60a5fa;
+}
+.a11y-stat.passes .a11y-stat-value {
+  color: #4ade80;
+}
 
 .a11y-success {
   display: flex;
@@ -395,7 +421,9 @@ const summary = computed(() => {
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .spin {

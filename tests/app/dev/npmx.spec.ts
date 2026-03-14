@@ -32,47 +32,43 @@ type RouteSnapshot = {
 
 async function readCurrentRoute(page: Page): Promise<RouteSnapshot> {
   await page.waitForFunction(() => {
-    const root = document.querySelector("#__nuxt") as
-      | {
-          __vue_app__?: {
-            config?: {
-              globalProperties?: {
-                $router?: {
-                  currentRoute?: {
-                    value?: unknown;
-                  };
-                };
+    const root = document.querySelector("#__nuxt") as {
+      __vue_app__?: {
+        config?: {
+          globalProperties?: {
+            $router?: {
+              currentRoute?: {
+                value?: unknown;
               };
             };
           };
-        }
-      | null;
+        };
+      };
+    } | null;
 
     return root?.__vue_app__?.config?.globalProperties?.$router?.currentRoute?.value !== undefined;
   });
 
   return page.evaluate(() => {
-    const root = document.querySelector("#__nuxt") as
-      | {
-          __vue_app__?: {
-            config?: {
-              globalProperties?: {
-                $router?: {
-                  currentRoute?: {
-                    value?: {
-                      fullPath?: string;
-                      meta?: Record<string, unknown>;
-                      name?: string | symbol | null;
-                      params?: Record<string, unknown>;
-                      path?: string;
-                    };
-                  };
+    const root = document.querySelector("#__nuxt") as {
+      __vue_app__?: {
+        config?: {
+          globalProperties?: {
+            $router?: {
+              currentRoute?: {
+                value?: {
+                  fullPath?: string;
+                  meta?: Record<string, unknown>;
+                  name?: string | symbol | null;
+                  params?: Record<string, unknown>;
+                  path?: string;
                 };
               };
             };
           };
-        }
-      | null;
+        };
+      };
+    } | null;
     const route = root?.__vue_app__?.config?.globalProperties?.$router?.currentRoute?.value;
     if (!route?.path || !route.fullPath) {
       throw new Error("Nuxt router currentRoute is not available");
@@ -102,7 +98,13 @@ test.describe("npmx.dev dev", () => {
     });
 
     console.log(`Waiting for ${app.name} server to be ready (port ${app.port})...`);
-    await waitForServerReady(devServer, app.port, app.readyPattern, app.startupTimeout, app.readyDelay);
+    await waitForServerReady(
+      devServer,
+      app.port,
+      app.readyPattern,
+      app.startupTimeout,
+      app.readyDelay,
+    );
     await waitForHttpReady(app.url, app.port);
     console.log(`${app.name} server is ready`);
   });
@@ -144,7 +146,8 @@ test.describe("npmx.dev dev", () => {
     expect(html).toContain("__nuxt");
     expect(html.length).toBeGreaterThan(100);
     // npmx.dev should have "npmx" text or search form in SSR output
-    const hasExpectedContent = html.toLowerCase().includes("npmx") || html.includes("search") || html.includes("form");
+    const hasExpectedContent =
+      html.toLowerCase().includes("npmx") || html.includes("search") || html.includes("form");
     expect(hasExpectedContent).toBe(true);
   });
 
@@ -200,9 +203,10 @@ test.describe("npmx.dev dev", () => {
     const newLogs = getProcessLogs(devServer).slice(logOffset);
     const runtimeWarnings = newLogs.filter((line) => {
       return (
-        line.includes('useFetch') && line.includes('must return a value')
-      ) || line.includes('Property "disabled" was accessed during render')
-        || line.includes('Property "size" was accessed during render');
+        (line.includes("useFetch") && line.includes("must return a value")) ||
+        line.includes('Property "disabled" was accessed during render') ||
+        line.includes('Property "size" was accessed during render')
+      );
     });
 
     expect(runtimeWarnings).toEqual([]);
@@ -275,14 +279,19 @@ test.describe("npmx.dev dev", () => {
     await page.waitForTimeout(3_000);
 
     // Find search input
-    const searchInput = page.locator('input[type="search"], input[name="q"], input[placeholder*="earch"], input[role="searchbox"]').first();
+    const searchInput = page
+      .locator(
+        'input[type="search"], input[name="q"], input[placeholder*="earch"], input[role="searchbox"]',
+      )
+      .first();
     const hasSearchInput = await searchInput.count();
     if (hasSearchInput > 0) {
       await searchInput.fill("test-package");
       await page.waitForTimeout(1_000);
       // URL or page state should reflect the search
       const pageContent = await page.content();
-      const urlOrContent = page.url().includes("test-package") || pageContent.includes("test-package");
+      const urlOrContent =
+        page.url().includes("test-package") || pageContent.includes("test-package");
       expect(urlOrContent).toBe(true);
     }
   });
