@@ -1,10 +1,12 @@
 //! SSR compiler options.
 
 use serde::{Deserialize, Serialize};
+use vize_atelier_core::BindingMetadata;
 use vize_carton::String;
+use vize_croquis::Croquis;
 
 /// SSR compiler options
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SsrCompilerOptions {
     /// Scope ID for scoped CSS (data-v-xxx)
@@ -26,6 +28,29 @@ pub struct SsrCompilerOptions {
     /// CSS variables to inject (from SFC <style> blocks with v-bind)
     #[serde(default)]
     pub ssr_css_vars: Option<String>,
+
+    /// Binding metadata from script setup / script analysis
+    #[serde(skip)]
+    pub binding_metadata: Option<BindingMetadata>,
+
+    /// Semantic analysis data from Croquis (optional, enhances transforms)
+    #[serde(skip)]
+    pub croquis: Option<Box<Croquis>>,
+}
+
+impl Clone for SsrCompilerOptions {
+    fn clone(&self) -> Self {
+        Self {
+            scope_id: self.scope_id.clone(),
+            comments: self.comments,
+            inline: self.inline,
+            is_ts: self.is_ts,
+            ssr_css_vars: self.ssr_css_vars.clone(),
+            binding_metadata: self.binding_metadata.clone(),
+            // Croquis is consumed by the compiler; clones intentionally drop it.
+            croquis: None,
+        }
+    }
 }
 
 #[cfg(test)]
@@ -40,5 +65,7 @@ mod tests {
         assert!(!opts.inline);
         assert!(!opts.is_ts);
         assert!(opts.ssr_css_vars.is_none());
+        assert!(opts.binding_metadata.is_none());
+        assert!(opts.croquis.is_none());
     }
 }

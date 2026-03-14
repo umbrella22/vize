@@ -90,6 +90,34 @@ assert.strictEqual(
   "Template-only components should still expose a default export",
 );
 
+// Test 3b-ssr: SSR template-only SFCs need an ssrRender default export shim
+{
+  const output = generateOutput(
+    {
+      code: `
+export function ssrRender() {
+  return null
+}
+`,
+      scopeId: "ssrtemplate",
+      hasScoped: false,
+      styles: [],
+    },
+    {
+      isProduction: true,
+      isDev: false,
+    },
+  );
+  assert.ok(
+    output.includes("_sfc_main.ssrRender = ssrRender"),
+    "SSR template-only output should attach ssrRender to the default export",
+  );
+  assert.ok(
+    output.includes("export default _sfc_main;"),
+    "SSR template-only output should expose a default export",
+  );
+}
+
 // Test 3c: Inline-template script setup must not claim template-only HMR
 {
   const output = generateOutput(

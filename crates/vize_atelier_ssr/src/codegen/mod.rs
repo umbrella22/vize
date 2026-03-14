@@ -77,6 +77,9 @@ impl<'a> SsrCodegenContext<'a> {
 
         // Generate function signature
         self.push("function ssrRender(_ctx, _push, _parent, _attrs");
+        if self.options.binding_metadata.is_some() {
+            self.push(", $props, $setup, $data, $options");
+        }
         if self.options.scope_id.is_some() {
             self.push(", _scopeId");
         }
@@ -164,6 +167,13 @@ impl<'a> SsrCodegenContext<'a> {
     /// Use a core helper (from vue)
     pub(crate) fn use_core_helper(&mut self, helper: RuntimeHelper) {
         self.core_helpers.insert(helper);
+    }
+
+    pub(crate) fn is_component_in_bindings(&self, component: &str) -> bool {
+        self.options
+            .binding_metadata
+            .as_ref()
+            .is_some_and(|metadata| metadata.bindings.contains_key(component))
     }
 
     /// Push raw code to the buffer

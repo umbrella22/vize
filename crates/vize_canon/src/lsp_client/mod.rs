@@ -16,7 +16,7 @@ use serde_json::Value;
 use std::{
     io::BufReader,
     process::{Child, ChildStdin, ChildStdout, Command, Stdio},
-    sync::atomic::{AtomicI64, Ordering},
+    sync::atomic::{AtomicI64, AtomicUsize, Ordering},
     thread,
     time::Duration,
 };
@@ -89,12 +89,23 @@ impl TsgoLspClient {
             .or_else(|| std::env::current_dir().ok())
             .and_then(|p| p.canonicalize().ok());
 
-        // Create a temporary directory with a proper tsconfig.json.
+        // Create an isolated agent-owned directory with a proper tsconfig.json.
         // This ensures tsgo uses ES module mode (import.meta, dynamic import, etc.)
         // regardless of the project's tsconfig.json state.
-        let temp_dir_path = std::env::temp_dir().join(&*cstr!("vize-tsgo-{}", std::process::id()));
+        static NEXT_CLIENT_ID: AtomicUsize = AtomicUsize::new(0);
+
+        let client_id = NEXT_CLIENT_ID.fetch_add(1, Ordering::Relaxed);
+        let temp_dir_base = project_root
+            .clone()
+            .or_else(|| std::env::current_dir().ok())
+            .unwrap_or_else(|| ".".into())
+            .join("__agent_only")
+            .join("vize-tsgo");
+        let temp_dir_path = temp_dir_base.join(&*cstr!("{}-{}", std::process::id(), client_id));
+
+        let _ = std::fs::remove_dir_all(&temp_dir_path);
         std::fs::create_dir_all(&temp_dir_path)
-            .map_err(|e| cstr!("Failed to create temp directory: {e}"))?;
+            .map_err(|e| cstr!("Failed to create agent directory: {e}"))?;
 
         // Find and symlink node_modules so tsgo can resolve packages (e.g., 'vue').
         // Walk up from project root to find node_modules that contains 'vue'.

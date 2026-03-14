@@ -132,16 +132,17 @@ impl HoverService {
 
                     let (line, character) =
                         crate::ide::offset_to_position(&template.content, vts_offset);
-                    #[allow(clippy::disallowed_macros)]
-                    let uri = format!("vize-virtual://{}.template.ts", ctx.uri.path());
 
                     // Open/update virtual document
                     if bridge.is_initialized() {
                         #[allow(clippy::disallowed_macros)]
                         let vdoc_uri = format!("{}.template.ts", ctx.uri.path());
-                        let _ = bridge
+                        let Ok(uri) = bridge
                             .open_or_update_virtual_document(&vdoc_uri, &template.content)
-                            .await;
+                            .await
+                        else {
+                            return Self::hover_template(ctx);
+                        };
 
                         // Request hover from tsgo
                         if let Ok(Some(hover)) = bridge.hover(&uri, line, character).await {

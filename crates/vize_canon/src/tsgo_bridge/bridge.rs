@@ -812,6 +812,153 @@ impl TsgoBridge {
         Ok(response.into_locations())
     }
 
+    /// Get references for a symbol at a position.
+    ///
+    /// Sends a textDocument/references request to tsgo.
+    pub async fn references(
+        &self,
+        uri: &str,
+        line: u32,
+        character: u32,
+        include_declaration: bool,
+    ) -> Result<Vec<LspLocation>, TsgoBridgeError> {
+        if !self.initialized.load(Ordering::SeqCst) {
+            return Err(TsgoBridgeError::NotInitialized);
+        }
+
+        let params = json!({
+            "textDocument": {
+                "uri": uri
+            },
+            "position": {
+                "line": line,
+                "character": character
+            },
+            "context": {
+                "includeDeclaration": include_declaration
+            }
+        });
+
+        let result = self
+            .send_request("textDocument/references", Some(params))
+            .await?;
+
+        if result.is_null() {
+            return Ok(Vec::new());
+        }
+
+        serde_json::from_value(result).map_err(|e| {
+            TsgoBridgeError::CommunicationError(cstr!("Failed to parse references: {e}"))
+        })
+    }
+
+    /// Check whether rename is valid at a position.
+    ///
+    /// Sends a textDocument/prepareRename request to tsgo.
+    pub async fn prepare_rename(
+        &self,
+        uri: &str,
+        line: u32,
+        character: u32,
+    ) -> Result<Option<Value>, TsgoBridgeError> {
+        if !self.initialized.load(Ordering::SeqCst) {
+            return Err(TsgoBridgeError::NotInitialized);
+        }
+
+        let params = json!({
+            "textDocument": {
+                "uri": uri
+            },
+            "position": {
+                "line": line,
+                "character": character
+            }
+        });
+
+        let result = self
+            .send_request("textDocument/prepareRename", Some(params))
+            .await?;
+
+        if result.is_null() {
+            Ok(None)
+        } else {
+            Ok(Some(result))
+        }
+    }
+
+    /// Rename a symbol at a position.
+    ///
+    /// Sends a textDocument/rename request to tsgo.
+    pub async fn rename(
+        &self,
+        uri: &str,
+        line: u32,
+        character: u32,
+        new_name: &str,
+    ) -> Result<Option<Value>, TsgoBridgeError> {
+        if !self.initialized.load(Ordering::SeqCst) {
+            return Err(TsgoBridgeError::NotInitialized);
+        }
+
+        let params = json!({
+            "textDocument": {
+                "uri": uri
+            },
+            "position": {
+                "line": line,
+                "character": character
+            },
+            "newName": new_name
+        });
+
+        let result = self
+            .send_request("textDocument/rename", Some(params))
+            .await?;
+
+        if result.is_null() {
+            Ok(None)
+        } else {
+            Ok(Some(result))
+        }
+    }
+
+    /// Request import path updates before files are renamed.
+    ///
+    /// Sends a workspace/willRenameFiles request to tsgo.
+    pub async fn will_rename_files(
+        &self,
+        renames: &[(&str, &str)],
+    ) -> Result<Option<Value>, TsgoBridgeError> {
+        if !self.initialized.load(Ordering::SeqCst) {
+            return Err(TsgoBridgeError::NotInitialized);
+        }
+
+        let files: Vec<Value> = renames
+            .iter()
+            .map(|(old_uri, new_uri)| {
+                json!({
+                    "oldUri": old_uri,
+                    "newUri": new_uri
+                })
+            })
+            .collect();
+
+        let result = self
+            .send_request(
+                "workspace/willRenameFiles",
+                Some(json!({
+                    "files": files
+                })),
+            )
+            .await?;
+
+        if result.is_null() {
+            Ok(None)
+        } else {
+            Ok(Some(result))
+        }
+    }
+
     /// Get completion items at a position.
     ///
     /// Sends a textDocument/completion request to tsgo.

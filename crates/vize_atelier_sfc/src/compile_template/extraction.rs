@@ -10,12 +10,28 @@ fn is_vapor_template_declaration(line: &str) -> bool {
     line.starts_with("const t") && line.contains("_template(")
 }
 
+fn detect_render_export_name(trimmed: &str) -> Option<&'static str> {
+    if trimmed.starts_with("export function render(") || trimmed.starts_with("function render(") {
+        Some("render")
+    } else if trimmed.starts_with("export function ssrRender(")
+        || trimmed.starts_with("function ssrRender(")
+    {
+        Some("ssrRender")
+    } else {
+        None
+    }
+}
+
 /// Extract imports, hoisted consts, and render function from compiled template code
-/// Returns (imports, hoisted, render_function) where render_function is the full function definition
-pub(crate) fn extract_template_parts_full(template_code: &str) -> (String, String, String) {
+/// Returns (imports, hoisted, render_function, render_function_name)
+/// where render_function is the full function definition.
+pub(crate) fn extract_template_parts_full(
+    template_code: &str,
+) -> (String, String, String, &'static str) {
     let mut imports = String::default();
     let mut hoisted = String::default();
     let mut render_fn = String::default();
+    let mut render_fn_name = "";
     let mut in_render = false;
     let mut brace_depth = 0;
     let mut brace_state = StringTrackState::default();
@@ -26,10 +42,9 @@ pub(crate) fn extract_template_parts_full(template_code: &str) -> (String, Strin
         if trimmed.starts_with("import ") {
             imports.push_str(line);
             imports.push('\n');
-        } else if trimmed.starts_with("export function render(")
-            || trimmed.starts_with("function render(")
-        {
+        } else if let Some(name) = detect_render_export_name(trimmed) {
             in_render = true;
+            render_fn_name = name;
             brace_depth = 0;
             brace_state = StringTrackState::default();
             brace_depth += count_braces_with_state(line, &mut brace_state);
@@ -52,18 +67,21 @@ pub(crate) fn extract_template_parts_full(template_code: &str) -> (String, Strin
         }
     }
 
-    (imports, hoisted, render_fn)
+    (imports, hoisted, render_fn, render_fn_name)
 }
 
 /// Extract imports, hoisted consts, preamble (component/directive resolution), and render body
 /// from compiled template code.
-/// Returns (imports, hoisted, preamble, render_body)
+/// Returns (imports, hoisted, preamble, render_body, render_function_name)
 #[allow(dead_code)]
-pub(crate) fn extract_template_parts(template_code: &str) -> (String, String, String, String) {
+pub(crate) fn extract_template_parts(
+    template_code: &str,
+) -> (String, String, String, String, &'static str) {
     let mut imports = String::default();
     let mut hoisted = String::default();
     let mut preamble = String::default(); // Component/directive resolution statements
     let mut render_body = String::default();
+    let mut render_fn_name = "";
     let mut in_render = false;
     let mut in_block_render = false;
     let mut saw_block_render = false;
@@ -86,10 +104,9 @@ pub(crate) fn extract_template_parts(template_code: &str) -> (String, String, St
             // Hoisted template variables
             hoisted.push_str(line);
             hoisted.push('\n');
-        } else if trimmed.starts_with("export function render(")
-            || trimmed.starts_with("function render(")
-        {
+        } else if let Some(name) = detect_render_export_name(trimmed) {
             in_render = true;
+            render_fn_name = name;
             in_block_render = trimmed.starts_with("function render(") && trimmed.contains("$props");
             saw_block_render = saw_block_render || in_block_render;
             brace_depth = 0;
@@ -194,5 +211,5 @@ pub(crate) fn extract_template_parts(template_code: &str) -> (String, String, St
         compact_render_body(&render_body)
     };
 
-    (imports, hoisted, preamble, compacted)
+    (imports, hoisted, preamble, compacted, render_fn_name)
 }

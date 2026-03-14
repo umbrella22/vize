@@ -29,6 +29,7 @@ export type { VizePluginState } from "./state.js";
 export function vize(options: VizeOptions = {}): Plugin[] {
   const state: VizePluginState = {
     cache: new Map(),
+    ssrCache: new Map(),
     collectedCss: new Map(),
     precompileMetadata: new Map(),
     pendingHmrUpdateTypes: new Map(),
@@ -255,8 +256,8 @@ export function vize(options: VizeOptions = {}): Plugin[] {
       state.logger.log("Cache keys:", [...state.cache.keys()].slice(0, 3));
     },
 
-    resolveId(id, importer) {
-      return resolveIdHook(this, state, id, importer);
+    resolveId(id, importer, options) {
+      return resolveIdHook(this, state, id, importer, options);
     },
 
     load(id, loadOptions) {

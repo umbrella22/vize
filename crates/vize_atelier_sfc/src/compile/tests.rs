@@ -984,6 +984,193 @@ const doubled = computed(() => count.value * 2)
 }
 
 #[test]
+fn test_script_setup_sfc_ssr_uses_server_renderer_output() {
+    let source = r#"<script setup lang="ts">
+const msg = 'hello'
+</script>
+
+<template>
+  <div>{{ msg }}</div>
+</template>"#;
+
+    let descriptor = parse_sfc(source, SfcParseOptions::default()).expect("Failed to parse SFC");
+    let opts = SfcCompileOptions {
+        vapor: true,
+        script: ScriptCompileOptions {
+            is_ts: true,
+            ..Default::default()
+        },
+        template: TemplateCompileOptions {
+            is_ts: true,
+            ssr: true,
+            ..Default::default()
+        },
+        ..Default::default()
+    };
+    let result = compile_sfc(&descriptor, opts).expect("Failed to compile SFC");
+
+    assert!(
+        result.code.contains("_defineComponent"),
+        "SSR output should fall back to the VDOM compiler. Got:\n{}",
+        result.code
+    );
+    assert!(
+        !result.code.contains("_defineVaporComponent"),
+        "SSR output should not keep Vapor component wrappers. Got:\n{}",
+        result.code
+    );
+    assert!(
+        !result.code.contains("__vapor"),
+        "SSR output should not mark the component as Vapor. Got:\n{}",
+        result.code
+    );
+    assert!(
+        result.code.contains("function ssrRender"),
+        "SSR output should keep the compiled ssrRender function. Got:\n{}",
+        result.code
+    );
+    assert!(
+        result.code.contains("_ssrInterpolate"),
+        "SSR output should use the server renderer helpers. Got:\n{}",
+        result.code
+    );
+    assert!(
+        result
+            .code
+            .contains("_push(`<div>${_ssrInterpolate($setup.msg)}</div>`)"),
+        "SSR output should generate HTML pushes instead of VDOM returns. Got:\n{}",
+        result.code
+    );
+    assert!(
+        result.code.contains("ssrRender,"),
+        "SSR output should attach ssrRender to the component options. Got:\n{}",
+        result.code
+    );
+    assert!(
+        !result.code.contains("render,"),
+        "SSR output should not attach a client render option. Got:\n{}",
+        result.code
+    );
+}
+
+#[test]
+fn test_script_setup_sfc_ssr_uses_setup_bindings_for_components_and_slots() {
+    let source = r##"<script setup lang="ts">
+import { NuxtLayout, NuxtPage } from "#components"
+</script>
+
+<template>
+  <NuxtLayout>
+    <NuxtPage />
+  </NuxtLayout>
+</template>"##;
+
+    let descriptor = parse_sfc(source, SfcParseOptions::default()).expect("Failed to parse SFC");
+    let opts = SfcCompileOptions {
+        script: ScriptCompileOptions {
+            is_ts: true,
+            ..Default::default()
+        },
+        template: TemplateCompileOptions {
+            is_ts: true,
+            ssr: true,
+            ..Default::default()
+        },
+        ..Default::default()
+    };
+    let result = compile_sfc(&descriptor, opts).expect("Failed to compile SFC");
+
+    assert!(
+        result
+            .code
+            .contains("_ssrRenderComponent($setup.NuxtLayout, null, {"),
+        "SSR output should use setup bindings for imported components. Got:\n{}",
+        result.code
+    );
+    assert!(
+        result
+            .code
+            .contains("default: _withCtx((_, _push, _parent, _scopeId) => {"),
+        "SSR output should emit SSR-aware slot functions. Got:\n{}",
+        result.code
+    );
+    assert!(
+        result
+            .code
+            .contains("_ssrRenderComponent($setup.NuxtPage, null, null, _parent))"),
+        "SSR slot content should render children through server-renderer helpers. Got:\n{}",
+        result.code
+    );
+}
+
+#[test]
+fn test_normal_script_sfc_ssr_attaches_ssr_render() {
+    let source = r#"<script lang="ts">
+export default {
+  name: 'HelloSsr'
+}
+</script>
+
+<template>
+  <div>Hello</div>
+</template>"#;
+
+    let descriptor = parse_sfc(source, SfcParseOptions::default()).expect("Failed to parse SFC");
+    let opts = SfcCompileOptions {
+        script: ScriptCompileOptions {
+            is_ts: true,
+            ..Default::default()
+        },
+        template: TemplateCompileOptions {
+            is_ts: true,
+            ssr: true,
+            ..Default::default()
+        },
+        ..Default::default()
+    };
+    let result = compile_sfc(&descriptor, opts).expect("Failed to compile SFC");
+
+    assert!(
+        result.code.contains("_sfc_main.ssrRender = ssrRender"),
+        "Normal script SSR output should attach ssrRender. Got:\n{}",
+        result.code
+    );
+    assert!(
+        !result.code.contains("_sfc_main.render = render"),
+        "Normal script SSR output should not attach the client render function. Got:\n{}",
+        result.code
+    );
+}
+
+#[test]
+fn test_template_only_sfc_ssr_exports_default_component() {
+    let source = r#"<template>
+  <div>Hello</div>
+</template>"#;
+
+    let descriptor = parse_sfc(source, SfcParseOptions::default()).expect("Failed to parse SFC");
+    let opts = SfcCompileOptions {
+        template: TemplateCompileOptions {
+            ssr: true,
+            ..Default::default()
+        },
+        ..Default::default()
+    };
+    let result = compile_sfc(&descriptor, opts).expect("Failed to compile SFC");
+
+    assert!(
+        result.code.contains("function ssrRender"),
+        "Template-only SSR output should keep the ssrRender function. Got:\n{}",
+        result.code
+    );
+    assert!(
+        result.code.contains("_sfc_main.ssrRender = ssrRender"),
+        "Template-only SSR output should export a default component with ssrRender. Got:\n{}",
+        result.code
+    );
+}
+
+#[test]
 fn test_script_setup_sfc_vapor_output_avoids_local_render_collision() {
     let source = r#"<script setup lang="ts">
 function render() {

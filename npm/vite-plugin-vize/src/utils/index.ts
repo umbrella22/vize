@@ -80,6 +80,7 @@ export function generateOutput(compiled: CompiledModule, options: GenerateOutput
   const exportDefaultRegex = /^export default /m;
   const hasExportDefault = exportDefaultRegex.test(output);
   const hasNamedRenderExport = /^export function render\b/m.test(output);
+  const hasNamedSsrRenderExport = /^export function ssrRender\b/m.test(output);
 
   // Check if _sfc_main is already defined (Case 2: non-script-setup SFCs)
   // In this case, the compiler already outputs: const _sfc_main = ...; export default _sfc_main
@@ -107,6 +108,13 @@ export function generateOutput(compiled: CompiledModule, options: GenerateOutput
       output += `\n_sfc_main.__scopeId = "data-v-${compiled.scopeId}";`;
     }
     output += "\n_sfc_main.render = render;";
+    output += "\nexport default _sfc_main;";
+  } else if (!hasExportDefault && !hasSfcMainDefined && hasNamedSsrRenderExport) {
+    output += "\nconst _sfc_main = {};";
+    if (compiled.hasScoped && compiled.scopeId) {
+      output += `\n_sfc_main.__scopeId = "data-v-${compiled.scopeId}";`;
+    }
+    output += "\n_sfc_main.ssrRender = ssrRender;";
     output += "\nexport default _sfc_main;";
   }
 

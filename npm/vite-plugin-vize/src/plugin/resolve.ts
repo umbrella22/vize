@@ -8,6 +8,7 @@ import {
   VIRTUAL_CSS_MODULE,
   RESOLVED_CSS_MODULE,
   isVizeVirtual,
+  isVizeSsrVirtual,
   toVirtualId,
   fromVirtualId,
   normalizeFsIdForBuild,
@@ -98,13 +99,18 @@ export async function resolveIdHook(
   state: VizePluginState,
   id: string,
   importer?: string,
+  options?: { ssr?: boolean },
 ): Promise<string | { id: string } | null | undefined> {
   const isBuild = state.server === null;
+  const isSsrRequest = !!options?.ssr || (importer ? isVizeSsrVirtual(importer) : false);
 
   // Skip all virtual module IDs
   if (id.startsWith("\0")) {
     // This is one of our .vue.ts virtual modules -- pass through
     if (isVizeVirtual(id)) {
+      if (isSsrRequest && !isVizeSsrVirtual(id)) {
+        return toVirtualId(fromVirtualId(id), true);
+      }
       return null;
     }
     // Legacy: handle old \0vize: prefixed non-vue files
@@ -313,7 +319,7 @@ export async function resolveIdHook(
 
     // Return virtual module ID: \0/path/to/Component.vue.ts
     if (hasCache || fileExists) {
-      return toVirtualId(resolved);
+      return toVirtualId(resolved, isSsrRequest);
     }
 
     // Vite fallback for aliased imports
@@ -327,7 +333,7 @@ export async function resolveIdHook(
           (state.cache.has(realPath) || fs.existsSync(realPath))
         ) {
           state.logger.log(`resolveId: resolved via Vite fallback ${id} to ${realPath}`);
-          return toVirtualId(realPath);
+          return toVirtualId(realPath, isSsrRequest);
         }
       }
     }

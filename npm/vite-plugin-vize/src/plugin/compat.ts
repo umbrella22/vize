@@ -2,7 +2,7 @@ import type { Plugin, TransformResult } from "vite";
 import { transformWithOxc } from "vite";
 import { createRequire } from "node:module";
 
-import type { VizePluginState } from "./state.js";
+import { getCompileOptionsForRequest, getEnvironmentCache, type VizePluginState } from "./state.js";
 import { compileFile } from "../compiler.js";
 import { generateOutput } from "../utils/index.js";
 import { applyDefineReplacements } from "../transform.js";
@@ -55,14 +55,11 @@ export function createPostTransformPlugin(state: VizePluginState): Plugin {
       ) {
         state.logger.log(`post-transform: compiling virtual SFC content from ${id}`);
         try {
+          const isSsr = !!transformOptions?.ssr;
           const compiled = compileFile(
             id,
-            state.cache,
-            {
-              sourceMap: state.mergedOptions?.sourceMap ?? !(state.isProduction ?? false),
-              ssr: state.mergedOptions?.ssr ?? false,
-              vapor: state.mergedOptions?.vapor ?? false,
-            },
+            getEnvironmentCache(state, isSsr),
+            getCompileOptionsForRequest(state, isSsr),
             code,
           );
 

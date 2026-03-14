@@ -53,6 +53,7 @@ export default _sfc_main`,
       },
     ],
   ]),
+  ssrCache: new Map(),
   collectedCss: new Map(),
   precompileMetadata: new Map(),
   pendingHmrUpdateTypes: new Map([[realPath, "template-only"]]),
@@ -122,6 +123,7 @@ const inlineState: VizePluginState = {
       },
     ],
   ]),
+  ssrCache: new Map(),
   pendingHmrUpdateTypes: new Map([[inlinePath, "template-only"]]),
 };
 
@@ -134,6 +136,56 @@ assert.match(
   inlineLoad.code,
   /__hmrUpdateType = "full-reload"/,
   "Inline-template components must downgrade template-only HMR to full-reload",
+);
+
+const envPath = "/src/Environment.vue";
+const environmentState: VizePluginState = {
+  ...hmrState,
+  cache: new Map([
+    [
+      envPath,
+      {
+        code: `export default { __name: "ClientCompiled" }`,
+        scopeId: "clientenv",
+        hasScoped: false,
+        styles: [],
+      },
+    ],
+  ]),
+  ssrCache: new Map([
+    [
+      envPath,
+      {
+        code: `export default { __name: "ServerCompiled" }`,
+        scopeId: "serverenv",
+        hasScoped: false,
+        styles: [],
+      },
+    ],
+  ]),
+  pendingHmrUpdateTypes: new Map(),
+};
+
+const clientEnvironmentLoad = loadHook(environmentState, toVirtualId(envPath), { ssr: false });
+assert.ok(
+  clientEnvironmentLoad && typeof clientEnvironmentLoad === "object",
+  "Client environment loads should succeed",
+);
+assert.match(
+  clientEnvironmentLoad.code,
+  /ClientCompiled/,
+  "Client loads should read from the client compilation cache",
+);
+
+const ssrEnvironmentLoad = loadHook(environmentState, toVirtualId(envPath, true), { ssr: true });
+assert.ok(
+  ssrEnvironmentLoad && typeof ssrEnvironmentLoad === "object",
+  "SSR environment loads should succeed",
+);
+assert.match(
+  ssrEnvironmentLoad.code,
+  /ServerCompiled/,
+  "SSR loads should read from the SSR compilation cache",
 );
 
 console.log("✅ vite-plugin-vize load boundary tests passed!");

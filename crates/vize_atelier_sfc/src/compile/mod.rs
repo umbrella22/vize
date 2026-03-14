@@ -49,18 +49,20 @@ pub fn compile_sfc(
         .unwrap_or_else(|| generate_scope_id(filename));
     let has_scoped = descriptor.styles.iter().any(|s| s.scoped);
 
-    // Detect vapor mode from script attrs
-    let is_vapor = options.vapor
-        || descriptor
-            .script_setup
-            .as_ref()
-            .map(|s| s.attrs.contains_key("vapor"))
-            .unwrap_or(false)
-        || descriptor
-            .script
-            .as_ref()
-            .map(|s| s.attrs.contains_key("vapor"))
-            .unwrap_or(false);
+    // Vapor components currently render on the client. For SSR we fall back to
+    // the standard VDOM compiler and let the client hydrate with Vapor output.
+    let is_vapor = !options.template.ssr
+        && (options.vapor
+            || descriptor
+                .script_setup
+                .as_ref()
+                .map(|s| s.attrs.contains_key("vapor"))
+                .unwrap_or(false)
+            || descriptor
+                .script
+                .as_ref()
+                .map(|s| s.attrs.contains_key("vapor"))
+                .unwrap_or(false));
 
     // source_has_ts: whether source uses TypeScript (detected from lang="ts")
     // Used for: parsing source as TS, preserving TS declarations, resolving type references
@@ -107,7 +109,7 @@ pub fn compile_sfc(
                 template,
                 &template_opts,
                 &scope_id,
-                false,
+                options.template.ssr && has_scoped,
                 is_ts,
                 None,
                 None,
@@ -120,6 +122,10 @@ pub fn compile_sfc(
                 if is_vapor {
                     code.push_str("const _sfc_main = { __vapor: true }\n");
                     code.push_str("_sfc_main.render = render\n");
+                    code.push_str("export default _sfc_main\n");
+                } else if options.template.ssr {
+                    code.push_str("const _sfc_main = {}\n");
+                    code.push_str("_sfc_main.ssrRender = ssrRender\n");
                     code.push_str("export default _sfc_main\n");
                 }
             }
@@ -181,7 +187,7 @@ pub fn compile_sfc(
                     template,
                     &template_opts,
                     &scope_id,
-                    false,
+                    options.template.ssr && has_scoped,
                     is_ts,
                     None, // No bindings for normal scripts
                     None, // No Croquis for normal scripts
@@ -193,7 +199,7 @@ pub fn compile_sfc(
                     // Build output matching Vue's compiler-sfc:
                     // 1. Full template output (imports + hoisted + export function render(...))
                     // 2. Rewritten script
-                    // 3. _sfc_main.render = render
+                    // 3. _sfc_main.render = render / _sfc_main.ssrRender = ssrRender
                     // 4. export default _sfc_main
                     code.push_str(&template_code);
                     code.push_str(&final_script);
@@ -203,7 +209,11 @@ pub fn compile_sfc(
                     if is_vapor {
                         code.push_str("_sfc_main.__vapor = true\n");
                     }
-                    code.push_str("_sfc_main.render = render\n");
+                    if options.template.ssr {
+                        code.push_str("_sfc_main.ssrRender = ssrRender\n");
+                    } else {
+                        code.push_str("_sfc_main.render = render\n");
+                    }
                     code.push_str("export default _sfc_main\n");
                 }
                 Err(e) => {
@@ -345,7 +355,7 @@ pub fn compile_sfc(
                 template,
                 &options.template,
                 &scope_id,
-                false,
+                options.template.ssr && has_scoped,
                 is_ts,
                 Some(&script_bindings), // Pass bindings for proper ref handling
                 Some(croquis),          // Pass Croquis for enhanced transforms
@@ -356,41 +366,59 @@ pub fn compile_sfc(
     };
 
     // Extract template parts for inline mode (imports, hoisted, preamble, render_body)
-    let (template_imports, template_hoisted, template_render_fn, template_preamble, render_body) =
-        match &template_result {
-            Some(Ok(template_code)) => {
-                if is_vapor {
-                    let (imports, hoisted, render_fn) = extract_template_parts_full(template_code);
-                    (
-                        imports,
-                        hoisted,
-                        render_fn,
-                        String::default(),
-                        String::default(),
-                    )
-                } else {
-                    let (imports, hoisted, preamble, body) = extract_template_parts(template_code);
-                    (imports, hoisted, String::default(), preamble, body)
-                }
-            }
-            Some(Err(e)) => {
-                errors.push(e.clone());
+    let (
+        template_imports,
+        template_hoisted,
+        template_render_fn,
+        template_render_fn_name,
+        template_preamble,
+        render_body,
+    ) = match &template_result {
+        Some(Ok(template_code)) => {
+            if is_vapor || options.template.ssr {
+                let (imports, hoisted, render_fn, render_fn_name) =
+                    extract_template_parts_full(template_code);
                 (
-                    String::default(),
-                    String::default(),
-                    String::default(),
+                    imports,
+                    hoisted,
+                    render_fn,
+                    render_fn_name,
                     String::default(),
                     String::default(),
                 )
+            } else {
+                let (imports, hoisted, preamble, body, render_fn_name) =
+                    extract_template_parts(template_code);
+                (
+                    imports,
+                    hoisted,
+                    String::default(),
+                    render_fn_name,
+                    preamble,
+                    body,
+                )
             }
-            None => (
+        }
+        Some(Err(e)) => {
+            errors.push(e.clone());
+            (
                 String::default(),
                 String::default(),
                 String::default(),
+                "",
                 String::default(),
                 String::default(),
-            ),
-        };
+            )
+        }
+        None => (
+            String::default(),
+            String::default(),
+            String::default(),
+            "",
+            String::default(),
+            String::default(),
+        ),
+    };
 
     // Compile script setup using inline mode to match Vue's @vue/compiler-sfc output format:
     // 1. Template imports (from "vue")
@@ -413,6 +441,7 @@ pub fn compile_sfc(
             imports: &template_imports,
             hoisted: &template_hoisted,
             render_fn: &template_render_fn,
+            render_fn_name: template_render_fn_name,
             preamble: &template_preamble,
             render_body: &render_body,
             render_is_block: is_vapor,

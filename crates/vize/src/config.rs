@@ -43,6 +43,10 @@ pub struct CheckConfig {
     /// When omitted or null, no plugin globals are declared.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub globals: Option<String>,
+
+    /// Override the number of parallel tsgo servers used by `vize check`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub servers: Option<usize>,
 }
 
 /// Load configuration from `vize.config.pkl` (preferred) or `vize.config.json`.
@@ -118,6 +122,11 @@ pub const VIZE_CONFIG_SCHEMA: &str = r#"{
           "type": "string",
           "description": "Path to a .d.ts file that augments ComponentCustomProperties with template globals (e.g. $t, $route). Resolved relative to vize.config.json.",
           "examples": ["globals.d.ts", "./types/globals.d.ts"]
+        },
+        "servers": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Override the number of parallel tsgo language servers used by `vize check`."
         }
       },
       "additionalProperties": false
@@ -233,7 +242,7 @@ mod tests {
         std::fs::write(
             &config_path,
             r#"{
-                "check": { "globals": "globals.d.ts" },
+                "check": { "globals": "globals.d.ts", "servers": 6 },
                 "fmt": { "singleQuote": true, "maxAttributesPerLine": 3 }
             }"#,
         )
@@ -243,6 +252,7 @@ mod tests {
         // check section
         let globals = config.check.globals.unwrap();
         assert_eq!(globals, "globals.d.ts");
+        assert_eq!(config.check.servers, Some(6));
         // fmt section
         assert!(config.fmt.single_quote);
         assert_eq!(config.fmt.max_attributes_per_line, Some(3));

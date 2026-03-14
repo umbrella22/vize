@@ -55,6 +55,8 @@ pub fn compile_ssr_with_options<'a>(
     source: &'a str,
     options: SsrCompilerOptions,
 ) -> (RootNode<'a>, Vec<CompilerError>, SsrCodegenResult) {
+    let codegen_options = options.clone();
+
     // Create parser options
     let parser_opts = ParserOptions {
         is_void_tag: vize_carton::is_void_tag,
@@ -82,16 +84,18 @@ pub fn compile_ssr_with_options<'a>(
         prefix_identifiers: true, // SSR always uses prefix
         hoist_static: false,      // No hoisting in SSR
         cache_handlers: false,    // No caching in SSR
-        scope_id: options.scope_id.clone(),
+        scope_id: codegen_options.scope_id.clone(),
         ssr: true,
-        is_ts: options.is_ts,
-        inline: options.inline,
+        is_ts: codegen_options.is_ts,
+        inline: codegen_options.inline,
+        binding_metadata: codegen_options.binding_metadata.clone(),
         ..Default::default()
     };
-    do_transform(allocator, &mut root, transform_opts, None);
+    let analysis = options.croquis.map(|c| &*allocator.alloc(*c));
+    do_transform(allocator, &mut root, transform_opts, analysis);
 
     // SSR codegen
-    let codegen_ctx = SsrCodegenContext::new(allocator, &options);
+    let codegen_ctx = SsrCodegenContext::new(allocator, &codegen_options);
     let codegen_result = codegen_ctx.generate(&root);
 
     (root, errors.to_vec(), codegen_result)

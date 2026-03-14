@@ -41,6 +41,7 @@ pub struct TemplateParts<'a> {
     pub imports: &'a str,
     pub hoisted: &'a str,
     pub render_fn: &'a str,
+    pub render_fn_name: &'a str,
     /// Component/directive resolution statements (inside render function, before return)
     pub preamble: &'a str,
     pub render_body: &'a str,

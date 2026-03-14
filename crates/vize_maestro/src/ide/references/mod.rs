@@ -9,9 +9,18 @@
 mod script;
 mod template;
 
+#[cfg(feature = "native")]
+use std::sync::Arc;
+
 use tower_lsp::lsp_types::Location;
 
+#[cfg(feature = "native")]
+use vize_canon::TsgoBridge;
+
 use super::IdeContext;
+#[cfg(feature = "native")]
+use crate::ide::tsgo_support;
+use crate::virtual_code::{ArtCursorPosition, BlockType};
 
 /// References service for finding all references to a symbol.
 pub struct ReferencesService;
@@ -55,6 +64,151 @@ impl ReferencesService {
                     .then(a.range.start.character.cmp(&b.range.start.character))
             });
             locations.dedup_by(|a, b| a.range.start == b.range.start && a.range.end == b.range.end);
+            Some(locations)
+        }
+    }
+
+    /// Find all references using tsgo when available, with synchronous fallback.
+    #[cfg(feature = "native")]
+    pub async fn references_with_tsgo(
+        ctx: &IdeContext<'_>,
+        include_declaration: bool,
+        tsgo_bridge: Option<Arc<TsgoBridge>>,
+    ) -> Option<Vec<Location>> {
+        let block_type = ctx.block_type?;
+
+        let tsgo_locations = match block_type {
+            BlockType::Template => {
+                Self::template_references_with_tsgo(
+                    ctx,
+                    include_declaration,
+                    tsgo_bridge.as_deref(),
+                )
+                .await
+            }
+            BlockType::Script | BlockType::ScriptSetup => {
+                Self::script_references_with_tsgo(
+                    ctx,
+                    include_declaration,
+                    matches!(block_type, BlockType::ScriptSetup),
+                    tsgo_bridge.as_deref(),
+                )
+                .await
+            }
+            BlockType::Art(ArtCursorPosition::VariantTemplate(ref info)) => {
+                Self::art_variant_references_with_tsgo(
+                    ctx,
+                    info,
+                    include_declaration,
+                    tsgo_bridge.as_deref(),
+                )
+                .await
+            }
+            BlockType::Style(_) | BlockType::Art(_) => None,
+        };
+
+        tsgo_locations.or_else(|| Self::references(ctx, include_declaration))
+    }
+
+    #[cfg(feature = "native")]
+    async fn template_references_with_tsgo(
+        ctx: &IdeContext<'_>,
+        include_declaration: bool,
+        bridge: Option<&TsgoBridge>,
+    ) -> Option<Vec<Location>> {
+        let bridge = bridge?;
+        let virtual_docs = ctx.virtual_docs.as_ref()?;
+        let template = virtual_docs.template.as_ref()?;
+        let vts_offset =
+            crate::ide::hover::HoverService::sfc_to_virtual_ts_offset(ctx, ctx.offset)?;
+        let (line, character) = crate::ide::offset_to_position(&template.content, vts_offset);
+        let request_path = tsgo_support::template_request_path(ctx.uri);
+        let uri = bridge
+            .open_or_update_virtual_document(&request_path, &template.content)
+            .await
+            .ok()?;
+
+        let locations = bridge
+            .references(&uri, line, character, include_declaration)
+            .await
+            .ok()?;
+        let locations = tsgo_support::map_tsgo_locations(ctx, locations);
+
+        if locations.is_empty() {
+            None
+        } else {
+            Some(locations)
+        }
+    }
+
+    #[cfg(feature = "native")]
+    async fn art_variant_references_with_tsgo(
+        ctx: &IdeContext<'_>,
+        info: &crate::virtual_code::ArtVariantInfo,
+        include_declaration: bool,
+        bridge: Option<&TsgoBridge>,
+    ) -> Option<Vec<Location>> {
+        let bridge = bridge?;
+        let virtual_docs = ctx.virtual_docs.as_ref()?;
+        let template = virtual_docs.template.as_ref()?;
+        let relative_offset = info.relative_offset as u32;
+        let vts_offset = template
+            .source_map
+            .to_generated(relative_offset)
+            .map(|offset| offset as usize)
+            .unwrap_or(relative_offset as usize);
+        let (line, character) = crate::ide::offset_to_position(&template.content, vts_offset);
+        let request_path = tsgo_support::template_request_path(ctx.uri);
+        let uri = bridge
+            .open_or_update_virtual_document(&request_path, &template.content)
+            .await
+            .ok()?;
+
+        let locations = bridge
+            .references(&uri, line, character, include_declaration)
+            .await
+            .ok()?;
+        let locations = tsgo_support::map_tsgo_locations(ctx, locations);
+
+        if locations.is_empty() {
+            None
+        } else {
+            Some(locations)
+        }
+    }
+
+    #[cfg(feature = "native")]
+    async fn script_references_with_tsgo(
+        ctx: &IdeContext<'_>,
+        include_declaration: bool,
+        is_setup: bool,
+        bridge: Option<&TsgoBridge>,
+    ) -> Option<Vec<Location>> {
+        let bridge = bridge?;
+        let virtual_docs = ctx.virtual_docs.as_ref()?;
+        let script_doc = if is_setup {
+            virtual_docs.script_setup.as_ref()
+        } else {
+            virtual_docs.script.as_ref()
+        }?;
+        let vts_offset =
+            crate::ide::hover::HoverService::sfc_to_virtual_ts_script_offset(ctx, ctx.offset)?;
+        let (line, character) = crate::ide::offset_to_position(&script_doc.content, vts_offset);
+        let request_path = tsgo_support::script_request_path(ctx.uri, is_setup);
+        let uri = bridge
+            .open_or_update_virtual_document(&request_path, &script_doc.content)
+            .await
+            .ok()?;
+
+        let locations = bridge
+            .references(&uri, line, character, include_declaration)
+            .await
+            .ok()?;
+        let locations = tsgo_support::map_tsgo_locations(ctx, locations);
+
+        if locations.is_empty() {
+            None
+        } else {
             Some(locations)
         }
     }

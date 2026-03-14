@@ -58,6 +58,7 @@ export function diffPrecompileFiles(
 
 export interface VizePluginState {
   cache: Map<string, CompiledModule>;
+  ssrCache: Map<string, CompiledModule>;
   collectedCss: Map<string, string>;
   precompileMetadata: Map<string, PrecompileFileMetadata>;
   pendingHmrUpdateTypes: Map<string, HmrUpdateType>;
@@ -77,6 +78,25 @@ export interface VizePluginState {
   clientViteDefine: Record<string, string>;
   serverViteDefine: Record<string, string>;
   logger: ReturnType<typeof createLogger>;
+}
+
+export function getEnvironmentCache(
+  state: Pick<VizePluginState, "cache" | "ssrCache">,
+  ssr: boolean,
+): Map<string, CompiledModule> {
+  return ssr ? state.ssrCache : state.cache;
+}
+
+export function getCompileOptionsForRequest(
+  state: Pick<VizePluginState, "isProduction" | "mergedOptions">,
+  ssr: boolean,
+): { sourceMap: boolean; ssr: boolean; vapor: boolean } {
+  return {
+    sourceMap: state.mergedOptions?.sourceMap ?? !state.isProduction,
+    ssr,
+    // Vapor runtime is client-oriented today; use VDOM for SSR and Vapor on the client.
+    vapor: !ssr && (state.mergedOptions?.vapor ?? false),
+  };
 }
 
 /**
@@ -112,6 +132,7 @@ export async function compileAll(state: VizePluginState): Promise<void> {
 
   for (const file of deletedFiles) {
     state.cache.delete(file);
+    state.ssrCache.delete(file);
     state.collectedCss.delete(file);
     state.precompileMetadata.delete(file);
     state.pendingHmrUpdateTypes.delete(file);
@@ -140,7 +161,7 @@ export async function compileAll(state: VizePluginState): Promise<void> {
 
   // Batch compile using native parallel processing
   const result = compileBatch(fileContents, state.cache, {
-    ssr: state.mergedOptions.ssr ?? false,
+    ssr: false,
     vapor: state.mergedOptions.vapor ?? false,
   });
 

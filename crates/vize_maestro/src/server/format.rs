@@ -81,8 +81,10 @@ mod tests {
     #[test]
     fn format_document_respects_options() {
         let source = "<script>\nconst x = 1;\n</script>\n";
-        let mut options = vize_glyph::FormatOptions::default();
-        options.semi = false;
+        let options = vize_glyph::FormatOptions {
+            semi: false,
+            ..Default::default()
+        };
         let result = format_document(source, &options);
         assert!(result.is_some());
         let edits = result.unwrap();
@@ -112,8 +114,10 @@ mod tests {
     #[test]
     fn format_document_with_single_quote() {
         let source = "<script>\nconst x = \"hello\";\n</script>\n";
-        let mut options = vize_glyph::FormatOptions::default();
-        options.single_quote = true;
+        let options = vize_glyph::FormatOptions {
+            single_quote: true,
+            ..Default::default()
+        };
         let result = format_document(source, &options);
         assert!(result.is_some());
         let edits = result.unwrap();

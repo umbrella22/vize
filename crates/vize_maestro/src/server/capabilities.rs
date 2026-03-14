@@ -157,7 +157,14 @@ pub fn server_capabilities() -> ServerCapabilities {
                 supported: Some(true),
                 change_notifications: Some(OneOf::Left(true)),
             }),
-            file_operations: None,
+            file_operations: Some(WorkspaceFileOperationsServerCapabilities {
+                did_create: None,
+                will_create: None,
+                did_rename: Some(file_rename_registration_options()),
+                will_rename: Some(file_rename_registration_options()),
+                did_delete: None,
+                will_delete: None,
+            }),
         }),
 
         // Features not yet implemented
@@ -174,5 +181,28 @@ pub fn server_capabilities() -> ServerCapabilities {
 
         // Default for other fields
         ..Default::default()
+    }
+}
+
+fn file_rename_registration_options() -> FileOperationRegistrationOptions {
+    FileOperationRegistrationOptions {
+        filters: vec![
+            FileOperationFilter {
+                scheme: Some("file".to_string()),
+                pattern: FileOperationPattern {
+                    glob: "**/*.{vue,ts,tsx,js,jsx,mts,cts,mjs,cjs}".to_string(),
+                    matches: Some(FileOperationPatternKind::File),
+                    options: None,
+                },
+            },
+            FileOperationFilter {
+                scheme: Some("file".to_string()),
+                pattern: FileOperationPattern {
+                    glob: "**/*".to_string(),
+                    matches: Some(FileOperationPatternKind::Folder),
+                    options: None,
+                },
+            },
+        ],
     }
 }

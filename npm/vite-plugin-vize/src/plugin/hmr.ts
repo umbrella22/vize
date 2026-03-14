@@ -3,6 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 import type { VizePluginState } from "./state.js";
+import { getCompileOptionsForRequest } from "./state.js";
 import { compileFile } from "../compiler.js";
 import { detectHmrUpdateType, hasHmrChanges, type HmrUpdateType } from "../hmr.js";
 import { hasDelegatedStyles } from "../utils/index.js";
@@ -21,16 +22,8 @@ export async function handleHotUpdateHook(
 
       const prevCompiled = state.cache.get(file);
 
-      compileFile(
-        file,
-        state.cache,
-        {
-          sourceMap: state.mergedOptions?.sourceMap ?? !state.isProduction,
-          ssr: state.mergedOptions?.ssr ?? false,
-          vapor: state.mergedOptions?.vapor ?? false,
-        },
-        source,
-      );
+      compileFile(file, state.cache, getCompileOptionsForRequest(state, false), source);
+      state.ssrCache.delete(file);
 
       const newCompiled = state.cache.get(file)!;
       try {

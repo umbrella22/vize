@@ -46,6 +46,10 @@ pub struct CheckArgs {
     /// Path to tsgo executable (can also use TSGO_PATH env var)
     #[arg(long)]
     pub tsgo_path: Option<String>,
+
+    /// Number of parallel tsgo servers to use (defaults to an auto-tuned value)
+    #[arg(long)]
+    pub servers: Option<usize>,
 }
 
 /// Intermediate representation of a generated virtual TypeScript file.

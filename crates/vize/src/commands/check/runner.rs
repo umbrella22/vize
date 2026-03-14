@@ -494,12 +494,12 @@ pub(crate) fn run_direct(args: &CheckArgs) {
     let num_cpus = std::thread::available_parallelism()
         .map(|n| n.get())
         .unwrap_or(4);
-    let num_servers = if generated.len() < 30 {
-        1 // Single server for small projects (less overhead)
-    } else {
-        // Use at most 4 servers (diminishing returns beyond that)
-        num_cpus.min(4).min(generated.len() / 10).max(1)
-    };
+    let num_servers = resolve_check_server_count(
+        args.servers,
+        config.check.servers,
+        generated.len(),
+        num_cpus,
+    );
 
     // Partition INDICES for diagnostics collection (each server checks a subset)
     let chunk_size = generated.len().div_ceil(num_servers);
@@ -798,6 +798,40 @@ pub(crate) fn run_direct(args: &CheckArgs) {
     }
 }
 
+fn resolve_check_server_count(
+    cli_override: Option<usize>,
+    config_override: Option<usize>,
+    file_count: usize,
+    cpu_count: usize,
+) -> usize {
+    if file_count == 0 {
+        return 1;
+    }
+
+    let requested = cli_override.or(config_override);
+    if let Some(requested) = requested {
+        return requested.clamp(1, file_count);
+    }
+
+    default_check_server_count(file_count, cpu_count)
+}
+
+fn default_check_server_count(file_count: usize, cpu_count: usize) -> usize {
+    if file_count == 0 {
+        return 1;
+    }
+
+    if file_count < 24 {
+        return 1;
+    }
+
+    let files_per_server = file_count.div_ceil(8);
+    cpu_count
+        .max(1)
+        .min(files_per_server.max(1))
+        .min(file_count)
+}
+
 /// Collect .vue files from patterns.
 #[allow(clippy::disallowed_types)]
 pub(crate) fn collect_vue_files(patterns: &[std::string::String]) -> Vec<PathBuf> {
@@ -865,4 +899,33 @@ fn parse_dts_globals(
             })
             .collect(),
     )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{default_check_server_count, resolve_check_server_count};
+
+    #[test]
+    fn default_server_count_keeps_small_projects_single_threaded() {
+        assert_eq!(default_check_server_count(12, 16), 1);
+        assert_eq!(default_check_server_count(23, 16), 1);
+    }
+
+    #[test]
+    fn default_server_count_scales_beyond_previous_cap() {
+        assert_eq!(default_check_server_count(48, 8), 6);
+        assert_eq!(default_check_server_count(160, 12), 12);
+    }
+
+    #[test]
+    fn explicit_server_overrides_take_priority() {
+        assert_eq!(resolve_check_server_count(Some(6), Some(2), 40, 16), 6);
+        assert_eq!(resolve_check_server_count(None, Some(5), 40, 16), 5);
+    }
+
+    #[test]
+    fn explicit_server_overrides_are_clamped() {
+        assert_eq!(resolve_check_server_count(Some(0), None, 8, 16), 1);
+        assert_eq!(resolve_check_server_count(Some(32), None, 8, 16), 8);
+    }
 }

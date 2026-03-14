@@ -307,13 +307,15 @@ pub fn compile_script_setup_inline(
     output.extend_from_slice(&props_emits_buf);
     output.extend_from_slice(&model_props_emits_buf);
     if !template.render_fn.is_empty() {
+        output.extend_from_slice(b"  ");
+        output.extend_from_slice(template.render_fn_name.as_bytes());
+        output.extend_from_slice(b": ");
         if let Some(alias) = vapor_render_alias.as_ref() {
-            output.extend_from_slice(b"  render: ");
             output.extend_from_slice(alias.as_bytes());
-            output.extend_from_slice(b",\n");
         } else {
-            output.extend_from_slice(b"  render,\n");
+            output.extend_from_slice(template.render_fn_name.as_bytes());
         }
+        output.extend_from_slice(b",\n");
     }
 
     // Build setup function signature based on what macros are used

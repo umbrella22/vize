@@ -20,8 +20,6 @@ use vize_canon::TsgoBridge;
 
 use super::HoverService;
 use crate::ide::IdeContext;
-use vize_carton::cstr;
-
 impl HoverService {
     /// Get hover for script context.
     pub(super) fn hover_script(ctx: &IdeContext, is_setup: bool) -> Option<Hover> {
@@ -91,14 +89,17 @@ impl HoverService {
                         let (line, character) =
                             crate::ide::offset_to_position(&script.content, vts_offset);
                         let suffix = if is_setup { "setup.ts" } else { "script.ts" };
-                        let uri = cstr!("vize-virtual://{}.{suffix}", ctx.uri.path());
 
                         // Open/update virtual document
                         if bridge.is_initialized() {
-                            let doc_path = cstr!("{}.{suffix}", ctx.uri.path());
-                            let _ = bridge
+                            #[allow(clippy::disallowed_macros)]
+                            let doc_path = format!("{}.{suffix}", ctx.uri.path());
+                            let Ok(uri) = bridge
                                 .open_or_update_virtual_document(&doc_path, &script.content)
-                                .await;
+                                .await
+                            else {
+                                return Self::hover_script(ctx, is_setup);
+                            };
 
                             // Request hover from tsgo
                             if let Ok(Some(hover)) = bridge.hover(&uri, line, character).await {

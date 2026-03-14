@@ -4,12 +4,13 @@ import { pathToFileURL } from "node:url";
 import type { TransformResult } from "vite";
 import { transformWithOxc } from "vite";
 
-import type { VizePluginState } from "./state.js";
+import { getCompileOptionsForRequest, getEnvironmentCache, type VizePluginState } from "./state.js";
 import { compileFile } from "../compiler.js";
 import { generateOutput, hasDelegatedStyles } from "../utils/index.js";
 import { resolveCssImports } from "../utils/css.js";
 import {
   isVizeVirtual,
+  isVizeSsrVirtual,
   fromVirtualId,
   LEGACY_VIZE_PREFIX,
   RESOLVED_CSS_MODULE,
@@ -75,10 +76,15 @@ export function loadHook(
     const scoped = params.get("scoped");
 
     const compiled = state.cache.get(realPath);
+    const fallbackCompiled = compiled ?? state.ssrCache.get(realPath);
     const blockIndex = indexStr !== null ? parseInt(indexStr, 10) : -1;
 
-    if (compiled?.styles && blockIndex >= 0 && blockIndex < compiled.styles.length) {
-      const block = compiled.styles[blockIndex];
+    if (
+      fallbackCompiled?.styles &&
+      blockIndex >= 0 &&
+      blockIndex < fallbackCompiled.styles.length
+    ) {
+      const block = fallbackCompiled.styles[blockIndex];
       let styleContent = block.content;
 
       // For scoped preprocessor styles, wrap content in a scope selector
@@ -109,9 +115,9 @@ export function loadHook(
       };
     }
 
-    if (compiled?.css) {
+    if (fallbackCompiled?.css) {
       return resolveCssImports(
-        compiled.css,
+        fallbackCompiled.css,
         realPath,
         state.cssAliasRules,
         state.server !== null,
@@ -141,6 +147,7 @@ export function loadHook(
   // Handle vize virtual modules
   if (isVizeVirtual(id)) {
     const realPath = fromVirtualId(id);
+    const isSsr = isVizeSsrVirtual(id) || !!loadOptions?.ssr;
 
     if (!realPath.endsWith(".vue")) {
       state.logger.log(`load: skipping non-vue virtual module ${realPath}`);
@@ -156,16 +163,13 @@ export function loadHook(
       };
     }
 
-    let compiled = state.cache.get(realPath);
+    const cache = getEnvironmentCache(state, isSsr);
+    let compiled = cache.get(realPath);
 
     // On-demand compile if not cached
     if (!compiled && fs.existsSync(realPath)) {
       state.logger.log(`load: on-demand compiling ${realPath}`);
-      compiled = compileFile(realPath, state.cache, {
-        sourceMap: state.mergedOptions?.sourceMap ?? !(state.isProduction ?? false),
-        ssr: state.mergedOptions?.ssr ?? false,
-        vapor: state.mergedOptions?.vapor ?? false,
-      });
+      compiled = compileFile(realPath, cache, getCompileOptionsForRequest(state, isSsr));
     }
 
     if (compiled) {
@@ -189,7 +193,7 @@ export function loadHook(
         rewriteDynamicTemplateImports(
           generateOutput(compiled, {
             isProduction: state.isProduction,
-            isDev: state.server !== null,
+            isDev: state.server !== null && !isSsr,
             hmrUpdateType: pendingHmrUpdateType,
             extractCss: state.extractCss,
             filePath: realPath,

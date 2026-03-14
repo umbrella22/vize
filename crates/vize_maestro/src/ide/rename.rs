@@ -8,9 +8,18 @@
 
 use std::collections::HashMap;
 
+#[cfg(feature = "native")]
+use std::sync::Arc;
+
 use tower_lsp::lsp_types::{Position, PrepareRenameResponse, Range, TextEdit, WorkspaceEdit};
 
+#[cfg(feature = "native")]
+use vize_canon::TsgoBridge;
+
 use super::IdeContext;
+#[cfg(feature = "native")]
+use crate::ide::tsgo_support;
+use crate::virtual_code::{ArtCursorPosition, BlockType};
 
 /// Rename service for identifier renaming across SFC.
 pub struct RenameService;
@@ -71,6 +80,225 @@ impl RenameService {
             document_changes: None,
             change_annotations: None,
         })
+    }
+
+    /// Check rename availability using tsgo when possible, with synchronous fallback.
+    #[cfg(feature = "native")]
+    pub async fn prepare_rename_with_tsgo(
+        ctx: &IdeContext<'_>,
+        tsgo_bridge: Option<Arc<TsgoBridge>>,
+    ) -> Option<PrepareRenameResponse> {
+        let tsgo_result = match ctx.block_type? {
+            BlockType::Template => {
+                Self::prepare_template_rename_with_tsgo(ctx, tsgo_bridge.as_deref()).await
+            }
+            BlockType::Script | BlockType::ScriptSetup => {
+                Self::prepare_script_rename_with_tsgo(
+                    ctx,
+                    matches!(ctx.block_type, Some(BlockType::ScriptSetup)),
+                    tsgo_bridge.as_deref(),
+                )
+                .await
+            }
+            BlockType::Art(ArtCursorPosition::VariantTemplate(ref info)) => {
+                Self::prepare_art_variant_rename_with_tsgo(ctx, info, tsgo_bridge.as_deref()).await
+            }
+            BlockType::Style(_) | BlockType::Art(_) => None,
+        };
+
+        tsgo_result.or_else(|| Self::prepare_rename(ctx))
+    }
+
+    /// Perform rename using tsgo when possible, with synchronous fallback.
+    #[cfg(feature = "native")]
+    pub async fn rename_with_tsgo(
+        ctx: &IdeContext<'_>,
+        new_name: &str,
+        tsgo_bridge: Option<Arc<TsgoBridge>>,
+    ) -> Option<WorkspaceEdit> {
+        if !Self::is_valid_identifier(new_name) {
+            return None;
+        }
+
+        let tsgo_result = match ctx.block_type? {
+            BlockType::Template => {
+                Self::rename_template_with_tsgo(ctx, new_name, tsgo_bridge.as_deref()).await
+            }
+            BlockType::Script | BlockType::ScriptSetup => {
+                Self::rename_script_with_tsgo(
+                    ctx,
+                    new_name,
+                    matches!(ctx.block_type, Some(BlockType::ScriptSetup)),
+                    tsgo_bridge.as_deref(),
+                )
+                .await
+            }
+            BlockType::Art(ArtCursorPosition::VariantTemplate(ref info)) => {
+                Self::rename_art_variant_with_tsgo(ctx, info, new_name, tsgo_bridge.as_deref())
+                    .await
+            }
+            BlockType::Style(_) | BlockType::Art(_) => None,
+        };
+
+        tsgo_result.or_else(|| Self::rename(ctx, new_name))
+    }
+
+    #[cfg(feature = "native")]
+    async fn prepare_template_rename_with_tsgo(
+        ctx: &IdeContext<'_>,
+        bridge: Option<&TsgoBridge>,
+    ) -> Option<PrepareRenameResponse> {
+        let bridge = bridge?;
+        let virtual_docs = ctx.virtual_docs.as_ref()?;
+        let template = virtual_docs.template.as_ref()?;
+        let vts_offset =
+            crate::ide::hover::HoverService::sfc_to_virtual_ts_offset(ctx, ctx.offset)?;
+        let (line, character) = crate::ide::offset_to_position(&template.content, vts_offset);
+        let request_path = tsgo_support::template_request_path(ctx.uri);
+        let uri = bridge
+            .open_or_update_virtual_document(&request_path, &template.content)
+            .await
+            .ok()?;
+        let response = bridge.prepare_rename(&uri, line, character).await.ok()??;
+        let response = serde_json::from_value(response).ok()?;
+        tsgo_support::map_tsgo_prepare_rename(ctx, &uri, response)
+    }
+
+    #[cfg(feature = "native")]
+    async fn prepare_art_variant_rename_with_tsgo(
+        ctx: &IdeContext<'_>,
+        info: &crate::virtual_code::ArtVariantInfo,
+        bridge: Option<&TsgoBridge>,
+    ) -> Option<PrepareRenameResponse> {
+        let bridge = bridge?;
+        let virtual_docs = ctx.virtual_docs.as_ref()?;
+        let template = virtual_docs.template.as_ref()?;
+        let relative_offset = info.relative_offset as u32;
+        let vts_offset = template
+            .source_map
+            .to_generated(relative_offset)
+            .map(|offset| offset as usize)
+            .unwrap_or(relative_offset as usize);
+        let (line, character) = crate::ide::offset_to_position(&template.content, vts_offset);
+        let request_path = tsgo_support::template_request_path(ctx.uri);
+        let uri = bridge
+            .open_or_update_virtual_document(&request_path, &template.content)
+            .await
+            .ok()?;
+        let response = bridge.prepare_rename(&uri, line, character).await.ok()??;
+        let response = serde_json::from_value(response).ok()?;
+        tsgo_support::map_tsgo_prepare_rename(ctx, &uri, response)
+    }
+
+    #[cfg(feature = "native")]
+    async fn prepare_script_rename_with_tsgo(
+        ctx: &IdeContext<'_>,
+        is_setup: bool,
+        bridge: Option<&TsgoBridge>,
+    ) -> Option<PrepareRenameResponse> {
+        let bridge = bridge?;
+        let virtual_docs = ctx.virtual_docs.as_ref()?;
+        let script_doc = if is_setup {
+            virtual_docs.script_setup.as_ref()
+        } else {
+            virtual_docs.script.as_ref()
+        }?;
+        let vts_offset =
+            crate::ide::hover::HoverService::sfc_to_virtual_ts_script_offset(ctx, ctx.offset)?;
+        let (line, character) = crate::ide::offset_to_position(&script_doc.content, vts_offset);
+        let request_path = tsgo_support::script_request_path(ctx.uri, is_setup);
+        let uri = bridge
+            .open_or_update_virtual_document(&request_path, &script_doc.content)
+            .await
+            .ok()?;
+        let response = bridge.prepare_rename(&uri, line, character).await.ok()??;
+        let response = serde_json::from_value(response).ok()?;
+        tsgo_support::map_tsgo_prepare_rename(ctx, &uri, response)
+    }
+
+    #[cfg(feature = "native")]
+    async fn rename_template_with_tsgo(
+        ctx: &IdeContext<'_>,
+        new_name: &str,
+        bridge: Option<&TsgoBridge>,
+    ) -> Option<WorkspaceEdit> {
+        let bridge = bridge?;
+        let virtual_docs = ctx.virtual_docs.as_ref()?;
+        let template = virtual_docs.template.as_ref()?;
+        let vts_offset =
+            crate::ide::hover::HoverService::sfc_to_virtual_ts_offset(ctx, ctx.offset)?;
+        let (line, character) = crate::ide::offset_to_position(&template.content, vts_offset);
+        let request_path = tsgo_support::template_request_path(ctx.uri);
+        let uri = bridge
+            .open_or_update_virtual_document(&request_path, &template.content)
+            .await
+            .ok()?;
+        let edit = bridge
+            .rename(&uri, line, character, new_name)
+            .await
+            .ok()??;
+        let edit = serde_json::from_value(edit).ok()?;
+        tsgo_support::map_tsgo_workspace_edit(ctx, edit)
+    }
+
+    #[cfg(feature = "native")]
+    async fn rename_art_variant_with_tsgo(
+        ctx: &IdeContext<'_>,
+        info: &crate::virtual_code::ArtVariantInfo,
+        new_name: &str,
+        bridge: Option<&TsgoBridge>,
+    ) -> Option<WorkspaceEdit> {
+        let bridge = bridge?;
+        let virtual_docs = ctx.virtual_docs.as_ref()?;
+        let template = virtual_docs.template.as_ref()?;
+        let relative_offset = info.relative_offset as u32;
+        let vts_offset = template
+            .source_map
+            .to_generated(relative_offset)
+            .map(|offset| offset as usize)
+            .unwrap_or(relative_offset as usize);
+        let (line, character) = crate::ide::offset_to_position(&template.content, vts_offset);
+        let request_path = tsgo_support::template_request_path(ctx.uri);
+        let uri = bridge
+            .open_or_update_virtual_document(&request_path, &template.content)
+            .await
+            .ok()?;
+        let edit = bridge
+            .rename(&uri, line, character, new_name)
+            .await
+            .ok()??;
+        let edit = serde_json::from_value(edit).ok()?;
+        tsgo_support::map_tsgo_workspace_edit(ctx, edit)
+    }
+
+    #[cfg(feature = "native")]
+    async fn rename_script_with_tsgo(
+        ctx: &IdeContext<'_>,
+        new_name: &str,
+        is_setup: bool,
+        bridge: Option<&TsgoBridge>,
+    ) -> Option<WorkspaceEdit> {
+        let bridge = bridge?;
+        let virtual_docs = ctx.virtual_docs.as_ref()?;
+        let script_doc = if is_setup {
+            virtual_docs.script_setup.as_ref()
+        } else {
+            virtual_docs.script.as_ref()
+        }?;
+        let vts_offset =
+            crate::ide::hover::HoverService::sfc_to_virtual_ts_script_offset(ctx, ctx.offset)?;
+        let (line, character) = crate::ide::offset_to_position(&script_doc.content, vts_offset);
+        let request_path = tsgo_support::script_request_path(ctx.uri, is_setup);
+        let uri = bridge
+            .open_or_update_virtual_document(&request_path, &script_doc.content)
+            .await
+            .ok()?;
+        let edit = bridge
+            .rename(&uri, line, character, new_name)
+            .await
+            .ok()??;
+        let edit = serde_json::from_value(edit).ok()?;
+        tsgo_support::map_tsgo_workspace_edit(ctx, edit)
     }
 
     /// Check if the identifier is renameable.

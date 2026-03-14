@@ -21,6 +21,7 @@ use crate::{
     options::CodegenOptions,
 };
 
+use children::is_directive_comment;
 pub use context::{CodegenContext, CodegenResult};
 use element::generate_root_node;
 use generate::{collect_hoist_helpers, generate_hoists};
@@ -36,7 +37,7 @@ pub fn generate(root: &RootNode<'_>, options: CodegenOptions) -> CodegenResult {
     let root_children: std::vec::Vec<&TemplateChildNode<'_>> = root
         .children
         .iter()
-        .filter(|child| !is_ignorable_root_text(child))
+        .filter(|child| !is_ignorable_root_text(child) && !is_directive_comment(child))
         .collect();
 
     // Generate function signature
@@ -157,6 +158,39 @@ mod tests {
             "_createBlock",
             "_component_MyComponent"
         ]);
+    }
+
+    #[test]
+    fn test_root_directive_comment_does_not_create_fragment_hole() {
+        let result =
+            compile!("<!-- @vize:forget sections are labeled by their headings --><section />");
+
+        assert!(
+            !result.code.contains("_Fragment"),
+            "single real root should not be wrapped in a fragment: {}",
+            result.code
+        );
+        assert!(
+            !result.code.contains("[,"),
+            "directive comments must not leave array holes in generated code: {}",
+            result.code
+        );
+        assert!(
+            result.code.contains("_createElementBlock(\"section\""),
+            "expected the section to remain the actual root node: {}",
+            result.code
+        );
+    }
+
+    #[test]
+    fn test_root_only_directive_comment_compiles_to_null() {
+        let result = compile!("<!-- @vize:forget no render output -->");
+
+        assert!(
+            result.code.contains("return null"),
+            "directive-only roots should compile to null: {}",
+            result.code
+        );
     }
 
     #[test]

@@ -16,7 +16,11 @@ import type { MuseaOptions } from "@vizejs/vite-plugin-musea";
 import type { NuxtMuseaOptions } from "@vizejs/musea-nuxt";
 import { createNuxtComponentResolver, injectNuxtComponentImports } from "./components";
 import { injectNuxtI18nHelpers } from "./i18n";
-import { buildNuxtDevAssetBase } from "./utils";
+import {
+  buildNuxtCompilerOptions,
+  isVizeVirtualVueModuleId,
+  normalizeVizeVirtualVueModuleId,
+} from "./utils";
 
 export interface VizeNuxtOptions {
   /**
@@ -62,21 +66,18 @@ export default defineNuxtModule<VizeNuxtOptions>({
 
     // Compiler
     if (options.compiler !== false) {
-      const devAssetBase = buildNuxtDevAssetBase(
+      const compilerOptions = buildNuxtCompilerOptions(
+        nuxt.options.rootDir,
         nuxt.options.app.baseURL,
         nuxt.options.app.buildAssetsDir,
       );
 
-      nuxt.options.vite.plugins.push(
-        vize({
-          devUrlBase: devAssetBase,
-        }),
-      );
+      nuxt.options.vite.plugins.push(vize(compilerOptions));
 
       if (nuxt.options.dev) {
         nuxt.options.nitro.virtual ||= {};
         nuxt.options.nitro.virtual["#vizejs/nuxt/dev-stylesheet-links-config"] =
-          `export const devAssetBase = ${JSON.stringify(devAssetBase)};`;
+          `export const devAssetBase = ${JSON.stringify(compilerOptions.devUrlBase)};`;
         addServerPlugin(resolver.resolve("./runtime/server/dev-stylesheet-links"));
       }
 
@@ -145,7 +146,7 @@ export default defineNuxtModule<VizeNuxtOptions>({
       enforce: "post" as const,
       async transform(code: string, id: string) {
         // Only process vize virtual modules
-        if (!id.startsWith("\0") || !id.endsWith(".vue.ts")) return;
+        if (!isVizeVirtualVueModuleId(id)) return;
 
         let result = code;
         let changed = false;
@@ -215,11 +216,11 @@ export default defineNuxtModule<VizeNuxtOptions>({
             // causing parse errors in downstream transforms (e.g. transformWithOxc).
             const isExtractionOnly = plugin.name.startsWith("unocss:global");
             plugin.transform = function (code: string, id: string, ...args: unknown[]) {
-              if (id.startsWith("\0") && id.endsWith(".vue.ts")) {
+              if (isVizeVirtualVueModuleId(id)) {
                 // Strip \0 prefix AND .ts suffix so UnoCSS's filter accepts it.
                 // UnoCSS's defaultPipelineInclude is /\.(vue|...)($|\?)/ which
                 // requires .vue at end-of-string or before ?, not .vue.ts.
-                const normalizedId = id.slice(1).replace(/\.ts$/, "");
+                const normalizedId = normalizeVizeVirtualVueModuleId(id);
 
                 // For extraction-only plugins, append original .vue source so
                 // UnoCSS's attributify extractor can find HTML-style attribute
@@ -228,7 +229,7 @@ export default defineNuxtModule<VizeNuxtOptions>({
                 let effectiveCode = code;
                 if (isExtractionOnly) {
                   try {
-                    const originalSource = fs.readFileSync(normalizedId, "utf-8");
+                    const originalSource = fs.readFileSync(normalizedId.split("?")[0], "utf-8");
                     effectiveCode = code + "\n" + originalSource;
                   } catch {
                     // File may not exist (virtual components, etc.)

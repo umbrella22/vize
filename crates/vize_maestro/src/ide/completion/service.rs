@@ -16,9 +16,10 @@ use tower_lsp::lsp_types::{
 use vize_canon::{LspCompletionItem, LspDocumentation, TsgoBridge};
 
 use super::{is_inside_html_comment, script, style, template};
+#[cfg(feature = "native")]
+use crate::ide::tsgo_support;
 use crate::ide::IdeContext;
 use crate::virtual_code::{ArtCursorPosition, BlockType};
-use vize_carton::cstr;
 
 impl super::CompletionService {
     /// Get completions for the given context.
@@ -195,15 +196,15 @@ impl super::CompletionService {
                     .unwrap_or(relative_offset as usize);
 
                 let (line, character) = crate::ide::offset_to_position(&tmpl.content, vts_offset);
-                let uri = cstr!("vize-virtual://{}.template.ts", ctx.uri.path());
 
                 if bridge.is_initialized() {
-                    let _ = bridge
-                        .open_or_update_virtual_document(
-                            &cstr!("{}.template.ts", ctx.uri.path()),
-                            &tmpl.content,
-                        )
-                        .await;
+                    let request_path = tsgo_support::template_request_path(ctx.uri);
+                    let Ok(uri) = bridge
+                        .open_or_update_virtual_document(&request_path, &tmpl.content)
+                        .await
+                    else {
+                        return vec![];
+                    };
 
                     if let Ok(items) = bridge.completion(&uri, line, character).await {
                         return items
@@ -231,15 +232,15 @@ impl super::CompletionService {
                 {
                     let (line, character) =
                         crate::ide::offset_to_position(&tmpl.content, vts_offset);
-                    let uri = cstr!("vize-virtual://{}.template.ts", ctx.uri.path());
 
                     if bridge.is_initialized() {
-                        let _ = bridge
-                            .open_or_update_virtual_document(
-                                &cstr!("{}.template.ts", ctx.uri.path()),
-                                &tmpl.content,
-                            )
-                            .await;
+                        let request_path = tsgo_support::template_request_path(ctx.uri);
+                        let Ok(uri) = bridge
+                            .open_or_update_virtual_document(&request_path, &tmpl.content)
+                            .await
+                        else {
+                            return vec![];
+                        };
 
                         if let Ok(items) = bridge.completion(&uri, line, character).await {
                             return items
@@ -276,16 +277,15 @@ impl super::CompletionService {
                     )
                 {
                     let (line, character) = crate::ide::offset_to_position(&s.content, vts_offset);
-                    let suffix = if is_setup { "setup.ts" } else { "script.ts" };
-                    let uri = cstr!("vize-virtual://{}.{suffix}", ctx.uri.path());
 
                     if bridge.is_initialized() {
-                        let _ = bridge
-                            .open_or_update_virtual_document(
-                                &cstr!("{}.{suffix}", ctx.uri.path()),
-                                &s.content,
-                            )
-                            .await;
+                        let request_path = tsgo_support::script_request_path(ctx.uri, is_setup);
+                        let Ok(uri) = bridge
+                            .open_or_update_virtual_document(&request_path, &s.content)
+                            .await
+                        else {
+                            return vec![];
+                        };
 
                         if let Ok(items) = bridge.completion(&uri, line, character).await {
                             return items

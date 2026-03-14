@@ -270,34 +270,58 @@ impl<'a> SsrCodegenContext<'a> {
     fn process_component(&mut self, el: &ElementNode, _disable_nested_fragments: bool) {
         self.flush_push();
         self.use_ssr_helper(RuntimeHelper::SsrRenderComponent);
-        self.use_core_helper(RuntimeHelper::ResolveComponent);
 
         let tag = &el.tag;
+        let uses_setup_binding = self.is_component_in_bindings(tag);
 
         self.push_indent();
-        self.push("_push(_ssrRenderComponent(_component_");
-        self.push(tag);
-        self.push(", _attrs, ");
+        self.push("_push(_ssrRenderComponent(");
+        if uses_setup_binding {
+            if !self.options.inline {
+                self.push("$setup.");
+            }
+            self.push(tag);
+        } else {
+            self.use_core_helper(RuntimeHelper::ResolveComponent);
+            self.push("_resolveComponent(\"");
+            self.push(tag);
+            self.push("\")");
+        }
+        if uses_setup_binding {
+            self.push(", null, ");
+        } else {
+            self.push(", _attrs, ");
+        }
 
         // Process slots
         if el.children.is_empty() {
             self.push("null");
         } else {
+            self.use_core_helper(RuntimeHelper::WithCtx);
             self.push("{\n");
             self.indent_level += 1;
             self.push_indent();
-            self.push("default: _withCtx(() => [\n");
+            self.push("default: _withCtx((_, _push, _parent, _scopeId) => {\n");
+            self.indent_level += 1;
+            self.push_indent();
+            self.push("if (_push) {\n");
             self.indent_level += 1;
 
             // Flush and start fresh for slot content
             let old_parts = std::mem::take(&mut self.current_template_parts);
+            let previous_slot_scope = self.with_slot_scope_id;
+            self.with_slot_scope_id = true;
             self.process_children(&el.children, false, false, false);
             self.flush_push();
+            self.with_slot_scope_id = previous_slot_scope;
             self.current_template_parts = old_parts;
 
             self.indent_level -= 1;
             self.push_indent();
-            self.push("]),\n");
+            self.push("}\n");
+            self.indent_level -= 1;
+            self.push_indent();
+            self.push("}),\n");
             self.indent_level -= 1;
             self.push_indent();
             self.push("_: 1\n");
@@ -305,7 +329,11 @@ impl<'a> SsrCodegenContext<'a> {
             self.push("}");
         }
 
-        self.push(", _parent))\n");
+        self.push(", _parent");
+        if self.with_slot_scope_id && self.options.scope_id.is_some() {
+            self.push(", _scopeId");
+        }
+        self.push("))\n");
     }
 
     /// Process a slot outlet (<slot>)

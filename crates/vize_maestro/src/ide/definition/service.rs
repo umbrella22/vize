@@ -11,16 +11,15 @@
 #[cfg(feature = "native")]
 use std::sync::Arc;
 
-use tower_lsp::lsp_types::{GotoDefinitionResponse, Location, Position, Range};
-
-#[cfg(feature = "native")]
-use tower_lsp::lsp_types::Url;
+use tower_lsp::lsp_types::GotoDefinitionResponse;
 
 #[cfg(feature = "native")]
 use vize_canon::TsgoBridge;
 
 use super::{helpers, script, template, IdeContext};
 use crate::ide::is_component_tag;
+#[cfg(feature = "native")]
+use crate::ide::tsgo_support;
 use crate::virtual_code::{ArtCursorPosition, BlockType};
 
 impl super::DefinitionService {
@@ -91,19 +90,19 @@ impl super::DefinitionService {
 
                     let (line, character) =
                         crate::ide::offset_to_position(&tmpl.content, vts_offset);
-                    #[allow(clippy::disallowed_macros)]
-                    let uri = format!("vize-virtual://{}.template.ts", ctx.uri.path());
 
                     if bridge.is_initialized() {
-                        #[allow(clippy::disallowed_macros)]
-                        let vdoc_uri = format!("{}.template.ts", ctx.uri.path());
-                        let _ = bridge
+                        let vdoc_uri = tsgo_support::template_request_path(ctx.uri);
+                        let Ok(uri) = bridge
                             .open_or_update_virtual_document(&vdoc_uri, &tmpl.content)
-                            .await;
+                            .await
+                        else {
+                            return template::definition_in_template(ctx);
+                        };
 
                         if let Ok(locations) = bridge.definition(&uri, line, character).await {
                             if !locations.is_empty() {
-                                return Some(Self::convert_lsp_locations(locations, ctx));
+                                return Self::convert_lsp_locations(locations, ctx);
                             }
                         }
                     }
@@ -168,19 +167,19 @@ impl super::DefinitionService {
                     {
                         let (line, character) =
                             crate::ide::offset_to_position(&tmpl.content, vts_offset);
-                        #[allow(clippy::disallowed_macros)]
-                        let uri = format!("vize-virtual://{}.template.ts", ctx.uri.path());
 
                         if bridge.is_initialized() {
-                            #[allow(clippy::disallowed_macros)]
-                            let vdoc_uri = format!("{}.template.ts", ctx.uri.path());
-                            let _ = bridge
+                            let vdoc_uri = tsgo_support::template_request_path(ctx.uri);
+                            let Ok(uri) = bridge
                                 .open_or_update_virtual_document(&vdoc_uri, &tmpl.content)
-                                .await;
+                                .await
+                            else {
+                                return template::definition_in_template(ctx);
+                            };
 
                             if let Ok(locations) = bridge.definition(&uri, line, character).await {
                                 if !locations.is_empty() {
-                                    return Some(Self::convert_lsp_locations(locations, ctx));
+                                    return Self::convert_lsp_locations(locations, ctx);
                                 }
                             }
                         }
@@ -224,20 +223,19 @@ impl super::DefinitionService {
                     {
                         let (line, character) =
                             crate::ide::offset_to_position(&s.content, vts_offset);
-                        let suffix = if is_setup { "setup.ts" } else { "script.ts" };
-                        #[allow(clippy::disallowed_macros)]
-                        let uri = format!("vize-virtual://{}.{}", ctx.uri.path(), suffix);
 
                         if bridge.is_initialized() {
-                            #[allow(clippy::disallowed_macros)]
-                            let vdoc_uri = format!("{}.{}", ctx.uri.path(), suffix);
-                            let _ = bridge
+                            let vdoc_uri = tsgo_support::script_request_path(ctx.uri, is_setup);
+                            let Ok(uri) = bridge
                                 .open_or_update_virtual_document(&vdoc_uri, &s.content)
-                                .await;
+                                .await
+                            else {
+                                return script::definition_in_script(ctx);
+                            };
 
                             if let Ok(locations) = bridge.definition(&uri, line, character).await {
                                 if !locations.is_empty() {
-                                    return Some(Self::convert_lsp_locations(locations, ctx));
+                                    return Self::convert_lsp_locations(locations, ctx);
                                 }
                             }
                         }
@@ -255,58 +253,16 @@ impl super::DefinitionService {
     fn convert_lsp_locations(
         locations: Vec<vize_canon::LspLocation>,
         ctx: &IdeContext<'_>,
-    ) -> GotoDefinitionResponse {
+    ) -> Option<GotoDefinitionResponse> {
         if locations.len() == 1 {
-            let loc = &locations[0];
-            let uri = if loc.uri.starts_with("vize-virtual://") {
-                ctx.uri.clone()
-            } else if let Ok(u) = Url::parse(&loc.uri) {
-                u
-            } else {
-                ctx.uri.clone()
-            };
-
-            GotoDefinitionResponse::Scalar(Location {
-                uri,
-                range: Range {
-                    start: Position {
-                        line: loc.range.start.line,
-                        character: loc.range.start.character,
-                    },
-                    end: Position {
-                        line: loc.range.end.line,
-                        character: loc.range.end.character,
-                    },
-                },
-            })
+            tsgo_support::map_tsgo_location(ctx, &locations[0]).map(GotoDefinitionResponse::Scalar)
         } else {
-            let locs: Vec<Location> = locations
-                .into_iter()
-                .map(|loc| {
-                    let uri = if loc.uri.starts_with("vize-virtual://") {
-                        ctx.uri.clone()
-                    } else if let Ok(u) = Url::parse(&loc.uri) {
-                        u
-                    } else {
-                        ctx.uri.clone()
-                    };
-                    Location {
-                        uri,
-                        range: Range {
-                            start: Position {
-                                line: loc.range.start.line,
-                                character: loc.range.start.character,
-                            },
-                            end: Position {
-                                line: loc.range.end.line,
-                                character: loc.range.end.character,
-                            },
-                        },
-                    }
-                })
-                .collect();
-
-            GotoDefinitionResponse::Array(locs)
+            let locs = tsgo_support::map_tsgo_locations(ctx, locations);
+            if locs.is_empty() {
+                None
+            } else {
+                Some(GotoDefinitionResponse::Array(locs))
+            }
         }
     }
 }

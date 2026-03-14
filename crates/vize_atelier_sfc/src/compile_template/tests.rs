@@ -94,9 +94,10 @@ export function render(_ctx, _cache) {
   return _toDisplayString(isArray.value ? ']' : '}')
 }"#;
 
-    let (imports, _hoisted, render_fn) = extract_template_parts_full(template_code);
+    let (imports, _hoisted, render_fn, render_fn_name) = extract_template_parts_full(template_code);
 
     assert!(imports.contains("import"));
+    assert_eq!(render_fn_name, "render");
     assert!(
         render_fn.contains("_toDisplayString"),
         "Render function was truncated. Got:\n{}",
@@ -120,10 +121,12 @@ export function render(_ctx, _cache) {
   return _createVNode("div", _hoisted_1, "Hello")
 }"#;
 
-    let (imports, hoisted, _preamble, render_body) = extract_template_parts(template_code);
+    let (imports, hoisted, _preamble, render_body, render_fn_name) =
+        extract_template_parts(template_code);
 
     assert!(imports.contains("import"));
     assert!(hoisted.contains("_hoisted_1"));
+    assert_eq!(render_fn_name, "render");
     assert!(render_body.contains("_createVNode"));
 }
 
@@ -139,9 +142,11 @@ function render(_ctx, $props, $emit, $attrs, $slots) {
   return n0
 }"#;
 
-    let (_imports, hoisted, _preamble, render_body) = extract_template_parts(template_code);
+    let (_imports, hoisted, _preamble, render_body, render_fn_name) =
+        extract_template_parts(template_code);
 
     assert!(hoisted.contains("const t0 = _template"));
+    assert_eq!(render_fn_name, "render");
     assert!(render_body.contains("const n0 = t0()"));
     assert!(render_body.contains("_renderEffect"));
 }
@@ -158,11 +163,46 @@ function render(_ctx, $props, $emit, $attrs, $slots) {
   return n0
 }"#;
 
-    let (_imports, hoisted, render_fn) = extract_template_parts_full(template_code);
+    let (_imports, hoisted, render_fn, render_fn_name) = extract_template_parts_full(template_code);
 
     assert!(hoisted.contains("const t0 = _template"));
     assert!(hoisted.contains("_delegateEvents(\"click\")"));
+    assert_eq!(render_fn_name, "render");
     assert!(render_fn.contains("const n0 = t0()"));
+}
+
+#[test]
+fn test_extract_template_parts_full_ssr_render_function() {
+    let template_code = r#"import { ssrRenderComponent as _ssrRenderComponent } from "vue/server-renderer"
+
+export function ssrRender(_ctx, _push, _parent, _attrs) {
+  _push(_ssrRenderComponent(_ctx.Foo, null, null, _parent))
+}"#;
+
+    let (imports, _hoisted, render_fn, render_fn_name) = extract_template_parts_full(template_code);
+
+    assert!(imports.contains("vue/server-renderer"));
+    assert_eq!(render_fn_name, "ssrRender");
+    assert!(render_fn.contains("_ssrRenderComponent"));
+}
+
+#[test]
+fn test_extract_template_parts_ssr_preserves_render_name_without_inline_body() {
+    let template_code = r#"import { ssrRenderComponent as _ssrRenderComponent } from "vue/server-renderer"
+
+export function ssrRender(_ctx, _push, _parent, _attrs) {
+  _push(_ssrRenderComponent(_ctx.Foo, null, null, _parent))
+}"#;
+
+    let (_imports, _hoisted, _preamble, render_body, render_fn_name) =
+        extract_template_parts(template_code);
+
+    assert_eq!(render_fn_name, "ssrRender");
+    assert!(
+        render_body.is_empty(),
+        "SSR render functions should stay separate instead of being inlined. Got:\n{}",
+        render_body
+    );
 }
 
 // --- Multiline template literal tests ---
@@ -216,7 +256,8 @@ export function render(_ctx, _cache, $props, $setup, $data, $options) {
     : _createCommentVNode("v-if", true)
 }"#;
 
-    let (_imports, _hoisted, _preamble, render_body) = extract_template_parts(template_code);
+    let (_imports, _hoisted, _preamble, render_body, _render_fn_name) =
+        extract_template_parts(template_code);
 
     assert!(
         render_body.contains("_toDisplayString"),
@@ -245,7 +286,8 @@ export function render(_ctx, _cache) {
   }`)
 }"#;
 
-    let (_imports, _hoisted, render_fn) = extract_template_parts_full(template_code);
+    let (_imports, _hoisted, render_fn, _render_fn_name) =
+        extract_template_parts_full(template_code);
 
     assert!(
         render_fn.contains("_toDisplayString"),
@@ -381,7 +423,8 @@ export function render(_ctx, _cache, $props, $setup, $data, $options) {
     : _createCommentVNode("v-if", true)
 }"#;
 
-    let (_imports, _hoisted, _preamble, render_body) = extract_template_parts(template_code);
+    let (_imports, _hoisted, _preamble, render_body, _render_fn_name) =
+        extract_template_parts(template_code);
 
     assert!(
         render_body.contains("_createCommentVNode"),
@@ -408,7 +451,8 @@ export function render(_ctx, _cache) {
   })).length} items`)
 }"#;
 
-    let (_imports, _hoisted, render_fn) = extract_template_parts_full(template_code);
+    let (_imports, _hoisted, render_fn, _render_fn_name) =
+        extract_template_parts_full(template_code);
 
     let trimmed = render_fn.trim();
     assert!(
