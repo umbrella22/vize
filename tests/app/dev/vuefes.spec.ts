@@ -34,7 +34,13 @@ test.describe("vuefes-2025 dev", () => {
     });
 
     console.log(`Waiting for ${app.name} server to be ready (port ${app.port})...`);
-    await waitForServerReady(devServer, app.port, app.readyPattern, app.startupTimeout, app.readyDelay);
+    await waitForServerReady(
+      devServer,
+      app.port,
+      app.readyPattern,
+      app.startupTimeout,
+      app.readyDelay,
+    );
     await waitForHttpReady(app.url, app.port);
     console.log(`${app.name} server is ready`);
   });
@@ -74,9 +80,7 @@ test.describe("vuefes-2025 dev", () => {
     await page.waitForTimeout(5_000);
 
     // Filter out known harmless SSR/client hydration differences (PrimeVue Carousel, etc.)
-    const unexpectedErrors = hydrationErrors.filter(
-      (e) => !(/Hydration/i.test(e)),
-    );
+    const unexpectedErrors = hydrationErrors.filter((e) => !/Hydration/i.test(e));
     expect(unexpectedErrors).toHaveLength(0);
   });
 

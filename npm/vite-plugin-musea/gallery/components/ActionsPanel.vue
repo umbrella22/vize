@@ -1,43 +1,51 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
-import hljs from 'highlight.js/lib/core'
-import json from 'highlight.js/lib/languages/json'
-import { mdiChevronUp, mdiChevronDown } from '@mdi/js'
-import { useActions, type ActionEvent } from '../composables/useActions'
-import MdiIcon from './MdiIcon.vue'
+import { computed, ref } from "vue";
+import hljs from "highlight.js/lib/core";
+import json from "highlight.js/lib/languages/json";
+import { mdiChevronUp, mdiChevronDown } from "@mdi/js";
+import { useActions, type ActionEvent } from "../composables/useActions";
+import MdiIcon from "./MdiIcon.vue";
 
-hljs.registerLanguage('json', json)
+hljs.registerLanguage("json", json);
 
-const { events, clear } = useActions()
-const expandedIndex = ref<number | null>(null)
+const { events, clear } = useActions();
+const expandedIndex = ref<number | null>(null);
 
-const reversedEvents = computed(() => [...events.value].reverse())
+const reversedEvents = computed(() => [...events.value].reverse());
 
 function toggleExpand(index: number) {
-  expandedIndex.value = expandedIndex.value === index ? null : index
+  expandedIndex.value = expandedIndex.value === index ? null : index;
 }
 
 function formatTime(timestamp: number): string {
-  const d = new Date(timestamp)
-  return d.toLocaleTimeString('en', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit', fractionalSecondDigits: 3 })
+  const d = new Date(timestamp);
+  return d.toLocaleTimeString("en", {
+    hour12: false,
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    fractionalSecondDigits: 3,
+  });
 }
 
 function formatRawEvent(event: ActionEvent): string {
   if (!event.rawEvent) {
-    return JSON.stringify({ target: event.target, value: event.value }, null, 2)
+    return JSON.stringify({ target: event.target, value: event.value }, null, 2);
   }
-  return JSON.stringify(event.rawEvent, null, 2)
+  return JSON.stringify(event.rawEvent, null, 2);
 }
 
 function highlightJson(str: string): string {
-  return hljs.highlight(str, { language: 'json' }).value
+  return hljs.highlight(str, { language: "json" }).value;
 }
 </script>
 
 <template>
   <div class="actions-panel">
     <div class="actions-header">
-      <span class="actions-count">{{ events.length }} event{{ events.length !== 1 ? 's' : '' }}</span>
+      <span class="actions-count"
+        >{{ events.length }} event{{ events.length !== 1 ? "s" : "" }}</span
+      >
       <button v-if="events.length > 0" type="button" class="actions-clear-btn" @click="clear()">
         Clear
       </button>
@@ -67,7 +75,9 @@ function highlightJson(str: string): string {
           />
         </div>
         <div v-if="expandedIndex === index" class="action-detail">
-          <pre class="action-raw hljs"><code v-html="highlightJson(formatRawEvent(event))"></code></pre>
+          <pre
+            class="action-raw hljs"
+          ><code v-html="highlightJson(formatRawEvent(event))"></code></pre>
         </div>
       </div>
     </div>

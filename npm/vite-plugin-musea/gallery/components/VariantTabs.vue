@@ -1,50 +1,50 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
-import type { ArtVariant } from '../../src/types/index.js'
+import { ref, computed, watch, onMounted, onUnmounted } from "vue";
+import type { ArtVariant } from "../../src/types/index.js";
 
 const props = defineProps<{
-  variants: ArtVariant[]
-  selectedVariant: string
-}>()
+  variants: ArtVariant[];
+  selectedVariant: string;
+}>();
 
 const emit = defineEmits<{
-  (e: 'select', variantName: string): void
-}>()
+  (e: "select", variantName: string): void;
+}>();
 
-const tabsRef = ref<HTMLElement | null>(null)
-const showLeftArrow = ref(false)
-const showRightArrow = ref(false)
+const tabsRef = ref<HTMLElement | null>(null);
+const showLeftArrow = ref(false);
+const showRightArrow = ref(false);
 
-const defaultVariant = computed(() =>
-  props.variants.find(v => v.isDefault)?.name || props.variants[0]?.name
-)
+const defaultVariant = computed(
+  () => props.variants.find((v) => v.isDefault)?.name || props.variants[0]?.name,
+);
 
 const checkScrollButtons = () => {
-  if (!tabsRef.value) return
-  const el = tabsRef.value
-  showLeftArrow.value = el.scrollLeft > 0
-  showRightArrow.value = el.scrollLeft < el.scrollWidth - el.clientWidth - 1
-}
+  if (!tabsRef.value) return;
+  const el = tabsRef.value;
+  showLeftArrow.value = el.scrollLeft > 0;
+  showRightArrow.value = el.scrollLeft < el.scrollWidth - el.clientWidth - 1;
+};
 
-const scroll = (direction: 'left' | 'right') => {
-  if (!tabsRef.value) return
-  const scrollAmount = 200
+const scroll = (direction: "left" | "right") => {
+  if (!tabsRef.value) return;
+  const scrollAmount = 200;
   tabsRef.value.scrollBy({
-    left: direction === 'left' ? -scrollAmount : scrollAmount,
-    behavior: 'smooth'
-  })
-}
+    left: direction === "left" ? -scrollAmount : scrollAmount,
+    behavior: "smooth",
+  });
+};
 
 onMounted(() => {
-  checkScrollButtons()
-  window.addEventListener('resize', checkScrollButtons)
-})
+  checkScrollButtons();
+  window.addEventListener("resize", checkScrollButtons);
+});
 
 onUnmounted(() => {
-  window.removeEventListener('resize', checkScrollButtons)
-})
+  window.removeEventListener("resize", checkScrollButtons);
+});
 
-watch(() => props.variants, checkScrollButtons)
+watch(() => props.variants, checkScrollButtons);
 </script>
 
 <template>
@@ -61,19 +61,18 @@ watch(() => props.variants, checkScrollButtons)
       </svg>
     </button>
 
-    <div
-      ref="tabsRef"
-      class="variant-tabs"
-      @scroll="checkScrollButtons"
-    >
+    <div ref="tabsRef" class="variant-tabs" @scroll="checkScrollButtons">
       <button
         v-for="variant in variants"
         :key="variant.name"
         type="button"
-        :class="['variant-tab', {
-          'variant-tab--active': variant.name === selectedVariant,
-          'variant-tab--default': variant.isDefault
-        }]"
+        :class="[
+          'variant-tab',
+          {
+            'variant-tab--active': variant.name === selectedVariant,
+            'variant-tab--default': variant.isDefault,
+          },
+        ]"
         @click="emit('select', variant.name)"
       >
         <span class="variant-tab-name">{{ variant.name }}</span>

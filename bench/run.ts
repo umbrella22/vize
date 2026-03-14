@@ -11,13 +11,7 @@
 
 import { parse, compileScript, compileTemplate } from "@vue/compiler-sfc";
 import type { BindingMetadata } from "@vue/compiler-sfc";
-import {
-  existsSync,
-  readdirSync,
-  readFileSync,
-  writeFileSync,
-  mkdirSync,
-} from "node:fs";
+import { existsSync, readdirSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join, basename } from "node:path";
 import { createRequire } from "node:module";
@@ -36,13 +30,10 @@ const FILE_LIMIT = parseInt(process.argv[2] || "0", 10) || Infinity;
 
 // Types
 interface NativeBindings {
-  compileSfc: (
-    source: string,
-    options: { filename: string }
-  ) => { code: string };
+  compileSfc: (source: string, options: { filename: string }) => { code: string };
   compileSfcBatch: (
     pattern: string,
-    options?: { ssr?: boolean; threads?: number }
+    options?: { ssr?: boolean; threads?: number },
   ) => {
     success: number;
     failed: number;
@@ -76,7 +67,7 @@ if (existsSync(nativePath)) {
 // Check input files exist
 if (!existsSync(INPUT_DIR)) {
   console.error(
-    `Error: Input directory not found: ${INPUT_DIR}\nRun 'node generate.mjs' first to create test files.`
+    `Error: Input directory not found: ${INPUT_DIR}\nRun 'node generate.mjs' first to create test files.`,
   );
   process.exit(1);
 }
@@ -86,7 +77,7 @@ const vueFiles = readdirSync(INPUT_DIR)
   .slice(0, FILE_LIMIT);
 if (vueFiles.length === 0) {
   console.error(
-    `Error: No .vue files found in ${INPUT_DIR}\nRun 'node generate.mjs' first to create test files.`
+    `Error: No .vue files found in ${INPUT_DIR}\nRun 'node generate.mjs' first to create test files.`,
   );
   process.exit(1);
 }
@@ -97,10 +88,7 @@ const files: TestFile[] = vueFiles.map((filename) => ({
   source: readFileSync(join(INPUT_DIR, filename), "utf-8"),
 }));
 
-const totalSize = files.reduce(
-  (sum, f) => sum + Buffer.byteLength(f.source, "utf8"),
-  0
-);
+const totalSize = files.reduce((sum, f) => sum + Buffer.byteLength(f.source, "utf8"), 0);
 
 // Ensure output directories exist
 mkdirSync(ORIGINAL_OUT_DIR, { recursive: true });
@@ -148,10 +136,7 @@ function runOriginalSingleThread(saveOutput: boolean): number {
     for (const file of files) {
       const code = vueCompileSfc(file.source, file.filename);
       if (saveOutput) {
-        const outPath = join(
-          ORIGINAL_OUT_DIR,
-          file.filename.replace(".vue", ".js")
-        );
+        const outPath = join(ORIGINAL_OUT_DIR, file.filename.replace(".vue", ".js"));
         writeFileSync(outPath, code);
       }
     }
@@ -167,10 +152,7 @@ function runNativeSingleThread(saveOutput: boolean): number {
         filename: file.filename,
       });
       if (saveOutput) {
-        const outPath = join(
-          NATIVE_OUT_DIR,
-          file.filename.replace(".vue", ".js")
-        );
+        const outPath = join(NATIVE_OUT_DIR, file.filename.replace(".vue", ".js"));
         writeFileSync(outPath, result.code);
       }
     }
@@ -222,7 +204,7 @@ async function runOriginalMultiThread(): Promise<number> {
       new Promise((resolve, reject) => {
         worker.on("message", resolve);
         worker.on("error", reject);
-      })
+      }),
     );
   }
 
@@ -256,9 +238,7 @@ console.log(` Output    : ${OUTPUT_DIR}`);
 console.log();
 console.log(" Compilers:");
 console.log(`   Original : @vue/compiler-sfc`);
-console.log(
-  `   Native   : vize (NAPI)  ${native ? "OK" : "NOT FOUND"}`
-);
+console.log(`   Native   : vize (NAPI)  ${native ? "OK" : "NOT FOUND"}`);
 console.log();
 console.log("-".repeat(65));
 
@@ -271,14 +251,14 @@ console.log();
 const saveOutput = FILE_LIMIT === Infinity;
 const originalSingle = runOriginalSingleThread(saveOutput);
 console.log(
-  `   Original : ${formatTime(originalSingle).padStart(8)}  (${formatThroughput(files.length, originalSingle)})`
+  `   Original : ${formatTime(originalSingle).padStart(8)}  (${formatThroughput(files.length, originalSingle)})`,
 );
 
 if (native) {
   const nativeSingle = runNativeSingleThread(saveOutput);
   const speedup = (originalSingle / nativeSingle).toFixed(1);
   console.log(
-    `   Native   : ${formatTime(nativeSingle).padStart(8)}  (${formatThroughput(files.length, nativeSingle)})  ${speedup}x faster`
+    `   Native   : ${formatTime(nativeSingle).padStart(8)}  (${formatThroughput(files.length, nativeSingle)})  ${speedup}x faster`,
   );
 }
 
@@ -290,7 +270,7 @@ if (FILE_LIMIT === Infinity) {
 
   const originalMulti = await runOriginalMultiThread();
   console.log(
-    `   Original : ${formatTime(originalMulti).padStart(8)}  (${formatThroughput(files.length, originalMulti)})`
+    `   Original : ${formatTime(originalMulti).padStart(8)}  (${formatThroughput(files.length, originalMulti)})`,
   );
 
   if (native) {
@@ -306,7 +286,7 @@ if (FILE_LIMIT === Infinity) {
     const nativeMulti = result.timeMs;
     const speedup = (originalMulti / nativeMulti).toFixed(1);
     console.log(
-      `   Native   : ${formatTime(nativeMulti).padStart(8)}  (${formatThroughput(files.length, nativeMulti)})  ${speedup}x faster`
+      `   Native   : ${formatTime(nativeMulti).padStart(8)}  (${formatThroughput(files.length, nativeMulti)})  ${speedup}x faster`,
     );
   }
 } else {
@@ -329,10 +309,10 @@ if (FILE_LIMIT === Infinity) {
     const speedup = (nativeThroughput / originalThroughput).toFixed(1);
 
     console.log(
-      `   Original : ${formatThroughput(files.length, originalSingle).padStart(12)}  (single-thread, ${files.length} files)`
+      `   Original : ${formatThroughput(files.length, originalSingle).padStart(12)}  (single-thread, ${files.length} files)`,
     );
     console.log(
-      `   Native   : ${formatThroughput(result.success, result.timeMs).padStart(12)}  (multi-thread, ${result.success} files)  ${speedup}x faster`
+      `   Native   : ${formatThroughput(result.success, result.timeMs).padStart(12)}  (multi-thread, ${result.success} files)  ${speedup}x faster`,
     );
   }
 }
@@ -350,11 +330,9 @@ if (FILE_LIMIT === Infinity && native) {
   console.log(" Summary:");
   console.log();
   console.log(
-    `   Original ST vs Native ST : ${(originalSingle / runNativeSingleThread(false)).toFixed(1)}x`
+    `   Original ST vs Native ST : ${(originalSingle / runNativeSingleThread(false)).toFixed(1)}x`,
   );
-  console.log(
-    `   Original ST vs Native MT : ${crossSpeedup}x  (user-facing speedup)`
-  );
+  console.log(`   Original ST vs Native MT : ${crossSpeedup}x  (user-facing speedup)`);
 }
 
 console.log();

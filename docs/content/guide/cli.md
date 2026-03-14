@@ -28,14 +28,14 @@ When invoked without a command, Vize defaults to `build`.
 
 ## Commands
 
-| Command | Description | Crate |
-|---------|-------------|-------|
-| `build` | Compile Vue SFC files (default) | `vize_atelier_sfc` |
-| `fmt` | Format Vue SFC files | `vize_glyph` |
-| `lint` | Lint Vue SFC files | `vize_patina` |
-| `check` | Type check Vue SFC files | `vize_canon` |
-| `musea` | Start component gallery server | `vize_musea` |
-| `lsp` | Start Language Server Protocol server | `vize_maestro` |
+| Command | Description                           | Crate              |
+| ------- | ------------------------------------- | ------------------ |
+| `build` | Compile Vue SFC files (default)       | `vize_atelier_sfc` |
+| `fmt`   | Format Vue SFC files                  | `vize_glyph`       |
+| `lint`  | Lint Vue SFC files                    | `vize_patina`      |
+| `check` | Type check Vue SFC files              | `vize_canon`       |
+| `musea` | Start component gallery server        | `vize_musea`       |
+| `lsp`   | Start Language Server Protocol server | `vize_maestro`     |
 
 ## Build
 
@@ -63,21 +63,21 @@ vize build --script_ext=preserve
 
 ### Options
 
-| Option | Default | Description |
-|--------|---------|-------------|
-| `-o, --output` | `dist` | Output directory |
-| `--ssr` | `false` | Enable SSR mode (uses `vize_atelier_ssr`) |
-| `--script_ext` | — | Script extension handling (`preserve` to keep `.ts`/`.tsx`) |
+| Option         | Default | Description                                                 |
+| -------------- | ------- | ----------------------------------------------------------- |
+| `-o, --output` | `dist`  | Output directory                                            |
+| `--ssr`        | `false` | Enable SSR mode (uses `vize_atelier_ssr`)                   |
+| `--script_ext` | —       | Script extension handling (`preserve` to keep `.ts`/`.tsx`) |
 
 ### Multi-threaded Compilation
 
 The build command automatically uses all available CPU cores via Rayon. Each SFC file is compiled independently, achieving near-linear scaling:
 
-| Files | Single Thread | Multi Thread (8 cores) | Speedup |
-|-------|--------------|----------------------|---------|
-| 1,000 | 443ms | 73ms | 6.1x |
-| 5,000 | 2.2s | 198ms | 11.1x |
-| 15,000 | 6.65s | 498ms | 13.4x |
+| Files  | Single Thread | Multi Thread (8 cores) | Speedup |
+| ------ | ------------- | ---------------------- | ------- |
+| 1,000  | 443ms         | 73ms                   | 6.1x    |
+| 5,000  | 2.2s          | 198ms                  | 11.1x   |
+| 15,000 | 6.65s         | 498ms                  | 13.4x   |
 
 ## Format
 
@@ -96,8 +96,8 @@ vize fmt src/components/**/*.vue
 
 ### Options
 
-| Option | Description |
-|--------|-------------|
+| Option    | Description                                                                         |
+| --------- | ----------------------------------------------------------------------------------- |
 | `--check` | Check formatting without writing. Returns exit code 1 if any files are unformatted. |
 
 ## Lint
@@ -117,10 +117,10 @@ vize lint src/components/**/*.vue
 
 ### Options
 
-| Option | Default | Description |
-|--------|---------|-------------|
-| `--fix` | `false` | Auto-fix lint issues where possible |
-| `--locale` | `en` | Lint message language (`en`, `ja`, `zh`) |
+| Option     | Default | Description                              |
+| ---------- | ------- | ---------------------------------------- |
+| `--fix`    | `false` | Auto-fix lint issues where possible      |
+| `--locale` | `en`    | Lint message language (`en`, `ja`, `zh`) |
 
 ### Locale Support
 
@@ -158,8 +158,8 @@ vize check src/components/**/*.vue
 
 ### Options
 
-| Option | Default | Description |
-|--------|---------|-------------|
+| Option     | Default | Description                      |
+| ---------- | ------- | -------------------------------- |
 | `--strict` | `false` | Enable strict type checking mode |
 
 ### Future: tsgo Integration
@@ -204,7 +204,7 @@ vize <command> --help   # Show command-specific help
 
 ## Exit Codes
 
-| Code | Meaning |
-|------|---------|
-| `0` | Success |
-| `1` | Error (compilation failure, lint errors, formatting issues with `--check`) |
+| Code | Meaning                                                                    |
+| ---- | -------------------------------------------------------------------------- |
+| `0`  | Success                                                                    |
+| `1`  | Error (compilation failure, lint errors, formatting issues with `--check`) |

@@ -18,14 +18,14 @@ npm install -g github:ubugeeei/vize
 vize [COMMAND] [OPTIONS]
 ```
 
-| Command | Description                            |
-| ------- | -------------------------------------- |
-| `build` | Compile Vue SFC files (default)        |
-| `fmt`   | Format Vue SFC files                   |
-| `lint`  | Lint Vue SFC files                     |
-| `check` | Type check Vue SFC files               |
-| `musea` | Start component gallery server         |
-| `lsp`   | Start Language Server Protocol server  |
+| Command | Description                           |
+| ------- | ------------------------------------- |
+| `build` | Compile Vue SFC files (default)       |
+| `fmt`   | Format Vue SFC files                  |
+| `lint`  | Lint Vue SFC files                    |
+| `check` | Type check Vue SFC files              |
+| `musea` | Start component gallery server        |
+| `lsp`   | Start Language Server Protocol server |
 
 ```bash
 vize --help           # Show help

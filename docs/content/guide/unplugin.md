@@ -76,9 +76,7 @@ export default {
     css: true,
   },
   module: {
-    rules: [
-      ...createVizeVueRules(),
-    ],
+    rules: [...createVizeVueRules()],
   },
   plugins: [new VizePlugin()],
 };

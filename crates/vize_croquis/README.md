@@ -15,11 +15,13 @@
 **Croquis** (/kʁɔ.ki/) is a French term for a quick, sketchy drawing that captures the essential features of a subject. Artists use croquis to rapidly understand and convey the essence of a pose or scene.
 
 In the art world, croquis:
+
 - **Captures** - Quickly grasps the essential form
 - **Analyzes** - Understands structure through rapid observation
 - **Prepares** - Lays groundwork for detailed work
 
 Similarly, `vize_croquis` provides:
+
 - **Scope analysis** - Track variable scopes across templates
 - **Binding resolution** - Resolve identifiers to declarations
 - **Symbol tracking** - Fast lookup of bindings and metadata
@@ -74,18 +76,18 @@ assert!(chain.is_defined("item"));  // from current
 
 `vize_croquis` is the semantic analysis layer of the Vize compiler's art-themed crate collection:
 
-| Crate | Art Term | Role |
-|-------|----------|------|
-| vize_carton | Carton (Portfolio Case) | Shared utilities & allocator |
-| vize_relief | Relief (Sculptured Surface) | AST definitions |
-| vize_armature | Armature (Sculpture Frame) | Tokenizer & parser |
-| **vize_croquis** | **Croquis (Quick Sketch)** | **Semantic analysis (this crate)** |
-| vize_atelier_core | Atelier (Workshop) | Transforms & codegen |
-| vize_atelier_sfc | Atelier (Workshop) | SFC compiler |
-| vize_vitrine | Vitrine (Display Case) | Bindings (Node.js/WASM) |
-| vize_canon | Canon (Standard) | Type checker |
-| vize_glyph | Glyph (Letterform) | Formatter |
-| vize_patina | Patina (Aged Surface) | Linter |
+| Crate             | Art Term                    | Role                               |
+| ----------------- | --------------------------- | ---------------------------------- |
+| vize_carton       | Carton (Portfolio Case)     | Shared utilities & allocator       |
+| vize_relief       | Relief (Sculptured Surface) | AST definitions                    |
+| vize_armature     | Armature (Sculpture Frame)  | Tokenizer & parser                 |
+| **vize_croquis**  | **Croquis (Quick Sketch)**  | **Semantic analysis (this crate)** |
+| vize_atelier_core | Atelier (Workshop)          | Transforms & codegen               |
+| vize_atelier_sfc  | Atelier (Workshop)          | SFC compiler                       |
+| vize_vitrine      | Vitrine (Display Case)      | Bindings (Node.js/WASM)            |
+| vize_canon        | Canon (Standard)            | Type checker                       |
+| vize_glyph        | Glyph (Letterform)          | Formatter                          |
+| vize_patina       | Patina (Aged Surface)       | Linter                             |
 
 ## License
 

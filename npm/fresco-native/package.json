@@ -2,11 +2,37 @@
   "name": "@vizejs/fresco-native",
   "version": "0.33.0",
   "description": "Vue TUI framework - Native bindings",
+  "keywords": [
+    "fresco",
+    "napi",
+    "native",
+    "terminal",
+    "tui",
+    "vize",
+    "vue"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ubugeeei/vize"
+  },
+  "files": [
+    "index.js",
+    "index.d.ts"
+  ],
+  "main": "index.js",
+  "types": "index.d.ts",
   "publishConfig": {
     "access": "public"
   },
-  "main": "index.js",
-  "types": "index.d.ts",
+  "scripts": {
+    "build": "napi build --platform --release --manifest-path ../../crates/vize_fresco/Cargo.toml -p vize_fresco --features napi --output-dir .",
+    "build:debug": "napi build --platform --manifest-path ../../crates/vize_fresco/Cargo.toml -p vize_fresco --features napi --output-dir .",
+    "prepublishOnly": "napi pre-publish -t npm --no-gh-release --skip-optional-publish"
+  },
+  "devDependencies": {
+    "@napi-rs/cli": "^3.0.0"
+  },
   "napi": {
     "binaryName": "vize-fresco",
     "targets": [
@@ -19,31 +45,5 @@
       "aarch64-unknown-linux-gnu",
       "aarch64-unknown-linux-musl"
     ]
-  },
-  "files": [
-    "index.js",
-    "index.d.ts"
-  ],
-  "scripts": {
-    "build": "napi build --platform --release --manifest-path ../../crates/vize_fresco/Cargo.toml -p vize_fresco --features napi --output-dir .",
-    "build:debug": "napi build --platform --manifest-path ../../crates/vize_fresco/Cargo.toml -p vize_fresco --features napi --output-dir .",
-    "prepublishOnly": "napi pre-publish -t npm --no-gh-release --skip-optional-publish"
-  },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/ubugeeei/vize"
-  },
-  "keywords": [
-    "vue",
-    "tui",
-    "terminal",
-    "native",
-    "napi",
-    "vize",
-    "fresco"
-  ],
-  "license": "MIT",
-  "devDependencies": {
-    "@napi-rs/cli": "^3.0.0"
   }
 }

@@ -2,6 +2,27 @@
   "name": "@vizejs/nuxt",
   "version": "0.33.0",
   "description": "Nuxt module for Vize - compiler, musea gallery, linter, and type checker",
+  "keywords": [
+    "compiler",
+    "gallery",
+    "linter",
+    "musea",
+    "nuxt",
+    "nuxt-module",
+    "type-checker",
+    "vize",
+    "vue"
+  ],
+  "license": "MIT",
+  "author": "ubugeeei",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ubugeeei/vize.git",
+    "directory": "npm/nuxt"
+  },
+  "files": [
+    "dist"
+  ],
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -11,51 +32,31 @@
       "types": "./dist/index.d.ts"
     }
   },
-  "files": [
-    "dist"
-  ],
-  "scripts": {
-    "build": "tsdown",
-    "dev": "tsdown --watch",
-    "fmt": "oxfmt --write src tsdown.config.ts",
-    "fmt:check": "oxfmt src tsdown.config.ts"
+  "publishConfig": {
+    "access": "public"
   },
-  "keywords": [
-    "nuxt",
-    "nuxt-module",
-    "vue",
-    "vize",
-    "compiler",
-    "musea",
-    "gallery",
-    "linter",
-    "type-checker"
-  ],
-  "author": "ubugeeei",
-  "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/ubugeeei/vize.git",
-    "directory": "npm/nuxt"
+  "scripts": {
+    "build": "vp pack",
+    "dev": "vp pack --watch",
+    "check": "vp check src vite.config.ts",
+    "check:fix": "vp check --fix src vite.config.ts",
+    "fmt": "vp fmt --write src vite.config.ts"
   },
   "dependencies": {
     "@nuxt/kit": "^4.0.0",
+    "@vizejs/musea-nuxt": "workspace:*",
     "@vizejs/vite-plugin": "workspace:*",
     "@vizejs/vite-plugin-musea": "workspace:*",
-    "@vizejs/musea-nuxt": "workspace:*",
     "vize": "workspace:*"
   },
   "devDependencies": {
-    "tsdown": "^0.9.0",
     "typescript": "^5.7.0",
-    "vite": "^8.0.0",
+    "vite": "catalog:",
+    "vite-plus": "catalog:",
     "vue": "^3.5.0",
     "vue-router": "^4.5.0"
   },
   "peerDependencies": {
     "nuxt": "^3.0.0 || ^4.0.0"
-  },
-  "publishConfig": {
-    "access": "public"
   }
 }

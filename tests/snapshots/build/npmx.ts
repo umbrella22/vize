@@ -35,7 +35,8 @@ describe(`${app.name} build (compiler)`, () => {
     console.log(stdout);
 
     assert.ok(fs.existsSync(outDir), "output directory should exist");
-    const jsFiles = fs.readdirSync(outDir, { recursive: true })
+    const jsFiles = fs
+      .readdirSync(outDir, { recursive: true })
       .filter((f) => String(f).endsWith(".js"));
     console.log(`Generated ${jsFiles.length} JS files`);
     assert.ok(jsFiles.length > 0, "should produce .js output files");
@@ -47,7 +48,8 @@ describe(`${app.name} build (compiler)`, () => {
       assert.fail("output directory does not exist - run build test first");
     }
 
-    const jsFiles = fs.readdirSync(outDir, { recursive: true })
+    const jsFiles = fs
+      .readdirSync(outDir, { recursive: true })
       .filter((f) => String(f).endsWith(".js"))
       .slice(0, 10);
 
@@ -58,9 +60,11 @@ describe(`${app.name} build (compiler)`, () => {
       try {
         new Function(content);
       } catch (e: any) {
-        if (!e.message.includes("Cannot use import") &&
-            !e.message.includes("Unexpected token 'export'") &&
-            !e.message.includes("Cannot use 'import.meta'")) {
+        if (
+          !e.message.includes("Cannot use import") &&
+          !e.message.includes("Unexpected token 'export'") &&
+          !e.message.includes("Cannot use 'import.meta'")
+        ) {
           assert.fail(`Invalid JS in ${file}: ${e.message}`);
         }
       }

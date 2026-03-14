@@ -20,20 +20,7 @@ jobs:
       - name: Format Rust
         run: cargo fmt --all -- --check
 
-  fmt-js:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-          cache: pnpm
-      - run: pnpm install
-      - name: Format JS/TS
-        run: pnpm fmt:check
-
-  lint-js:
+  check-js:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -43,14 +30,14 @@ jobs:
         run: cargo build --release -p vize
       - name: Install vize CLI
         run: cp target/release/vize /usr/local/bin/vize
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: voidzero-dev/setup-vp@v1
         with:
-          node-version: "22"
-          cache: pnpm
-      - run: pnpm install
-      - name: Lint JS/TS
-        run: pnpm lint
+          node-version-file: ".node-version"
+          cache: true
+      - name: Build JS packages
+        run: vp run --workspace-root build:packages
+      - name: Check JS/TS
+        run: vp run --workspace-root check
 
   clippy-and-test:
     runs-on: ubuntu-latest
@@ -119,31 +106,14 @@ jobs:
           cargo build --release -p vize_vitrine --no-default-features --features wasm --target wasm32-unknown-unknown
           wasm-bindgen target/wasm32-unknown-unknown/release/vize_vitrine.wasm --out-dir playground/src/wasm --target web
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Setup Vite+ and Node.js
+        uses: voidzero-dev/setup-vp@v1
         with:
-          node-version: "22"
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-
-      - name: Get pnpm store directory
-        shell: bash
-        run: echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
-
-      - name: Setup pnpm cache
-        uses: actions/cache@v4
-        with:
-          path: ${{ env.STORE_PATH }}
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-pnpm-store-
-
-      - name: Install dependencies
-        run: pnpm install
+          node-version-file: ".node-version"
+          cache: true
 
       - name: Build npm packages
-        run: pnpm -r --filter './npm/*' run build
+        run: vp run --filter './npm/vize-native' --filter './npm/vite-plugin-vize' build
 
       - name: Cache Playwright browsers
         uses: actions/cache@v4
@@ -152,23 +122,46 @@ jobs:
           key: ${{ runner.os }}-playwright-${{ hashFiles('**/pnpm-lock.yaml') }}
 
       - name: Install Playwright browsers
-        working-directory: playground
-        run: npx playwright install chromium --with-deps
+        run: |
+          VITE_PLUS_PLAYWRIGHT_CLI="$(node <<'EOF'
+          const path = require("node:path");
+
+          const vitePlusDir = path.dirname(require.resolve("vite-plus/package.json"));
+          const vitePlusTestDir = path.dirname(
+            require.resolve("@voidzero-dev/vite-plus-test/package.json", { paths: [vitePlusDir] }),
+          );
+          const playwrightPkg = require.resolve("playwright/package.json", {
+            paths: [vitePlusTestDir],
+          });
+
+          process.stdout.write(path.join(path.dirname(playwrightPkg), "cli.js"));
+          EOF
+          )"
+          PLAYGROUND_PLAYWRIGHT_CLI="$(node <<'EOF'
+          const path = require("node:path");
+
+          const playgroundDir = path.resolve("playground");
+          const playwrightPkg = require.resolve("playwright/package.json", {
+            paths: [playgroundDir],
+          });
+
+          process.stdout.write(path.join(path.dirname(playwrightPkg), "cli.js"));
+          EOF
+          )"
+          node "$VITE_PLUS_PLAYWRIGHT_CLI" install chromium --with-deps
+          node "$PLAYGROUND_PLAYWRIGHT_CLI" install chromium
 
       - name: Run playground tests
-        working-directory: playground
-        run: pnpm test:browser
+        run: vp run --filter './playground' test:browser
 
       - name: Run VRT
-        working-directory: playground
-        run: pnpm test:vrt
+        run: vp run --filter './playground' test:vrt
         continue-on-error: true
         id: vrt
 
       - name: Update VRT snapshots
         if: steps.vrt.outcome == 'failure'
-        working-directory: playground
-        run: pnpm test:vrt:update
+        run: vp run --filter './playground' test:vrt:update
 
       - name: Commit updated snapshots
         if: steps.vrt.outcome == 'failure' && github.event_name == 'pull_request'

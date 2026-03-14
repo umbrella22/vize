@@ -3,16 +3,17 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite build && vite preview",
-    "build": "playwright install --with-deps chromium && vite build",
-    "preview": "vite preview"
+    "dev": "vp build && vp preview",
+    "build": "playwright install --with-deps chromium && vp build",
+    "preview": "vp preview"
   },
   "devDependencies": {
     "@ox-content/vite-plugin": "^0.13.0",
     "@vizejs/vite-plugin": "workspace:*",
     "playwright": "^1.52.0",
     "three": "^0.183.1",
-    "vite": "^8.0.0",
+    "vite": "catalog:",
+    "vite-plus": "catalog:",
     "vue": "^3.4.0"
   }
 }

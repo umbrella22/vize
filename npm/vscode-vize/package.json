@@ -3,36 +3,49 @@
   "displayName": "Vize",
   "description": "Vue Language Support powered by Vize - A high-performance language server for Vue SFC",
   "version": "0.33.0",
-  "publisher": "vize",
+  "categories": [
+    "Formatters",
+    "Linters",
+    "Programming Languages"
+  ],
+  "keywords": [
+    "language-server",
+    "lsp",
+    "sfc",
+    "vue",
+    "vue3",
+    "vuejs"
+  ],
+  "bugs": {
+    "url": "https://github.com/ubugeeei/vize/issues"
+  },
   "license": "MIT",
-  "icon": "icons/logo.png",
   "repository": {
     "type": "git",
     "url": "https://github.com/ubugeeei/vize"
   },
-  "bugs": {
-    "url": "https://github.com/ubugeeei/vize/issues"
-  },
-  "engines": {
-    "vscode": "^1.75.0"
-  },
-  "categories": [
-    "Programming Languages",
-    "Linters",
-    "Formatters"
-  ],
-  "keywords": [
-    "vue",
-    "vuejs",
-    "vue3",
-    "sfc",
-    "language-server",
-    "lsp"
-  ],
-  "activationEvents": [
-    "onLanguage:vue"
-  ],
+  "publisher": "vize",
   "main": "./dist/extension.js",
+  "scripts": {
+    "vscode:prepublish": "pnpm run build",
+    "build": "vp pack",
+    "watch": "vp pack --watch",
+    "check": "tsc --noEmit && vp check src vite.config.ts",
+    "check:fix": "vp check --fix src vite.config.ts && tsc --noEmit",
+    "fmt": "vp fmt --write src vite.config.ts",
+    "package": "vsce package --no-dependencies",
+    "publish": "vsce publish --no-dependencies"
+  },
+  "dependencies": {
+    "vscode-languageclient": "^9.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "@types/vscode": "^1.75.0",
+    "@vscode/vsce": "^3.3.2",
+    "typescript": "^5.7.0",
+    "vite-plus": "0.1.11"
+  },
   "contributes": {
     "languages": [
       {
@@ -191,26 +204,11 @@
       }
     ]
   },
-  "scripts": {
-    "vscode:prepublish": "pnpm run build",
-    "build": "tsdown",
-    "watch": "tsdown --watch",
-    "lint": "oxlint --deny-warnings --type-aware --tsconfig tsconfig.json",
-    "lint:fix": "oxlint --type-aware --tsconfig tsconfig.json --fix",
-    "fmt": "oxfmt --write src tsdown.config.ts",
-    "fmt:check": "oxfmt src tsdown.config.ts",
-    "typecheck": "tsc --noEmit",
-    "package": "vsce package --no-dependencies",
-    "publish": "vsce publish --no-dependencies"
-  },
-  "devDependencies": {
-    "@types/node": "^20.11.0",
-    "@types/vscode": "^1.75.0",
-    "@vscode/vsce": "^3.3.2",
-    "tsdown": "^0.9.0",
-    "typescript": "^5.7.0"
-  },
-  "dependencies": {
-    "vscode-languageclient": "^9.0.1"
+  "activationEvents": [
+    "onLanguage:vue"
+  ],
+  "icon": "icons/logo.png",
+  "engines": {
+    "vscode": "^1.75.0"
   }
 }

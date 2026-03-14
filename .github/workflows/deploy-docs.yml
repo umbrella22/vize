@@ -30,26 +30,17 @@ jobs:
           prefix-key: "v1-rust"
           shared-key: "napi"
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Setup Vite+ and Node.js
+        uses: voidzero-dev/setup-vp@v1
         with:
-          node-version: "22"
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-
-      - name: Install dependencies
-        run: pnpm install
+          node-version-file: ".node-version"
+          cache: true
 
       - name: Build @vizejs/vite-plugin
-        run: pnpm -r --filter '@vizejs/native' --filter '@vizejs/vite-plugin' run build
+        run: vp run --filter './npm/vize-native' --filter './npm/vite-plugin-vize' build
 
       - name: Build docs
-        working-directory: docs
-        run: |
-          npx playwright install --with-deps chromium
-          export PUPPETEER_EXECUTABLE_PATH=$(node -e "console.log(require('playwright').chromium.executablePath())")
-          npx vite build
+        run: vp run --filter './docs' build
 
       - name: Upload docs artifact
         uses: actions/upload-artifact@v4
@@ -84,39 +75,20 @@ jobs:
           wasm-bindgen target/wasm32-unknown-unknown/release/vize_vitrine.wasm --out-dir npm/vize-wasm --target web
           wasm-bindgen target/wasm32-unknown-unknown/release/vize_vitrine.wasm --out-dir playground/src/wasm --target web
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Setup Vite+ and Node.js
+        uses: voidzero-dev/setup-vp@v1
         with:
-          node-version: "22"
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-
-      - name: Get pnpm store directory
-        shell: bash
-        run: echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
-
-      - name: Setup pnpm cache
-        uses: actions/cache@v4
-        with:
-          path: ${{ env.STORE_PATH }}
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-pnpm-store-
-
-      - name: Install dependencies
-        run: pnpm install
+          node-version-file: ".node-version"
+          cache: true
 
       - name: Build npm packages
-        run: pnpm -r --filter './npm/*' run build
+        run: vp run --filter './npm/vize-native' --filter './npm/vite-plugin-vize' --filter './npm/vite-plugin-musea' build
 
       - name: Build playground
-        working-directory: playground
-        run: pnpm build
+        run: vp run --filter './playground' build
 
       - name: Build musea-examples
-        working-directory: examples/vite-musea
-        run: pnpm build
+        run: vp run --filter './examples/vite-musea' build
 
       - name: Upload playground artifact
         uses: actions/upload-artifact@v4

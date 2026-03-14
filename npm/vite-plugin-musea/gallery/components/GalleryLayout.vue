@@ -1,67 +1,80 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { useRouter } from 'vue-router'
-import { mdiMagnify, mdiWeatherSunny, mdiWeatherNight, mdiThemeLightDark, mdiChevronLeft, mdiChevronRight } from '@mdi/js'
-import { useArts } from '../composables/useArts'
-import { useSearch } from '../composables/useSearch'
-import { useTheme } from '../composables/useTheme'
-import SearchBar from './SearchBar.vue'
-import Sidebar from './Sidebar.vue'
-import SearchModal from './SearchModal.vue'
-import MdiIcon from './MdiIcon.vue'
+import { ref, computed, onMounted, onUnmounted } from "vue";
+import { useRouter } from "vue-router";
+import {
+  mdiMagnify,
+  mdiWeatherSunny,
+  mdiWeatherNight,
+  mdiThemeLightDark,
+  mdiChevronLeft,
+  mdiChevronRight,
+} from "@mdi/js";
+import { useArts } from "../composables/useArts";
+import { useSearch } from "../composables/useSearch";
+import { useTheme } from "../composables/useTheme";
+import SearchBar from "./SearchBar.vue";
+import Sidebar from "./Sidebar.vue";
+import SearchModal from "./SearchModal.vue";
+import MdiIcon from "./MdiIcon.vue";
 
-const router = useRouter()
-const { arts, load } = useArts()
-const { query, results } = useSearch(arts)
-const { currentTheme, cycleTheme } = useTheme()
+const router = useRouter();
+const { arts, load } = useArts();
+const { query, results } = useSearch(arts);
+const { currentTheme, cycleTheme } = useTheme();
 
-const searchModalOpen = ref(false)
-const sidebarCollapsed = ref(false)
+const searchModalOpen = ref(false);
+const sidebarCollapsed = ref(false);
 
 function toggleSidebar() {
-  sidebarCollapsed.value = !sidebarCollapsed.value
+  sidebarCollapsed.value = !sidebarCollapsed.value;
 }
 
 const themeIcon = computed(() => {
   switch (currentTheme.value) {
-    case 'dark': return mdiWeatherNight
-    case 'system': return mdiThemeLightDark
-    default: return mdiWeatherSunny
+    case "dark":
+      return mdiWeatherNight;
+    case "system":
+      return mdiThemeLightDark;
+    default:
+      return mdiWeatherSunny;
   }
-})
+});
 
 const themeLabel = computed(() => {
   switch (currentTheme.value) {
-    case 'dark': return 'Dark'
-    case 'system': return 'System'
-    default: return 'Light'
+    case "dark":
+      return "Dark";
+    case "system":
+      return "System";
+    default:
+      return "Light";
   }
-})
+});
 
 // Global keyboard shortcuts
 const handleKeydown = (e: KeyboardEvent) => {
-  if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-    e.preventDefault()
-    searchModalOpen.value = !searchModalOpen.value
+  if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+    e.preventDefault();
+    searchModalOpen.value = !searchModalOpen.value;
   }
-  if ((e.metaKey || e.ctrlKey) && e.key === 'b') {
-    e.preventDefault()
-    toggleSidebar()
+  if ((e.metaKey || e.ctrlKey) && e.key === "b") {
+    e.preventDefault();
+    toggleSidebar();
   }
-}
+};
 
 onMounted(() => {
-  load()
-  document.addEventListener('keydown', handleKeydown)
-})
+  load();
+  document.addEventListener("keydown", handleKeydown);
+});
 
 onUnmounted(() => {
-  document.removeEventListener('keydown', handleKeydown)
-})
+  document.removeEventListener("keydown", handleKeydown);
+});
 
 const handleSearchSelect = (art: { path: string }, variantName?: string) => {
-  router.push({ name: 'component', params: { path: art.path } })
-}
+  router.push({ name: "component", params: { path: art.path } });
+};
 </script>
 
 <template>
@@ -77,12 +90,65 @@ const handleSearchSelect = (art: { path: string }, variantName?: string) => {
               </g>
             </g>
             <g transform="translate(110, 120)">
-              <line x1="5" y1="10" x2="5" y2="50" stroke="currentColor" stroke-width="3" stroke-linecap="round" />
-              <line x1="60" y1="10" x2="60" y2="50" stroke="currentColor" stroke-width="3" stroke-linecap="round" />
-              <path d="M 0 10 L 32.5 0 L 65 10" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
-              <rect x="15" y="18" width="14" height="12" rx="1" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.7" />
-              <rect x="36" y="18" width="14" height="12" rx="1" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.7" />
-              <rect x="23" y="35" width="18" height="12" rx="1" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.6" />
+              <line
+                x1="5"
+                y1="10"
+                x2="5"
+                y2="50"
+                stroke="currentColor"
+                stroke-width="3"
+                stroke-linecap="round"
+              />
+              <line
+                x1="60"
+                y1="10"
+                x2="60"
+                y2="50"
+                stroke="currentColor"
+                stroke-width="3"
+                stroke-linecap="round"
+              />
+              <path
+                d="M 0 10 L 32.5 0 L 65 10"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+              <rect
+                x="15"
+                y="18"
+                width="14"
+                height="12"
+                rx="1"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+                opacity="0.7"
+              />
+              <rect
+                x="36"
+                y="18"
+                width="14"
+                height="12"
+                rx="1"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+                opacity="0.7"
+              />
+              <rect
+                x="23"
+                y="35"
+                width="18"
+                height="12"
+                rx="1"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+                opacity="0.6"
+              />
             </g>
           </svg>
           Musea
@@ -99,7 +165,12 @@ const handleSearchSelect = (art: { path: string }, variantName?: string) => {
       </div>
 
       <div class="header-right">
-        <button type="button" class="theme-toggle" :title="`Theme: ${themeLabel}`" @click="cycleTheme">
+        <button
+          type="button"
+          class="theme-toggle"
+          :title="`Theme: ${themeLabel}`"
+          @click="cycleTheme"
+        >
           <MdiIcon :path="themeIcon" :size="18" />
         </button>
       </div>

@@ -60,25 +60,52 @@ vize check --strict        # Type check
 
 See the [documentation](https://vizejs.dev) for detailed usage, Vite plugin setup, experimental bundler integrations, WASM bindings, and more.
 
+## Development Environment
+
+Node.js is pinned in `.node-version` and managed with `vp env`.
+
+```bash
+vp env install
+vp install
+```
+
+If you want `node`, `npm`, and related shims to follow the pinned version in your shell, run `vp env setup` once and enable managed mode with `vp env on`.
+
+## Workspace Tasks
+
+Workspace orchestration lives in the root `vite.config.ts` via Vite+'s `run.tasks`.
+
+```bash
+vp run --workspace-root check       # packages + examples + playground
+vp run --workspace-root check:fix   # auto-fix JS/TS checks where supported
+vp run --workspace-root fmt         # format workspace files
+
+vp run --filter './playground' test:browser
+vp run --filter './examples/vite-musea' build
+```
+
+Use `vp run` directly; `mise` task wrappers have been removed.
+`npm/vscode-vize` and `npm/vscode-art` stay outside the root `vp run` graph, so build those from their package directories.
+
 ## Performance
 
 Benchmarks with **15,000 Vue SFC files** (36.9 MB). "User-facing speedup" = traditional tool (single-thread) vs Vize (multi-thread).
 
-| Tool | Traditional (ST) | Vize (MT) | User-facing Speedup |
-|------|-----------------|-----------|---------------------|
-| **Compiler** | @vue/compiler-sfc 10.52s | 380ms | **27.7x** |
-| **Linter** | eslint-plugin-vue 65.30s | patina 5.48s | **11.9x** |
-| **Formatter** | Prettier 82.69s | glyph 23ms | **3,666x** |
-| **Type Checker** | vue-tsc 35.69s | canon 472ms | **75.5x** * |
-| **Vite Plugin** | @vitejs/plugin-vue 16.98s | @vizejs/vite-plugin 6.90s | **2.5x** ** |
+| Tool             | Traditional (ST)          | Vize (MT)                 | User-facing Speedup |
+| ---------------- | ------------------------- | ------------------------- | ------------------- |
+| **Compiler**     | @vue/compiler-sfc 10.52s  | 380ms                     | **27.7x**           |
+| **Linter**       | eslint-plugin-vue 65.30s  | patina 5.48s              | **11.9x**           |
+| **Formatter**    | Prettier 82.69s           | glyph 23ms                | **3,666x**          |
+| **Type Checker** | vue-tsc 35.69s            | canon 472ms               | **75.5x** \*        |
+| **Vite Plugin**  | @vitejs/plugin-vue 16.98s | @vizejs/vite-plugin 6.90s | **2.5x** \*\*       |
 
 <details>
 <summary>Detailed compiler benchmark</summary>
 
-|  | @vue/compiler-sfc | Vize | Speedup |
-|--|-------------------|------|---------|
-| **Single Thread** | 10.52s | 3.82s | **2.8x** |
-| **Multi Thread** | 3.71s | 380ms | **9.8x** |
+|                   | @vue/compiler-sfc | Vize  | Speedup  |
+| ----------------- | ----------------- | ----- | -------- |
+| **Single Thread** | 10.52s            | 3.82s | **2.8x** |
+| **Multi Thread**  | 3.71s             | 380ms | **9.8x** |
 
 </details>
 
@@ -86,7 +113,7 @@ Benchmarks with **15,000 Vue SFC files** (36.9 MB). "User-facing speedup" = trad
 
 \*\* Vite Plugin benchmark uses Vite v8.0.0 (Rolldown). The plugin replaces only the SFC compilation step; all other Vite internals are unchanged.
 
-Run `mise run bench:all` to reproduce all benchmarks.
+Run `vp run --workspace-root bench:all` to reproduce all benchmarks.
 
 ## Contributing
 

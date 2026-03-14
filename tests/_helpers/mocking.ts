@@ -5,11 +5,7 @@ export async function setupMisskeyMocks(page: Page): Promise<void> {
     const _origFetch = window.fetch;
     window.fetch = function (input, init) {
       const url =
-        typeof input === "string"
-          ? input
-          : input instanceof URL
-            ? input.toString()
-            : input.url;
+        typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
       if (url.includes("/api/")) {
         let body = "{}";
         if (url.includes("/api/meta")) {

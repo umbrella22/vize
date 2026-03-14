@@ -1,34 +1,38 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
-import { fetchA11y } from '../api'
+import { ref, watch } from "vue";
+import { fetchA11y } from "../api";
 
 const props = defineProps<{
-  artPath: string
-  variantName?: string
-}>()
+  artPath: string;
+  variantName?: string;
+}>();
 
-const count = ref<number | null>(null)
-const severity = ref<string>('none')
+const count = ref<number | null>(null);
+const severity = ref<string>("none");
 
-watch(() => [props.artPath, props.variantName], async ([path, variant]) => {
-  if (!path || !variant) {
-    count.value = null
-    return
-  }
-  try {
-    const data = await fetchA11y(path as string, variant as string)
-    count.value = data.violations.length
-    if (data.violations.length > 0) {
-      const hasCritical = data.violations.some(v => v.impact === 'critical')
-      const hasSerious = data.violations.some(v => v.impact === 'serious')
-      severity.value = hasCritical ? 'critical' : hasSerious ? 'serious' : 'moderate'
-    } else {
-      severity.value = 'none'
+watch(
+  () => [props.artPath, props.variantName],
+  async ([path, variant]) => {
+    if (!path || !variant) {
+      count.value = null;
+      return;
     }
-  } catch {
-    count.value = null
-  }
-}, { immediate: true })
+    try {
+      const data = await fetchA11y(path as string, variant as string);
+      count.value = data.violations.length;
+      if (data.violations.length > 0) {
+        const hasCritical = data.violations.some((v) => v.impact === "critical");
+        const hasSerious = data.violations.some((v) => v.impact === "serious");
+        severity.value = hasCritical ? "critical" : hasSerious ? "serious" : "moderate";
+      } else {
+        severity.value = "none";
+      }
+    } catch {
+      count.value = null;
+    }
+  },
+  { immediate: true },
+);
 </script>
 
 <template>

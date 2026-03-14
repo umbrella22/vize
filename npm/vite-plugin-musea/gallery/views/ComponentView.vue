@@ -30,9 +30,7 @@ const {
 const { gridDensity } = useAddons();
 const { setCurrentVariant } = useEventCapture();
 
-const activeTab = ref<"variants" | "props" | "docs" | "a11y" | "vrt">(
-  "variants",
-);
+const activeTab = ref<"variants" | "props" | "docs" | "a11y" | "vrt">("variants");
 const actionCount = computed(() => events.value.length);
 const actionsExpanded = ref(false);
 
@@ -48,8 +46,7 @@ const art = computed(() => getArt(artPath.value));
 const selectedVariant = computed(() => {
   if (!art.value) return null;
   return (
-    art.value.variants.find((v) => v.name === selectedVariantName.value) ||
-    art.value.variants[0]
+    art.value.variants.find((v) => v.name === selectedVariantName.value) || art.value.variants[0]
   );
 });
 
@@ -58,8 +55,7 @@ watch(
   art,
   (newArt) => {
     if (newArt) {
-      const defaultVariant =
-        newArt.variants.find((v) => v.isDefault) || newArt.variants[0];
+      const defaultVariant = newArt.variants.find((v) => v.isDefault) || newArt.variants[0];
       selectedVariantName.value = defaultVariant?.name || "";
       setCurrentVariant(selectedVariantName.value);
       setActionsVariant(selectedVariantName.value);
@@ -102,17 +98,13 @@ const handleVariantSelect = (variantName: string) => {
       <div class="component-meta">
         <span class="meta-tag">
           <MdiIcon :path="mdiViewGrid" :size="12" />
-          {{ art.variants.length }} variant{{
-            art.variants.length !== 1 ? "s" : ""
-          }}
+          {{ art.variants.length }} variant{{ art.variants.length !== 1 ? "s" : "" }}
         </span>
         <span v-if="art.metadata.category" class="meta-tag">
           <MdiIcon :path="mdiFolder" :size="12" />
           {{ art.metadata.category }}
         </span>
-        <span v-for="tag in art.metadata.tags" :key="tag" class="meta-tag">
-          #{{ tag }}
-        </span>
+        <span v-for="tag in art.metadata.tags" :key="tag" class="meta-tag"> #{{ tag }} </span>
       </div>
     </div>
 
@@ -184,9 +176,7 @@ const handleVariantSelect = (variantName: string) => {
       <PropsPanel
         v-if="activeTab === 'props'"
         :art-path="art.path"
-        :default-variant-name="
-          art.variants.find((v) => v.isDefault)?.name || art.variants[0]?.name
-        "
+        :default-variant-name="art.variants.find((v) => v.isDefault)?.name || art.variants[0]?.name"
       />
 
       <DocumentationPanel v-if="activeTab === 'docs'" :art-path="art.path" />
@@ -214,10 +204,7 @@ const handleVariantSelect = (variantName: string) => {
         class="actions-footer-toggle"
         @click="actionsExpanded = !actionsExpanded"
       >
-        <MdiIcon
-          :path="actionsExpanded ? mdiChevronDown : mdiChevronUp"
-          :size="14"
-        />
+        <MdiIcon :path="actionsExpanded ? mdiChevronDown : mdiChevronUp" :size="14" />
         Actions
         <span v-if="actionCount > 0" class="action-count-badge">{{
           actionCount > 99 ? "99+" : actionCount
