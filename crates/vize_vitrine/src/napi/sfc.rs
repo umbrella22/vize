@@ -647,3 +647,92 @@ pub fn compile_sfc_batch_with_results(
         time_ms: elapsed.as_secs_f64() * 1000.0,
     })
 }
+
+/// CSS compile options for NAPI
+#[napi(object)]
+#[derive(Default)]
+pub struct CssCompileOptionsNapi {
+    /// Filename for error reporting
+    pub filename: Option<String>,
+    /// Whether to apply scoped CSS transformation
+    pub scoped: Option<bool>,
+    /// Scope ID for scoped CSS (e.g., "data-v-abc123"). Must be the full attribute name.
+    pub scope_id: Option<String>,
+    /// Whether to generate source maps
+    pub source_map: Option<bool>,
+    /// Whether to minify the output
+    pub minify: Option<bool>,
+    /// Whether to enable custom media query resolution
+    pub custom_media: Option<bool>,
+    /// Browser targets for autoprefixing
+    pub targets: Option<CssTargetsNapi>,
+}
+
+/// Browser targets for CSS autoprefixing
+#[napi(object)]
+#[derive(Default)]
+pub struct CssTargetsNapi {
+    pub chrome: Option<u32>,
+    pub firefox: Option<u32>,
+    pub safari: Option<u32>,
+    pub edge: Option<u32>,
+    pub ios: Option<u32>,
+    pub android: Option<u32>,
+}
+
+/// CSS compile result for NAPI
+#[napi(object)]
+pub struct CssCompileResultNapi {
+    /// Compiled CSS code
+    pub code: String,
+    /// Source map (if requested)
+    pub map: Option<String>,
+    /// CSS variables found (from v-bind())
+    pub css_vars: Vec<String>,
+    /// Errors during compilation
+    pub errors: Vec<String>,
+    /// Warnings during compilation
+    pub warnings: Vec<String>,
+}
+
+/// Compile a CSS string with scoped CSS, v-bind() extraction, and optional minification.
+/// Unlike `compileSfc`, the `scopeId` is used as-is without stripping the "data-v-" prefix.
+/// Callers must pass the full attribute name (e.g., "data-v-abc123").
+#[napi(js_name = "compileCss")]
+pub fn compile_css_napi(
+    source: String,
+    options: Option<CssCompileOptionsNapi>,
+) -> Result<CssCompileResultNapi> {
+    use vize_atelier_sfc::{compile_css, CssCompileOptions, CssTargets};
+
+    let opts = options.unwrap_or_default();
+
+    let targets = opts.targets.map(|t| CssTargets {
+        chrome: t.chrome,
+        firefox: t.firefox,
+        safari: t.safari,
+        edge: t.edge,
+        ios: t.ios,
+        android: t.android,
+    });
+
+    let compile_opts = CssCompileOptions {
+        filename: opts.filename.map(Into::into),
+        scoped: opts.scoped.unwrap_or(false),
+        scope_id: opts.scope_id.map(Into::into),
+        source_map: opts.source_map.unwrap_or(false),
+        minify: opts.minify.unwrap_or(false),
+        custom_media: opts.custom_media.unwrap_or(false),
+        targets,
+    };
+
+    let result = compile_css(&source, &compile_opts);
+
+    Ok(CssCompileResultNapi {
+        code: result.code.into(),
+        map: result.map.map(Into::into),
+        css_vars: result.css_vars.into_iter().map(Into::into).collect(),
+        errors: result.errors.into_iter().map(Into::into).collect(),
+        warnings: result.warnings.into_iter().map(Into::into).collect(),
+    })
+}

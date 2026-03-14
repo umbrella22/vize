@@ -84,10 +84,12 @@ describe("applyRuleCloning", () => {
     });
     assert.ok(scssClone, "should have a cloned SCSS rule");
 
-    // The SCSS clone should include vize style-loader at the end of use chain
+    // The SCSS clone should include vize style-loader at the end and scope-loader before it
     const scssUse = scssClone!.use as Array<string | Record<string, unknown>>;
     const lastLoader = scssUse[scssUse.length - 1] as Record<string, unknown>;
     assert.equal(lastLoader.loader, "@vizejs/rspack-plugin/style-loader");
+    const secondToLastLoader = scssUse[scssUse.length - 2] as Record<string, unknown>;
+    assert.equal(secondToLastLoader.loader, "@vizejs/rspack-plugin/scope-loader");
 
     // Both original rules should have vue exclusion
     assert.ok((rules[0] as Record<string, unknown>).resourceQuery);
@@ -284,5 +286,72 @@ describe("applyRuleCloning", () => {
     // Should be an object entry with loader + options
     assert.equal(use[0].loader, "@vizejs/rspack-plugin/loader");
     assert.deepEqual(use[0].options, { sourceMap: true });
+  });
+
+  test("injects scope-loader between user loaders and style-loader in all cloned rules", () => {
+    const rules = [
+      { test: /\.css$/, use: ["css-loader"] },
+      { test: /\.scss$/, use: ["sass-loader"] },
+      { test: /\.less$/, use: ["less-loader"] },
+      {
+        test: /\.vue$/,
+        use: [{ loader: "@vizejs/rspack-plugin/loader" }],
+      },
+    ];
+
+    const result = applyRuleCloning(rules as never, true);
+    assert.equal(result.applied, true);
+
+    const vueRule = rules[3] as Record<string, unknown>;
+    const oneOf = vueRule.oneOf as Array<Record<string, unknown>>;
+
+    // Check every style rule (everything except the last main-loader fallback)
+    for (let i = 0; i < oneOf.length - 1; i++) {
+      const branch = oneOf[i];
+      const use = branch.use as Array<string | Record<string, unknown>>;
+
+      // Last two loaders should always be scope-loader then style-loader
+      const lastLoader = use[use.length - 1] as Record<string, unknown>;
+      const secondToLast = use[use.length - 2] as Record<string, unknown>;
+
+      assert.equal(
+        lastLoader.loader,
+        "@vizejs/rspack-plugin/style-loader",
+        `branch ${i}: last loader must be style-loader`,
+      );
+      assert.equal(
+        secondToLast.loader,
+        "@vizejs/rspack-plugin/scope-loader",
+        `branch ${i}: second-to-last loader must be scope-loader`,
+      );
+    }
+  });
+
+  test("CSS fallback rule has both scope-loader and style-loader", () => {
+    const rules = [
+      { test: /\.scss$/, use: ["sass-loader"] },
+      {
+        test: /\.vue$/,
+        use: [{ loader: "@vizejs/rspack-plugin/loader" }],
+      },
+    ];
+
+    const result = applyRuleCloning(rules as never, true);
+    assert.equal(result.applied, true);
+
+    const vueRule = rules[1] as Record<string, unknown>;
+    const oneOf = vueRule.oneOf as Array<Record<string, unknown>>;
+
+    // Find the CSS fallback (matches lang=css)
+    const cssFallback = oneOf.find((r) => {
+      const rq = r.resourceQuery as RegExp;
+      return rq && rq.test("vue&type=style&index=0&lang=css");
+    });
+    assert.ok(cssFallback, "should have a CSS fallback rule");
+
+    const use = cssFallback!.use as Array<Record<string, unknown>>;
+    assert.equal(use.length, 2, "CSS fallback should have scope-loader + style-loader");
+    assert.equal(use[0].loader, "@vizejs/rspack-plugin/scope-loader");
+    assert.equal(use[1].loader, "@vizejs/rspack-plugin/style-loader");
   });
 });

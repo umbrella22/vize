@@ -1,11 +1,4 @@
-/**
- * Vize Rspack Plugin
- *
- * Responsibilities:
- * 1. Inject Vue feature flags via DefinePlugin
- * 2. Auto-inject style sub-request rules (VueLoaderPlugin-style rule cloning)
- * 3. Development mode logging/debugging
- */
+/** Vize Rspack Plugin — injects Vue feature flags, auto-clones style rules, dev logging. */
 
 import type { Compiler, RuleSetRule } from "@rspack/core";
 import type { VizeRspackPluginOptions } from "../types/index.js";
@@ -26,8 +19,6 @@ export class VizePlugin {
     const isProduction =
       this.options.isProduction ?? compiler.options.mode === "production";
 
-    // Vapor mode: fully supported by @vizejs/native compileSfc.
-    // Pass `vapor: true` in loader options or compilerOptions to enable.
     if (this.options.vapor && !isProduction) {
       logger.debug("Vapor mode is enabled.");
     }
@@ -43,7 +34,7 @@ export class VizePlugin {
       );
     }
 
-    // 1. Auto-inject style sub-request rules (VueLoaderPlugin-style)
+    // 1. Auto-inject style sub-request rules
     const autoRules = this.options.autoRules ?? true;
     if (autoRules) {
       const rules = compiler.options.module?.rules;
@@ -63,11 +54,8 @@ export class VizePlugin {
       }
     }
 
-    // 2. Inject Vue feature flags (only if not already defined by another plugin)
-    // Use compiler.webpack to get DefinePlugin for webpack/Rspack compatibility
+    // 2. Inject Vue feature flags (skip already-defined)
     const { DefinePlugin } = compiler.webpack;
-
-    // Collect existing definitions from all DefinePlugin instances
     const existingDefines = new Set<string>();
     for (const plugin of compiler.options.plugins ?? []) {
       const defs = (
@@ -96,7 +84,7 @@ export class VizePlugin {
       new DefinePlugin(vueDefines).apply(compiler);
     }
 
-    // 3. Development mode logging (using Rspack infrastructure logger)
+    // 3. Dev mode file-change logging
     if (!isProduction) {
       compiler.hooks.watchRun.tap(VizePlugin.name, (comp) => {
         const changed = comp.modifiedFiles;
@@ -106,9 +94,6 @@ export class VizePlugin {
           for (const file of changed) {
             if (file.endsWith(".vue") && this.shouldHandleFile(file)) {
               logger.debug(`Vue file changed: ${file}`);
-              // Rspack will automatically re-run the loader matching this file,
-              // and the style imports injected by the loader will be re-resolved.
-              // No need to manually operate virtual modules or trigger recompilation.
             }
           }
         }

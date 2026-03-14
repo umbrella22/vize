@@ -1,7 +1,4 @@
-/**
- * Core compilation logic for @vizejs/rspack-plugin
- * Copied and adapted from vite-plugin-vize/src/compiler.ts
- */
+/** Core SFC compilation logic. */
 
 import { createHash } from "node:crypto";
 import path from "node:path";
@@ -17,42 +14,26 @@ import { genHotReloadCode, genCSSModuleHotReloadCode } from "./hotReload.js";
 
 const { compileSfc } = native;
 
-// ============================================================================
 // Compilation Cache
-// ============================================================================
 
 interface CacheEntry {
   contentHash: string;
   result: CompiledModule;
 }
 
-/**
- * Module-level cache to avoid re-compiling unchanged files across loader runs.
- * Key: composite of filePath + compilation options (ssr, isTs), Value: { contentHash, result }.
- * In watch mode Rspack re-invokes the loader for changed files, but unchanged
- * files that are re-evaluated (e.g. due to dependency changes) will hit the cache.
- */
+/** Content-hash keyed cache for watch mode. */
 const compilationCache = new Map<string, CacheEntry>();
 
 function computeContentHash(source: string): string {
   return createHash("sha256").update(source).digest("hex").slice(0, 16);
 }
 
-/**
- * Clear the compilation cache.  Exposed for testing and manual invalidation.
- */
+/** Clear the compilation cache. Exposed for testing. */
 export function clearCompilationCache(): void {
   compilationCache.clear();
 }
 
-/**
- * Compile a single .vue file.
- *
- * Adapted from vite-plugin-vize for Rspack loader scenario:
- * - Uses content-hash based cache to skip re-compilation of unchanged files
- * - Does not read file (source is passed as parameter)
- * - Returns styles metadata for loader chain processing
- */
+/** Compile a .vue file with content-hash caching. */
 export function compileFile(
   filePath: string,
   source: string,
@@ -68,14 +49,12 @@ export function compileFile(
     transformAssetUrls?: boolean | Record<string, string[]>;
   } = {},
 ): CompiledModule {
-  // Auto-detect TypeScript from <script lang="ts"> or <script setup lang="ts">
+  // Auto-detect TypeScript
   const autoIsTs =
     options.compilerOptions?.isTs ??
     /<script[^>]*\blang=["']ts["']/.test(source);
 
-  // Build a composite cache key that includes compilation-affecting options.
-  // Without this, the same file compiled with different ssr/isTs/sourceMap flags
-  // would return a stale cached result (e.g. client build reusing SSR output).
+  // Composite cache key
   const ssr = options.ssr ?? options.compilerOptions?.ssr ?? false;
   const vapor = options.vapor ?? options.compilerOptions?.vapor ?? false;
   const sourceMap =
@@ -83,7 +62,7 @@ export function compileFile(
   const isCustomElement = options.isCustomElement ?? false;
   const rootCtx = options.rootContext ?? "";
   const isProd = options.isProduction ?? false;
-  // Normalize transformAssetUrls to a stable string for the cache key
+  // Normalize transformAssetUrls for cache key
   const transformAssetUrls = options.transformAssetUrls ?? true;
   const tauKey =
     transformAssetUrls === false
@@ -93,7 +72,6 @@ export function compileFile(
         : `tau=${JSON.stringify(transformAssetUrls)}`;
   const cacheKey = `${filePath}:ssr=${ssr}:vapor=${vapor}:ts=${autoIsTs}:map=${sourceMap}:ce=${isCustomElement}:root=${rootCtx}:prod=${isProd}:${tauKey}`;
 
-  // Check content-hash cache to skip re-compilation of unchanged files
   const contentHash = computeContentHash(source);
   const cached = compilationCache.get(cacheKey);
   if (cached && cached.contentHash === contentHash) {
@@ -137,7 +115,7 @@ export function compileFile(
     templateAssetUrls,
   };
 
-  // Only cache successful compilations (no errors)
+  // Only cache successful compilations
   if (compiled.errors.length === 0) {
     compilationCache.set(cacheKey, { contentHash, result: compiled });
   }
@@ -145,14 +123,7 @@ export function compileFile(
   return compiled;
 }
 
-/**
- * Generate output code with style imports and custom block imports injected.
- *
- * Key difference from Vite version:
- * - Generates import statements with query parameters for style blocks
- * - Rspack will route these to the appropriate style loader via resourceQuery matching
- * - Injects `module.hot` based HMR code when `hmr` is enabled
- */
+/** Generate JS output with style/custom-block imports and optional HMR code. */
 export function generateOutput(
   compiled: CompiledModule,
   options: {
@@ -170,43 +141,21 @@ export function generateOutput(
   let output = compiled.code;
   const isCustomElement = compiled.isCustomElement;
 
-  // ── P5: Template static-asset URL rewrite ─────────────────────────────────
-  // The native compiler emits static asset URL strings as plain JS string
-  // literals (e.g. `{ src: "./logo.png" }`).  Rspack cannot bundle them as
-  // assets unless they are turned into `import` bindings.  We post-process the
-  // compiled output here, replacing each known URL literal with the variable
-  // name of a generated import statement.
-  //
-  // String replacement is safe because:
-  //   - We only transform URLs that were explicitly found in the template
-  //     element attributes (img[src], video[src,poster], source[src], …)
-  //   - The native codegen quotes static prop values with double quotes, so
-  //     an exact `"<url>"` match targets only those literals
-  //   - We prepend the import statements before the rest of `output` is
-  //     assembled so Rspack never sees the raw string form
-  // Known limitation: the replacement below operates on the full compiled JS
-  // output via string matching, not on AST nodes.  If a `<script>` block
-  // happens to contain an identical string literal (e.g. `"./logo.png"`), it
-  // will also be replaced.  In practice this is extremely rare because the
-  // match is against the *compiled* output (not the raw SFC source) and URLs
-  // only qualify if they appear as static element attributes.  A future
-  // improvement could narrow the replacement scope to template render code.
+  // Template static-asset URL rewrite: replace URL string literals in compiled
+  // output with import bindings so Rspack can bundle them as assets.
+  // Caveat: string-based replacement may also match identical literals in <script>.
   if (compiled.templateAssetUrls.length > 0) {
     for (const { url, varName } of compiled.templateAssetUrls) {
-      // Split hash fragment — Rspack cannot resolve "./icon.svg#arrow" as a
-      // module path.  We import the base path and concatenate the fragment at
-      // runtime: `_imports_0 + "#arrow"`.
+      // Split hash fragment for Rspack module resolution
       const hashIdx = url.indexOf("#");
       const fragment = hashIdx >= 0 ? url.slice(hashIdx) : "";
       const replacement = fragment ? `${varName} + ${JSON.stringify(fragment)}` : varName;
 
-      // Escape the URL for use in a RegExp (e.g. dots in filenames)
       const escaped = url.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
       output = output.replace(new RegExp(`"${escaped}"`, "g"), replacement);
       output = output.replace(new RegExp(`'${escaped}'`, "g"), replacement);
     }
   }
-  // ────────────────────────────────────────────────────────────────────────────
 
   // Handle export default transformation
   const exportDefaultRegex = /^export default /m;
@@ -215,13 +164,11 @@ export function generateOutput(
 
   if (hasExportDefault && !hasSfcMainDefined) {
     output = output.replace(exportDefaultRegex, "const _sfc_main = ");
-    // Add __scopeId for scoped CSS support
     if (compiled.hasScoped && compiled.scopeId) {
       output += `\n_sfc_main.__scopeId = "data-v-${compiled.scopeId}";`;
     }
     output += "\nexport default _sfc_main;";
   } else if (hasExportDefault && hasSfcMainDefined) {
-    // _sfc_main already defined, just add scopeId if needed
     if (compiled.hasScoped && compiled.scopeId) {
       output = output.replace(
         /^export default _sfc_main/m,
@@ -230,7 +177,7 @@ export function generateOutput(
     }
   }
 
-  // Inject style imports (key difference: using query parameters for Rspack loader chain)
+  // Inject style imports
   if (compiled.styles.length > 0) {
     if (isCustomElement) {
       // Custom element mode: <style module> is not supported
@@ -242,9 +189,7 @@ export function generateOutput(
       }
     }
 
-    // Validate: Vue SFC spec allows at most one unnamed <style module>.
-    // Multiple unnamed modules would generate duplicate `import $style` bindings,
-    // producing invalid ESM code.
+    // Only one unnamed <style module> allowed
     const unnamedModuleCount = compiled.styles.filter(
       (s) => s.module === true,
     ).length;
@@ -256,14 +201,10 @@ export function generateOutput(
       );
     }
 
-    // Filter out empty style blocks that have no content and no external src
     const activeStyles = compiled.styles.filter(
       (style) => style.src || /\S/.test(style.content),
     );
 
-    // Track CSS Module requests for HMR and __cssModules binding.
-    // varName: safe JS identifier used in import statement (e.g. _cssModule_0)
-    // bindingName: original module name from <style module="..."> (may not be a valid identifier)
     const cssModuleHmrEntries: {
       request: string;
       varName: string;
@@ -295,10 +236,7 @@ export function generateOutput(
         if (style.module) {
           const bindingName =
             typeof style.module === "string" ? style.module : "$style";
-          // Always use a safe internal variable name for the import binding.
-          // The original module name (e.g. "foo-bar") may not be a valid JS
-          // identifier, so we use _cssModule_<index> and map it back via
-          // __cssModules[bindingName] below.
+        // Use _cssModule_<n> as binding since module name may not be a valid identifier
           const varName = `_cssModule_${style.index}`;
           cssModuleHmrEntries.push({ request, varName, bindingName });
           return `import ${varName} from ${JSON.stringify(request)};`;
@@ -309,7 +247,7 @@ export function generateOutput(
 
     output = styleImports + "\n" + output;
 
-    // Custom element mode: attach styles array to component for shadow DOM
+    // Custom element: attach styles for shadow DOM
     if (isCustomElement) {
       const stylesArray = activeStyles
         .map((s) => `_style_${s.index}`)
@@ -320,7 +258,6 @@ export function generateOutput(
       );
     }
 
-    // Add CSS module bindings to component (non-custom-element only)
     if (!isCustomElement && cssModuleHmrEntries.length > 0) {
       const cssModuleSetup = cssModuleHmrEntries
         .map(
@@ -329,7 +266,6 @@ export function generateOutput(
         )
         .join("\n");
 
-      // CSS Module HMR: accept changes and trigger rerender instead of full reload
       const cssModuleHmr =
         options.hmr && compiled.scopeId
           ? cssModuleHmrEntries
@@ -351,7 +287,7 @@ export function generateOutput(
     }
   }
 
-  // Expose __file for Vue DevTools (relative path in dev, not in production for security)
+  // Expose __file for Vue DevTools (dev only)
   if (options.filePath && !options.isProduction) {
     const relativePath = options.rootContext
       ? path.relative(options.rootContext, options.filePath).replace(/\\/g, "/")
@@ -362,7 +298,6 @@ export function generateOutput(
     );
   }
 
-  // Inject HMR code (must be before export default, after all other setup)
   if (options.hmr && compiled.scopeId) {
     output = output.replace(
       /^export default _sfc_main;/m,
@@ -380,9 +315,8 @@ export function generateOutput(
           `index=${index}`,
           ...(block.src ? ["src=true"] : []),
         ];
-        // Include extra attributes in the query (e.g., lang)
         for (const [key, value] of Object.entries(block.attrs)) {
-          if (key === "src") continue; // already handled
+          if (key === "src") continue;
           if (value === true) {
             queryParts.push(key);
           } else {
@@ -391,10 +325,6 @@ export function generateOutput(
         }
 
         const queryStr = queryParts.join("&");
-        // Always use the .vue file itself as the request path, even for
-        // external-src blocks.  This ensures the import matches the .vue
-        // test rule and enters the vize loader, where the custom block
-        // handler reads the external file via block.src at loader time.
         const request = options.requestPath;
         return (
           `import block${index} from ${JSON.stringify(`${request}?${queryStr}`)};\n` +
@@ -403,26 +333,17 @@ export function generateOutput(
       })
       .join("\n");
 
-    // Insert before "export default _sfc_main;"
     output = output.replace(
       /^export default _sfc_main;/m,
       `${customBlockImports}\nexport default _sfc_main;`,
     );
   }
 
-  // ── P5: Prepend asset URL import statements ────────────────────────────────
-  // URL string literals were already replaced with variable names above.
-  // Now prepend the corresponding `import` declarations so Rspack can resolve
-  // and bundle the referenced assets through its asset-module pipeline.
-  // We prepend these AFTER all other `output = X + "\n" + output` mutations so
-  // they end up at the very top of the emitted module.
+  // Prepend asset URL import declarations
   if (compiled.templateAssetUrls.length > 0) {
     const assetImports = compiled.templateAssetUrls
       .map(({ url, varName }) => {
-        // Strip leading `~` (webpack/Rspack module-request convention)
         let importPath = url.startsWith("~") ? url.slice(1) : url;
-        // Strip hash fragment — it is not part of the module specifier;
-        // the fragment is re-attached via concatenation in the render code.
         const hashIdx = importPath.indexOf("#");
         if (hashIdx >= 0) importPath = importPath.slice(0, hashIdx);
         return `import ${varName} from ${JSON.stringify(importPath)};`;
@@ -430,7 +351,6 @@ export function generateOutput(
       .join("\n");
     output = assetImports + "\n" + output;
   }
-  // ────────────────────────────────────────────────────────────────────────────
 
   return output;
 }

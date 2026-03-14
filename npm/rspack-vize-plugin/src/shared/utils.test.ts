@@ -5,6 +5,7 @@ import {
   extractStyleBlocks,
   collectTemplateAssetUrls,
   isImportableUrl,
+  stripCssCommentsForScoped,
 } from "./utils.js";
 
 describe("extractCustomBlocks", () => {
@@ -202,6 +203,25 @@ describe("extractStyleBlocks", () => {
     assert.equal(blocks[0].scoped, false);
     assert.equal(blocks[1].module, false);
     assert.equal(blocks[1].scoped, true);
+  });
+});
+
+describe("stripCssCommentsForScoped", () => {
+  test("removes block comments and preserves newlines", () => {
+    const input = `.a { color: red; }\n/* :deep(.x) */\n.b { color: blue; }`;
+    const output = stripCssCommentsForScoped(input);
+
+    assert.equal(output.includes(":deep("), false);
+    assert.equal(output.split("\n").length, input.split("\n").length);
+    assert.equal(output.includes(".a { color: red; }"), true);
+    assert.equal(output.includes(".b { color: blue; }"), true);
+  });
+
+  test("keeps comment-like text inside strings", () => {
+    const input = `.a::before { content: "/* :deep(.x) */"; }`;
+    const output = stripCssCommentsForScoped(input);
+
+    assert.equal(output.includes('content: "/* :deep(.x) */"'), true);
   });
 });
 

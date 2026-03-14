@@ -23,6 +23,11 @@
       "types": "./dist/loader/style-loader.d.ts",
       "import": "./dist/loader/style-loader.js",
       "default": "./dist/loader/style-loader.js"
+    },
+    "./scope-loader": {
+      "types": "./dist/loader/scope-loader.d.ts",
+      "import": "./dist/loader/scope-loader.js",
+      "default": "./dist/loader/scope-loader.js"
     }
   },
   "scripts": {

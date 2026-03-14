@@ -1,44 +1,18 @@
 /**
- * Rule Cloning — VueLoaderPlugin-style automatic rule injection
- *
- * Scans `compiler.options.module.rules` and rewrites them so that users
- * only need to write a single `.vue` rule (with the main vize loader) plus
- * ordinary CSS / preprocessor rules.  The plugin automatically generates
- * the `oneOf` branches needed to route `?vue&type=style` sub-requests to
- * the correct style pipeline.
- *
- * The algorithm mirrors what `VueLoaderPlugin` does in `vue-loader`:
- *
- * 1. Find the rule whose `use` chain contains the vize main loader
- *    (identified by loader path containing `@vizejs/rspack-plugin/loader`
- *    or the literal module string).
- *
- * 2. Find CSS / preprocessor rules (test matches `.css`, `.scss`, etc.)
- *    that are **not** already scoped to `.vue` sub-requests.
- *
- * 3. Clone those CSS rules so the clones match
- *    `resourceQuery: /vue&type=style/` with appropriate `lang=` conditions.
- *
- * 4. Wrap the original `.vue` rule in `oneOf`:
- *      - cloned style rules (from step 3)
- *      - the vize style-loader fallback for plain CSS
- *      - the original main loader as the catch-all
- *
- * 5. Mark the original CSS rules with `resourceQuery: { not: [/vue/] }` so
- *    they don't accidentally match `.vue` style sub-requests.
+ * Auto rule injection (VueLoaderPlugin-style).
+ * Rewrites `module.rules` so users only need a `.vue` rule + CSS rules.
+ * Clones CSS rules for `?vue&type=style` sub-requests via `oneOf`.
  */
 
 import type { RuleSetRule, RuleSetUseItem } from "@rspack/core";
 
 // ---------------------------------------------------------------------------
-// Constants
-// ---------------------------------------------------------------------------
 
 const VIZE_LOADER_IDENT = "@vizejs/rspack-plugin/loader";
-
 const VIZE_STYLE_LOADER_IDENT = "@vizejs/rspack-plugin/style-loader";
+const VIZE_SCOPE_LOADER_IDENT = "@vizejs/rspack-plugin/scope-loader";
 
-/** Regex extensions we know how to clone into Vue style sub-request rules. */
+/** Regex patterns for style extensions we clone. */
 const STYLE_EXTENSION_MAP: Record<string, string> = {
   "\\.css$": "css",
   "\\.scss$": "scss",
@@ -47,8 +21,6 @@ const STYLE_EXTENSION_MAP: Record<string, string> = {
   "\\.styl(us)?$": "styl",
 };
 
-// ---------------------------------------------------------------------------
-// Public API
 // ---------------------------------------------------------------------------
 
 export interface RuleCloningResult {
@@ -61,11 +33,7 @@ export interface RuleCloningResult {
 }
 
 /**
- * Mutates `rules` in-place: rewrites the .vue rule into a `oneOf` form and
- * clones existing CSS rules for Vue style sub-requests.
- *
- * @param rules  `compiler.options.module.rules` (mutable)
- * @param nativeCss  Whether `experiments.css` is enabled
+ * Mutates `rules` in-place: wraps .vue rule into `oneOf`, clones CSS rules for style sub-requests.
  */
 export function applyRuleCloning(
   rules: (RuleSetRule | "...")[],
@@ -73,24 +41,20 @@ export function applyRuleCloning(
 ): RuleCloningResult {
   const warnings: string[] = [];
 
-  // ── Step 1: locate the .vue rule that uses the vize main loader ──────────
+  // Step 1: locate .vue rule with vize main loader
   const vueRuleIndex = rules.findIndex((r) => r !== "..." && isVueMainRule(r));
 
   if (vueRuleIndex === -1) {
-    // No vize loader found — nothing to do.  The user might be using
-    // manual oneOf configuration instead.
     return { applied: false, clonedCount: 0, warnings };
   }
 
   const vueRule = rules[vueRuleIndex] as RuleSetRule;
 
-  // If the rule already has `oneOf`, it's either been processed by a previous
-  // plugin apply or the user is using manual configuration.
   if (vueRule.oneOf) {
     return { applied: false, clonedCount: 0, warnings };
   }
 
-  // ── Step 2: find all CSS / preprocessor rules ────────────────────────────
+  // Step 2: find CSS / preprocessor rules────
   const cssRuleEntries: Array<{
     index: number;
     rule: RuleSetRule;
@@ -108,7 +72,7 @@ export function applyRuleCloning(
     }
   }
 
-  // ── Step 3: clone CSS rules for vue style sub-requests ───────────────────
+  // Step 3: clone CSS rules for vue style sub-requests────
   const clonedStyleRules: RuleSetRule[] = [];
 
   for (const entry of cssRuleEntries) {
@@ -118,8 +82,7 @@ export function applyRuleCloning(
     }
   }
 
-  // Always add a fallback rule for plain CSS coming from <style> blocks
-  // that don't match any user-provided CSS rule.
+  // Ensure fallback rule for plain <style lang="css"> blocks
   const hasCssFallback = clonedStyleRules.some(
     (r) =>
       r.resourceQuery instanceof RegExp &&
@@ -130,22 +93,20 @@ export function applyRuleCloning(
     clonedStyleRules.push(createFallbackStyleRule(nativeCss));
   }
 
-  // ── Step 4: build oneOf ──────────────────────────────────────────────────
-  // Extract the original use chain from the .vue rule for the main loader slot.
-  // Handle both `use` and `loader`/`options` shorthand forms.
+  // Step 4: build oneOf
   const mainLoaderBranch: RuleSetRule = {
     use: normalizeUseFromRule(vueRule),
   };
 
   const oneOf: RuleSetRule[] = [...clonedStyleRules, mainLoaderBranch];
 
-  // Replace the original .vue rule with the oneOf version.
+  // Replace original .vue rule with oneOf version
   rules[vueRuleIndex] = {
     test: vueRule.test,
     oneOf,
   };
 
-  // ── Step 5: exclude vue sub-requests from original CSS rules ─────────────
+  // Step 5: exclude vue sub-requests from original CSS rules────
   for (const entry of cssRuleEntries) {
     addVueExclusion(entry.rule);
   }
@@ -158,13 +119,8 @@ export function applyRuleCloning(
 }
 
 // ---------------------------------------------------------------------------
-// Internal helpers
-// ---------------------------------------------------------------------------
 
-/**
- * Check whether a rule's `use` chain contains the vize main loader.
- * Handles both `rule.use` and `rule.loader` shorthand.
- */
+/** Check if a rule's use chain contains the vize main loader. */
 function isVueMainRule(rule: RuleSetRule): boolean {
   // Must target .vue files
   if (!testMatchesVue(rule.test)) return false;
@@ -178,12 +134,13 @@ function isVueMainRule(rule: RuleSetRule): boolean {
 }
 
 function isVizeMainLoader(loader: string): boolean {
-  // Match the package export path or a resolved file path
+  // Match package export or resolved file path
   return (
     loader === VIZE_LOADER_IDENT ||
     (loader.includes("rspack-vize-plugin") &&
       loader.includes("loader") &&
-      !loader.includes("style-loader"))
+      !loader.includes("style-loader") &&
+      !loader.includes("scope-loader"))
   );
 }
 
@@ -198,10 +155,7 @@ function testMatchesVue(test: RuleSetRule["test"]): boolean {
   return false;
 }
 
-/**
- * Detect if a rule targets a CSS/preprocessor extension.
- * Returns the language name or null.
- */
+/** Detect if a rule targets a CSS/preprocessor extension. Returns lang name or null. */
 function detectStyleLang(rule: RuleSetRule): string | null {
   const test = rule.test;
   if (!test || !(test instanceof RegExp)) return null;
@@ -223,15 +177,7 @@ function detectStyleLang(rule: RuleSetRule): string | null {
   return null;
 }
 
-/**
- * Clone a CSS rule so it matches `?vue&type=style` sub-requests instead.
- *
- * The clone:
- * - Drops `test` (since the parent .vue rule already checked the extension)
- * - Adds `resourceQuery` matching `vue&type=style` + `lang=<lang>`
- * - Prepends the vize style-loader to the `use` chain (rightmost = first executed)
- * - Preserves the `type` field for native CSS mode
- */
+/** Clone a CSS rule for `?vue&type=style` sub-requests, appending scope-loader + style-loader. */
 function cloneRuleForVueStyle(
   rule: RuleSetRule,
   lang: string,
@@ -240,14 +186,11 @@ function cloneRuleForVueStyle(
   const uses = normalizeUseFromRule(rule);
   if (uses.length === 0) return null;
 
-  // Build resourceQuery regex with lookaheads for order-independence
   const resourceQuery = new RegExp(`(?=.*type=style)(?=.*lang=${lang})`);
-
-  // For native CSS mode, we need to set the appropriate type
-  // The vize style-loader extracts CSS from the SFC; after that,
-  // the user's preprocessor loaders run, and rspack handles the rest.
+  // Chain (right to left): style-loader → preprocessor → scope-loader → css-loader
   const clonedUse: RuleSetUseItem[] = [
     ...deepCloneUse(uses),
+    { loader: VIZE_SCOPE_LOADER_IDENT },
     { loader: VIZE_STYLE_LOADER_IDENT },
   ];
 
@@ -256,7 +199,7 @@ function cloneRuleForVueStyle(
     use: clonedUse,
   };
 
-  // Preserve the `type` if specified, otherwise infer from nativeCss mode
+  // Preserve type or infer from nativeCss mode
   if (rule.type) {
     cloned.type = rule.type;
   } else if (nativeCss) {
@@ -266,15 +209,7 @@ function cloneRuleForVueStyle(
   return cloned;
 }
 
-/**
- * Also generate a CSS Module variant for rules that could match `<style module>`.
- * This is handled implicitly: native CSS uses `css/auto` which auto-detects modules
- * via the query, and non-native CSS relies on css-loader's `modules.auto` setting.
- */
-
-/**
- * Create a fallback rule for plain `<style>` blocks (lang=css).
- */
+/** Fallback rule for plain `<style>` blocks (lang=css). */
 function createFallbackStyleRule(nativeCss: boolean): RuleSetRule {
   const resourceQuery = /(?=.*type=style)(?=.*lang=css)/;
 
@@ -282,26 +217,29 @@ function createFallbackStyleRule(nativeCss: boolean): RuleSetRule {
     return {
       resourceQuery,
       type: "css/auto",
-      use: [{ loader: VIZE_STYLE_LOADER_IDENT }],
+      use: [
+        { loader: VIZE_SCOPE_LOADER_IDENT },
+        { loader: VIZE_STYLE_LOADER_IDENT },
+      ],
     };
   }
 
-  // Non-native: just extract the CSS, upstream loaders will handle it
+  // Non-native: extract CSS + scoped transform
   return {
     resourceQuery,
     type: "javascript/auto",
-    use: [{ loader: VIZE_STYLE_LOADER_IDENT }],
+    use: [
+      { loader: VIZE_SCOPE_LOADER_IDENT },
+      { loader: VIZE_STYLE_LOADER_IDENT },
+    ],
   };
 }
 
-/**
- * Add `resourceQuery: { not: [/vue/] }` to a rule so it doesn't match
- * Vue style sub-requests.  Mutates the rule in-place.
- */
+/** Exclude Vue style sub-requests from a rule via `resourceQuery: { not: [/vue/] }`. */
 function addVueExclusion(rule: RuleSetRule): void {
   const existing = rule.resourceQuery;
   if (existing) {
-    // If it already has a `not` exclusion for vue, skip
+    // Already has a `not` exclusion for vue, skip
     if (
       typeof existing === "object" &&
       !Array.isArray(existing) &&
@@ -310,33 +248,24 @@ function addVueExclusion(rule: RuleSetRule): void {
     ) {
       return;
     }
-    // Don't overwrite complex existing resourceQuery conditions
+    // Don't overwrite complex existing conditions
     return;
   }
   rule.resourceQuery = { not: [/vue/] };
 }
 
-/**
- * Normalize `rule.use` to an array of use items.
- */
+/** Normalize `rule.use` to an array. */
 function normalizeUse(use: RuleSetRule["use"]): RuleSetUseItem[] {
   if (!use) return [];
   if (Array.isArray(use)) return use as RuleSetUseItem[];
   return [use as RuleSetUseItem];
 }
 
-/**
- * Normalize a rule's loaders from either `rule.use` or `rule.loader` (+`rule.options`)
- * into a flat array of use items.  Rspack/webpack accept both forms:
- *   { use: [{ loader, options }] }     — canonical
- *   { loader: "...", options: {...} }  — shorthand
- */
+/** Normalize a rule's loaders from `rule.use` or `rule.loader`+`rule.options` into a flat array. */
 function normalizeUseFromRule(rule: RuleSetRule): RuleSetUseItem[] {
-  // Prefer `use` if present
   const fromUse = normalizeUse(rule.use);
   if (fromUse.length > 0) return fromUse;
 
-  // Fall back to `loader` shorthand
   const loader = (rule as Record<string, unknown>).loader as string | undefined;
   if (loader) {
     const options = (rule as Record<string, unknown>).options as
@@ -348,9 +277,7 @@ function normalizeUseFromRule(rule: RuleSetRule): RuleSetUseItem[] {
   return [];
 }
 
-/**
- * Deep-clone an array of use items to avoid mutating the original rules.
- */
+/** Deep-clone use items to avoid mutating originals. */
 function deepCloneUse(uses: RuleSetUseItem[]): RuleSetUseItem[] {
   return uses.map((u) => {
     if (typeof u === "string") return u;

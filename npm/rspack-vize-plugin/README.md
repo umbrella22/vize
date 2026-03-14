@@ -182,7 +182,8 @@ export default {
 
 1. Find the `.vue` rule containing the vize loader
 2. Clone your CSS/SCSS/Less/Stylus rules for `?vue&type=style` sub-requests
-3. Inject the vize style-loader at the end of each cloned chain
+3. Inject the vize scope-loader + style-loader at the end of each cloned chain
+   (execution order: style-loader extracts block → preprocessor compiles → scope-loader applies native scoped CSS)
 4. Build `oneOf` branches inside the `.vue` rule
 5. Add `resourceQuery: { not: [/vue/] }` to original CSS rules so they don't conflict
 
@@ -198,7 +199,7 @@ If you need full control over the loader chain, set `autoRules: false` and write
 
 When writing manual rules, you must ensure the main `.vue` loader and the style loader see different requests.
 
-The main loader produces `import './App.vue?vue&type=style&index=0&...'` statements. These style sub-requests must be routed to `@vizejs/rspack-plugin/style-loader` — **not** back into the main loader. If the main loader receives a `?type=style` query it will emit an explicit error.
+The main loader produces `import './App.vue?vue&type=style&index=0&...'` statements. These style sub-requests must be routed through `@vizejs/rspack-plugin/scope-loader` and `@vizejs/rspack-plugin/style-loader` — **not** back into the main loader. If the main loader receives a `?type=style` query it will emit an explicit error.
 
 Use `oneOf` to guarantee mutual exclusion:
 
@@ -239,9 +240,8 @@ export default {
             resourceQuery: /vue&type=style.*module/,
             type: "css/module",
             use: [
-              {
-                loader: "@vizejs/rspack-plugin/style-loader",
-              },
+              { loader: "@vizejs/rspack-plugin/scope-loader" },
+              { loader: "@vizejs/rspack-plugin/style-loader" },
             ],
           },
 
@@ -250,10 +250,9 @@ export default {
             resourceQuery: /vue&type=style.*lang=scss/,
             type: "css/auto",
             use: [
+              { loader: "@vizejs/rspack-plugin/scope-loader" },
               "sass-loader",
-              {
-                loader: "@vizejs/rspack-plugin/style-loader",
-              },
+              { loader: "@vizejs/rspack-plugin/style-loader" },
             ],
           },
 
@@ -262,9 +261,8 @@ export default {
             resourceQuery: /vue&type=style/,
             type: "css/auto",
             use: [
-              {
-                loader: "@vizejs/rspack-plugin/style-loader",
-              },
+              { loader: "@vizejs/rspack-plugin/scope-loader" },
+              { loader: "@vizejs/rspack-plugin/style-loader" },
             ],
           },
 
@@ -327,10 +325,9 @@ export default {
                 ? rspack.CssExtractRspackPlugin.loader
                 : "style-loader",
               "css-loader",
+              { loader: "@vizejs/rspack-plugin/scope-loader" },
               "sass-loader",
-              {
-                loader: "@vizejs/rspack-plugin/style-loader",
-              },
+              { loader: "@vizejs/rspack-plugin/style-loader" },
             ],
           },
 
@@ -352,9 +349,8 @@ export default {
                   },
                 },
               },
-              {
-                loader: "@vizejs/rspack-plugin/style-loader",
-              },
+              { loader: "@vizejs/rspack-plugin/scope-loader" },
+              { loader: "@vizejs/rspack-plugin/style-loader" },
             ],
           },
 
@@ -528,23 +524,19 @@ Only relative (`./`, `../`), alias (`@/`), and tilde (`~/`, `~pkg`) URLs are tra
 }
 ```
 
-## Known Limitations
+### VizeScopeLoader
 
-### Scoped CSS
+Applies native scoped CSS transformation using `@vizejs/native compileCss`. Runs **after** preprocessors (SCSS/Less/Stylus → CSS) and **before** css-loader or `experiments.css`.
 
-Scoped CSS scope IDs are derived from the file's **relative path** (relative to Rspack's `rootContext`). In production builds, the file content is also mixed into the hash to prevent collisions across packages with identically-named files. This ensures consistent scope IDs across different machines for SSR hydration.
+```typescript
+// In rspack.config.js
+{
+  loader: "@vizejs/rspack-plugin/scope-loader",
+  // No options — scope metadata is extracted from the query string (?scoped=xxxxx)
+}
+```
 
-The current scoped CSS implementation uses a fallback regex transformer with the following limitations:
-
-- ❌ No support for `:deep()`, `:global()`, `:slotted()` pseudo-classes
-- ❌ No support for nested `@media` / `@supports` selectors
-- ❌ May not handle CSS comments containing `{` or `,` correctly
-
-**Recommendation**: This is an MVP implementation. For production-grade scoped CSS, consider waiting for native-side precise API support.
-
-### Source Maps
-
-The current `@vizejs/native` NAPI does not yet return a source map field. The type definition reserves a `map?: string` field for forward-compatibility. Once the Rust side implements source map output, the loader will pass it to Rspack automatically.
+The scope-loader is automatically injected by `VizePlugin` when `autoRules: true` (default). Only needed in manual `oneOf` configurations.
 
 ## License
 
