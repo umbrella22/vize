@@ -11,25 +11,25 @@ import {
 } from "./test/helpers.js";
 
 function runCompiler(compiler: ReturnType<typeof rspack>) {
-  return new Promise<
-    NonNullable<Parameters<Parameters<typeof compiler.run>[0]>[1]>
-  >((resolve, reject) => {
-    compiler!.run((error, stats) => {
-      compiler!.close((closeError) => {
-        if (error || closeError) {
-          reject(error ?? closeError);
-          return;
-        }
+  return new Promise<NonNullable<Parameters<Parameters<typeof compiler.run>[0]>[1]>>(
+    (resolve, reject) => {
+      compiler!.run((error, stats) => {
+        compiler!.close((closeError) => {
+          if (error || closeError) {
+            reject(error ?? closeError);
+            return;
+          }
 
-        if (!stats) {
-          reject(new Error("Rspack did not return stats"));
-          return;
-        }
+          if (!stats) {
+            reject(new Error("Rspack did not return stats"));
+            return;
+          }
 
-        resolve(stats);
+          resolve(stats);
+        });
       });
-    });
-  });
+    },
+  );
 }
 
 void test("rspack builds a Vue SFC with auto-inject mode", async (t) => {
@@ -112,13 +112,8 @@ void test("rspack builds a Vue SFC with auto-inject mode", async (t) => {
   const assets = Object.fromEntries(
     Object.entries(stats.compilation.assets)
       .sort(([left], [right]) => left.localeCompare(right))
-      .map(([name, asset]) => [
-        name,
-        normalizeSnapshot(asset.source().toString()),
-      ]),
+      .map(([name, asset]) => [name, normalizeSnapshot(asset.source().toString())]),
   );
 
   t.assert.snapshot(JSON.stringify(assets, null, 2));
 });
-
-

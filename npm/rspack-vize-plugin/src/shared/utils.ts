@@ -2,7 +2,12 @@
 
 import { createHash } from "node:crypto";
 import path from "node:path";
-import type { StyleBlockInfo, CustomBlockInfo, SfcSrcInfo, TemplateAssetUrl } from "../types/index.js";
+import type {
+  StyleBlockInfo,
+  CustomBlockInfo,
+  SfcSrcInfo,
+  TemplateAssetUrl,
+} from "../types/index.js";
 
 /** Generate scope ID (8-char SHA256 prefix). Uses relative path for cross-env consistency. */
 export function generateScopeId(
@@ -126,7 +131,11 @@ export function stripCssCommentsForScoped(css: string): string {
       i += 2; // skip `/*`
       let commentBuf = "  "; // replacement for `/*`
       while (i < len) {
-        if (css.charCodeAt(i) === 42 /* * */ && i + 1 < len && css.charCodeAt(i + 1) === 47 /* / */) {
+        if (
+          css.charCodeAt(i) === 42 /* * */ &&
+          i + 1 < len &&
+          css.charCodeAt(i + 1) === 47 /* / */
+        ) {
           commentBuf += "  "; // replacement for `*/`
           i += 2;
           break;
@@ -193,9 +202,7 @@ export function extractCustomBlocks(source: string): CustomBlockInfo[] {
       continue;
     }
 
-    const openTagMatch = /^<([a-zA-Z][a-zA-Z0-9-]*)(\s[^>]*)?\s*\/?>/.exec(
-      source.slice(ltPos),
-    );
+    const openTagMatch = /^<([a-zA-Z][a-zA-Z0-9-]*)(\s[^>]*)?\s*\/?>/.exec(source.slice(ltPos));
     if (!openTagMatch) {
       pos = ltPos + 1;
       continue;
@@ -448,9 +455,7 @@ export function collectTemplateAssetUrls(
   if (tags === false) return [];
 
   const tagConfig: Record<string, string[]> =
-    tags == null || tags === true
-      ? (DEFAULT_ASSET_URL_TAGS as Record<string, string[]>)
-      : tags;
+    tags == null || tags === true ? (DEFAULT_ASSET_URL_TAGS as Record<string, string[]>) : tags;
 
   const templateContent = extractSfcTemplateContent(source);
   if (!templateContent) return [];
@@ -462,10 +467,7 @@ export function collectTemplateAssetUrls(
     // Match an opening tag (including self-closing).
     // Attribute values may contain spaces, so we consume everything up to `>`,
     // skipping over quoted attribute values that might include `>`.
-    const tagRe = new RegExp(
-      `<${escapeRegex(tag)}((?:\\s+[^>]*)?)(?:/>|>)`,
-      "gi",
-    );
+    const tagRe = new RegExp(`<${escapeRegex(tag)}((?:\\s+[^>]*)?)(?:/>|>)`, "gi");
     let tagMatch: RegExpExecArray | null;
 
     while ((tagMatch = tagRe.exec(templateContent)) !== null) {
@@ -474,14 +476,8 @@ export function collectTemplateAssetUrls(
       for (const attr of attrs) {
         // Static attribute: must be preceded by whitespace (or start of attrStr),
         // NOT by `:` or `v-bind:` (which mark dynamic bindings).
-        const doubleQuoteRe = new RegExp(
-          `(?:^|\\s)${escapeRegex(attr)}="([^"]+)"`,
-          "i",
-        );
-        const singleQuoteRe = new RegExp(
-          `(?:^|\\s)${escapeRegex(attr)}='([^']+)'`,
-          "i",
-        );
+        const doubleQuoteRe = new RegExp(`(?:^|\\s)${escapeRegex(attr)}="([^"]+)"`, "i");
+        const singleQuoteRe = new RegExp(`(?:^|\\s)${escapeRegex(attr)}='([^']+)'`, "i");
 
         const m = doubleQuoteRe.exec(attrStr) ?? singleQuoteRe.exec(attrStr);
         if (m) {

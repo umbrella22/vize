@@ -85,8 +85,7 @@ export function applyRuleCloning(
   // Ensure fallback rule for plain <style lang="css"> blocks
   const hasCssFallback = clonedStyleRules.some(
     (r) =>
-      r.resourceQuery instanceof RegExp &&
-      r.resourceQuery.test("vue&type=style&index=0&lang=css"),
+      r.resourceQuery instanceof RegExp && r.resourceQuery.test("vue&type=style&index=0&lang=css"),
   );
 
   if (!hasCssFallback) {
@@ -127,8 +126,7 @@ function isVueMainRule(rule: RuleSetRule): boolean {
 
   const uses = normalizeUseFromRule(rule);
   return uses.some((u) => {
-    const loader =
-      typeof u === "string" ? u : (u as { loader?: string }).loader;
+    const loader = typeof u === "string" ? u : (u as { loader?: string }).loader;
     return loader ? isVizeMainLoader(loader) : false;
   });
 }
@@ -217,10 +215,7 @@ function createFallbackStyleRule(nativeCss: boolean): RuleSetRule {
     return {
       resourceQuery,
       type: "css/auto",
-      use: [
-        { loader: VIZE_SCOPE_LOADER_IDENT },
-        { loader: VIZE_STYLE_LOADER_IDENT },
-      ],
+      use: [{ loader: VIZE_SCOPE_LOADER_IDENT }, { loader: VIZE_STYLE_LOADER_IDENT }],
     };
   }
 
@@ -228,10 +223,7 @@ function createFallbackStyleRule(nativeCss: boolean): RuleSetRule {
   return {
     resourceQuery,
     type: "javascript/auto",
-    use: [
-      { loader: VIZE_SCOPE_LOADER_IDENT },
-      { loader: VIZE_STYLE_LOADER_IDENT },
-    ],
+    use: [{ loader: VIZE_SCOPE_LOADER_IDENT }, { loader: VIZE_STYLE_LOADER_IDENT }],
   };
 }
 

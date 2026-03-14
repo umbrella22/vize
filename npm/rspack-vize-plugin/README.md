@@ -131,10 +131,7 @@ export default {
       {
         test: /\.css$/,
         type: "javascript/auto",
-        use: [
-          isProduction ? rspack.CssExtractRspackPlugin.loader : "style-loader",
-          "css-loader",
-        ],
+        use: [isProduction ? rspack.CssExtractRspackPlugin.loader : "style-loader", "css-loader"],
       },
       {
         test: /\.scss$/,

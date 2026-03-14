@@ -11,31 +11,28 @@ import {
 } from "./test/helpers.js";
 
 function runCompiler(compiler: ReturnType<typeof rspack>) {
-  return new Promise<
-    NonNullable<Parameters<Parameters<typeof compiler.run>[0]>[1]>
-  >((resolve, reject) => {
-    compiler.run((error, stats) => {
-      compiler.close((closeError) => {
-        if (error || closeError) {
-          reject(error ?? closeError);
-          return;
-        }
+  return new Promise<NonNullable<Parameters<Parameters<typeof compiler.run>[0]>[1]>>(
+    (resolve, reject) => {
+      compiler.run((error, stats) => {
+        compiler.close((closeError) => {
+          if (error || closeError) {
+            reject(error ?? closeError);
+            return;
+          }
 
-        if (!stats) {
-          reject(new Error("Rspack did not return stats"));
-          return;
-        }
+          if (!stats) {
+            reject(new Error("Rspack did not return stats"));
+            return;
+          }
 
-        resolve(stats);
+          resolve(stats);
+        });
       });
-    });
-  });
+    },
+  );
 }
 
-function createVaporCompiler(
-  fixtureName: string,
-  outputName: string,
-): ReturnType<typeof rspack> {
+function createVaporCompiler(fixtureName: string, outputName: string): ReturnType<typeof rspack> {
   return rspack({
     mode: "development",
     devtool: false,
@@ -106,24 +103,16 @@ function createVaporCompiler(
   });
 }
 
-function extractAssets(
-  stats: Awaited<ReturnType<typeof runCompiler>>,
-): Record<string, string> {
+function extractAssets(stats: Awaited<ReturnType<typeof runCompiler>>): Record<string, string> {
   return Object.fromEntries(
     Object.entries(stats.compilation.assets)
       .sort(([left], [right]) => left.localeCompare(right))
-      .map(([name, asset]) => [
-        name,
-        normalizeSnapshot(asset.source().toString()),
-      ]),
+      .map(([name, asset]) => [name, normalizeSnapshot(asset.source().toString())]),
   );
 }
 
 void test("vapor: template-only SFC compiles successfully", async (t) => {
-  const compiler = createVaporCompiler(
-    "vapor-template-only",
-    "vapor-template-only",
-  );
+  const compiler = createVaporCompiler("vapor-template-only", "vapor-template-only");
   const stats = await runCompiler(compiler);
 
   if (stats.hasErrors()) {
@@ -138,10 +127,7 @@ void test("vapor: template-only SFC compiles successfully", async (t) => {
 });
 
 void test("vapor: normal script + template SFC compiles successfully", async (t) => {
-  const compiler = createVaporCompiler(
-    "vapor-script-template",
-    "vapor-script-template",
-  );
+  const compiler = createVaporCompiler("vapor-script-template", "vapor-script-template");
   const stats = await runCompiler(compiler);
 
   if (stats.hasErrors()) {
@@ -156,10 +142,7 @@ void test("vapor: normal script + template SFC compiles successfully", async (t)
 });
 
 void test("vapor: script setup SFC compiles successfully", async (t) => {
-  const compiler = createVaporCompiler(
-    "vapor-script-setup",
-    "vapor-script-setup",
-  );
+  const compiler = createVaporCompiler("vapor-script-setup", "vapor-script-setup");
   const stats = await runCompiler(compiler);
 
   if (stats.hasErrors()) {
@@ -174,10 +157,7 @@ void test("vapor: script setup SFC compiles successfully", async (t) => {
 });
 
 void test("vapor: scoped style coexists with vapor mode", async (t) => {
-  const compiler = createVaporCompiler(
-    "vapor-scoped-style",
-    "vapor-scoped-style",
-  );
+  const compiler = createVaporCompiler("vapor-scoped-style", "vapor-scoped-style");
   const stats = await runCompiler(compiler);
 
   if (stats.hasErrors()) {

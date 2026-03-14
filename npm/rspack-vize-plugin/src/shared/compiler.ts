@@ -50,15 +50,12 @@ export function compileFile(
   } = {},
 ): CompiledModule {
   // Auto-detect TypeScript
-  const autoIsTs =
-    options.compilerOptions?.isTs ??
-    /<script[^>]*\blang=["']ts["']/.test(source);
+  const autoIsTs = options.compilerOptions?.isTs ?? /<script[^>]*\blang=["']ts["']/.test(source);
 
   // Composite cache key
   const ssr = options.ssr ?? options.compilerOptions?.ssr ?? false;
   const vapor = options.vapor ?? options.compilerOptions?.vapor ?? false;
-  const sourceMap =
-    options.sourceMap ?? options.compilerOptions?.sourceMap ?? true;
+  const sourceMap = options.sourceMap ?? options.compilerOptions?.sourceMap ?? true;
   const isCustomElement = options.isCustomElement ?? false;
   const rootCtx = options.rootContext ?? "";
   const isProd = options.isProduction ?? false;
@@ -78,12 +75,7 @@ export function compileFile(
     return cached.result;
   }
 
-  const scopeId = generateScopeId(
-    filePath,
-    options.rootContext,
-    options.isProduction,
-    source,
-  );
+  const scopeId = generateScopeId(filePath, options.rootContext, options.isProduction, source);
   const hasScoped = /<style[^>]*\bscoped\b/.test(source);
 
   const napiOptions: SfcCompileOptionsNapi = {
@@ -183,16 +175,12 @@ export function generateOutput(
       // Custom element mode: <style module> is not supported
       const hasModule = compiled.styles.some((s) => s.module);
       if (hasModule) {
-        throw new Error(
-          `[vize] <style module> is not supported in custom elements mode.`,
-        );
+        throw new Error(`[vize] <style module> is not supported in custom elements mode.`);
       }
     }
 
     // Only one unnamed <style module> allowed
-    const unnamedModuleCount = compiled.styles.filter(
-      (s) => s.module === true,
-    ).length;
+    const unnamedModuleCount = compiled.styles.filter((s) => s.module === true).length;
     if (unnamedModuleCount > 1) {
       throw new Error(
         `[vize] Found ${unnamedModuleCount} unnamed <style module> blocks. ` +
@@ -201,9 +189,7 @@ export function generateOutput(
       );
     }
 
-    const activeStyles = compiled.styles.filter(
-      (style) => style.src || /\S/.test(style.content),
-    );
+    const activeStyles = compiled.styles.filter((style) => style.src || /\S/.test(style.content));
 
     const cssModuleHmrEntries: {
       request: string;
@@ -220,9 +206,7 @@ export function generateOutput(
           `lang=${style.lang || "css"}`,
           ...(style.scoped ? [`scoped=${compiled.scopeId}`] : []),
           ...(style.module
-            ? [
-                `module=${typeof style.module === "string" ? style.module : "true"}`,
-              ]
+            ? [`module=${typeof style.module === "string" ? style.module : "true"}`]
             : []),
           ...(isCustomElement ? ["inline"] : []),
         ];
@@ -234,9 +218,8 @@ export function generateOutput(
         }
 
         if (style.module) {
-          const bindingName =
-            typeof style.module === "string" ? style.module : "$style";
-        // Use _cssModule_<n> as binding since module name may not be a valid identifier
+          const bindingName = typeof style.module === "string" ? style.module : "$style";
+          // Use _cssModule_<n> as binding since module name may not be a valid identifier
           const varName = `_cssModule_${style.index}`;
           cssModuleHmrEntries.push({ request, varName, bindingName });
           return `import ${varName} from ${JSON.stringify(request)};`;
@@ -249,9 +232,7 @@ export function generateOutput(
 
     // Custom element: attach styles for shadow DOM
     if (isCustomElement) {
-      const stylesArray = activeStyles
-        .map((s) => `_style_${s.index}`)
-        .join(",");
+      const stylesArray = activeStyles.map((s) => `_style_${s.index}`).join(",");
       output = output.replace(
         /^export default _sfc_main;/m,
         `_sfc_main.styles = [${stylesArray}];\nexport default _sfc_main;`,

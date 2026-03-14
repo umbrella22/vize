@@ -26,7 +26,9 @@ const msg: string = "scoped basic";
   content: "» ";
 }
 
-h1, h2, .desc {
+h1,
+h2,
+.desc {
   margin: 0;
 }
 </style>

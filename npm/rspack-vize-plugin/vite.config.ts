@@ -11,7 +11,12 @@ export default defineConfig({
     ignorePatterns: ["dist/**"],
   },
   pack: {
-    entry: ["src/index.ts", "src/loader/index.ts", "src/loader/style-loader.ts", "src/loader/scope-loader.ts"],
+    entry: [
+      "src/index.ts",
+      "src/loader/index.ts",
+      "src/loader/style-loader.ts",
+      "src/loader/scope-loader.ts",
+    ],
     format: "esm",
     dts: true,
     clean: true,

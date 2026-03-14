@@ -3,8 +3,8 @@ import assert from "node:assert/strict";
 import "./../test/setup.ts";
 import { applyRuleCloning } from "./ruleCloning.js";
 
-describe("applyRuleCloning", () => {
-  test("does nothing when no vize loader is found", () => {
+void describe("applyRuleCloning", () => {
+  void test("does nothing when no vize loader is found", () => {
     const rules = [{ test: /\.css$/, use: ["style-loader", "css-loader"] }];
     const result = applyRuleCloning(rules as never, true);
 
@@ -12,7 +12,7 @@ describe("applyRuleCloning", () => {
     assert.equal(result.clonedCount, 0);
   });
 
-  test("does nothing when .vue rule already has oneOf", () => {
+  void test("does nothing when .vue rule already has oneOf", () => {
     const rules = [
       {
         test: /\.vue$/,
@@ -27,7 +27,7 @@ describe("applyRuleCloning", () => {
     assert.equal(result.applied, false);
   });
 
-  test("clones CSS rule and builds oneOf (nativeCss)", () => {
+  void test("clones CSS rule and builds oneOf (nativeCss)", () => {
     const rules = [
       { test: /\.css$/, use: ["style-loader", "css-loader"] },
       {
@@ -57,7 +57,7 @@ describe("applyRuleCloning", () => {
     assert.ok(cssRule.resourceQuery);
   });
 
-  test("clones SCSS rule alongside CSS (nativeCss)", () => {
+  void test("clones SCSS rule alongside CSS (nativeCss)", () => {
     const rules = [
       { test: /\.css$/, use: ["style-loader", "css-loader"] },
       { test: /\.scss$/, use: ["style-loader", "css-loader", "sass-loader"] },
@@ -96,7 +96,7 @@ describe("applyRuleCloning", () => {
     assert.ok((rules[1] as Record<string, unknown>).resourceQuery);
   });
 
-  test("generates css/auto type for native CSS cloned rules", () => {
+  void test("generates css/auto type for native CSS cloned rules", () => {
     const rules = [
       { test: /\.scss$/, use: ["sass-loader"] },
       {
@@ -117,7 +117,7 @@ describe("applyRuleCloning", () => {
     assert.equal(styleRule!.type, "css/auto");
   });
 
-  test("always adds a CSS fallback rule for plain <style>", () => {
+  void test("always adds a CSS fallback rule for plain <style>", () => {
     const rules = [
       { test: /\.scss$/, use: ["sass-loader"] },
       {
@@ -140,7 +140,7 @@ describe("applyRuleCloning", () => {
     assert.ok(cssFallback, "should have a CSS fallback rule");
   });
 
-  test("preserves original rule type in clone", () => {
+  void test("preserves original rule type in clone", () => {
     const rules = [
       { test: /\.css$/, type: "css/module", use: ["css-loader"] },
       {
@@ -162,7 +162,7 @@ describe("applyRuleCloning", () => {
     assert.equal(cssClone!.type, "css/module");
   });
 
-  test("deep clones use entries to avoid mutating originals", () => {
+  void test("deep clones use entries to avoid mutating originals", () => {
     const originalOptions = { modules: true };
     const rules = [
       {
@@ -191,15 +191,14 @@ describe("applyRuleCloning", () => {
     assert.equal(originalOptions.modules, true);
   });
 
-  test("handles resolved file paths for vize loader", () => {
+  void test("handles resolved file paths for vize loader", () => {
     const rules = [
       { test: /\.css$/, use: ["css-loader"] },
       {
         test: /\.vue$/,
         use: [
           {
-            loader:
-              "/path/to/node_modules/@vizejs/rspack-vize-plugin/dist/loader/index.js",
+            loader: "/path/to/node_modules/@vizejs/rspack-vize-plugin/dist/loader/index.js",
           },
         ],
       },
@@ -209,7 +208,7 @@ describe("applyRuleCloning", () => {
     assert.equal(result.applied, true);
   });
 
-  test("skips '...' entries in rules array", () => {
+  void test("skips '...' entries in rules array", () => {
     const rules: unknown[] = [
       "...",
       { test: /\.css$/, use: ["css-loader"] },
@@ -223,7 +222,7 @@ describe("applyRuleCloning", () => {
     assert.equal(result.applied, true);
   });
 
-  test("handles `loader` shorthand (no `use` array)", () => {
+  void test("handles `loader` shorthand (no `use` array)", () => {
     const rules = [
       {
         test: /\.scss$/,
@@ -265,7 +264,7 @@ describe("applyRuleCloning", () => {
     assert.ok(scssClone, "should have a cloned SCSS rule");
   });
 
-  test("handles `loader` + `options` shorthand", () => {
+  void test("handles `loader` + `options` shorthand", () => {
     const rules = [
       { test: /\.css$/, use: ["css-loader"] },
       {
@@ -288,7 +287,7 @@ describe("applyRuleCloning", () => {
     assert.deepEqual(use[0].options, { sourceMap: true });
   });
 
-  test("injects scope-loader between user loaders and style-loader in all cloned rules", () => {
+  void test("injects scope-loader between user loaders and style-loader in all cloned rules", () => {
     const rules = [
       { test: /\.css$/, use: ["css-loader"] },
       { test: /\.scss$/, use: ["sass-loader"] },
@@ -327,7 +326,7 @@ describe("applyRuleCloning", () => {
     }
   });
 
-  test("CSS fallback rule has both scope-loader and style-loader", () => {
+  void test("CSS fallback rule has both scope-loader and style-loader", () => {
     const rules = [
       { test: /\.scss$/, use: ["sass-loader"] },
       {

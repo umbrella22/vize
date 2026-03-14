@@ -8,8 +8,8 @@ import {
   stripCssCommentsForScoped,
 } from "./utils.js";
 
-describe("extractCustomBlocks", () => {
-  test("extracts a simple <i18n> custom block", () => {
+void describe("extractCustomBlocks", () => {
+  void test("extracts a simple <i18n> custom block", () => {
     const source = `
 <template><div>hello</div></template>
 <script setup>console.log("hi")</script>
@@ -23,7 +23,7 @@ describe("extractCustomBlocks", () => {
     assert.equal(blocks[0].index, 0);
   });
 
-  test("does not treat <template #prefix> as a custom block", () => {
+  void test("does not treat <template #prefix> as a custom block", () => {
     const source = `
 <template>
   <el-input>
@@ -36,14 +36,10 @@ describe("extractCustomBlocks", () => {
 <script setup>console.log("hi")</script>
 `;
     const blocks = extractCustomBlocks(source);
-    assert.equal(
-      blocks.length,
-      0,
-      "nested <template> slots must not become custom blocks",
-    );
+    assert.equal(blocks.length, 0, "nested <template> slots must not become custom blocks");
   });
 
-  test("does not treat <template #default> as a custom block", () => {
+  void test("does not treat <template #default> as a custom block", () => {
     const source = `
 <template>
   <div>
@@ -58,7 +54,7 @@ describe("extractCustomBlocks", () => {
     assert.equal(blocks.length, 0);
   });
 
-  test("does not generate type=div or type=el-form-item blocks", () => {
+  void test("does not generate type=div or type=el-form-item blocks", () => {
     const source = `
 <template>
   <div class="wrapper">
@@ -83,14 +79,10 @@ const name = ref('')
 </style>
 `;
     const blocks = extractCustomBlocks(source);
-    assert.equal(
-      blocks.length,
-      0,
-      "HTML tags inside <template> must not become custom blocks",
-    );
+    assert.equal(blocks.length, 0, "HTML tags inside <template> must not become custom blocks");
   });
 
-  test("extracts multiple custom blocks", () => {
+  void test("extracts multiple custom blocks", () => {
     const source = `
 <template><div>hello</div></template>
 <script setup>console.log("hi")</script>
@@ -105,7 +97,7 @@ const name = ref('')
     assert.equal(blocks[1].index, 1);
   });
 
-  test("extracts custom block with src attribute", () => {
+  void test("extracts custom block with src attribute", () => {
     const source = `
 <template><div>hello</div></template>
 <script setup>console.log("hi")</script>
@@ -118,7 +110,7 @@ const name = ref('')
     assert.equal(blocks[0].attrs.lang, "json");
   });
 
-  test("handles SFC with no custom blocks", () => {
+  void test("handles SFC with no custom blocks", () => {
     const source = `
 <template><div>hello</div></template>
 <script setup>console.log("hi")</script>
@@ -128,7 +120,7 @@ const name = ref('')
     assert.equal(blocks.length, 0);
   });
 
-  test("handles deeply nested same-name tags in template", () => {
+  void test("handles deeply nested same-name tags in template", () => {
     const source = `
 <template>
   <div>
@@ -151,7 +143,7 @@ const items = ref([])
     assert.equal(blocks[0].type, "i18n");
   });
 
-  test("handles self-closing custom block", () => {
+  void test("handles self-closing custom block", () => {
     const source = `
 <template><div>hello</div></template>
 <script setup>console.log("hi")</script>
@@ -164,7 +156,7 @@ const items = ref([])
     assert.equal(blocks[0].content, "");
   });
 
-  test("ignores HTML comments", () => {
+  void test("ignores HTML comments", () => {
     const source = `
 <!-- This is a comment -->
 <template><div>hello</div></template>
@@ -178,8 +170,8 @@ const items = ref([])
   });
 });
 
-describe("extractStyleBlocks", () => {
-  test("extracts plain CSS style block", () => {
+void describe("extractStyleBlocks", () => {
+  void test("extracts plain CSS style block", () => {
     const source = `
 <template><div>hello</div></template>
 <script setup>console.log("hi")</script>
@@ -191,7 +183,7 @@ describe("extractStyleBlocks", () => {
     assert.equal(blocks[0].lang, null);
   });
 
-  test("extracts scoped and module style blocks", () => {
+  void test("extracts scoped and module style blocks", () => {
     const source = `
 <template><div>hello</div></template>
 <style module>.root { color: blue; }</style>
@@ -206,8 +198,8 @@ describe("extractStyleBlocks", () => {
   });
 });
 
-describe("stripCssCommentsForScoped", () => {
-  test("removes block comments and preserves newlines", () => {
+void describe("stripCssCommentsForScoped", () => {
+  void test("removes block comments and preserves newlines", () => {
     const input = `.a { color: red; }\n/* :deep(.x) */\n.b { color: blue; }`;
     const output = stripCssCommentsForScoped(input);
 
@@ -217,7 +209,7 @@ describe("stripCssCommentsForScoped", () => {
     assert.equal(output.includes(".b { color: blue; }"), true);
   });
 
-  test("keeps comment-like text inside strings", () => {
+  void test("keeps comment-like text inside strings", () => {
     const input = `.a::before { content: "/* :deep(.x) */"; }`;
     const output = stripCssCommentsForScoped(input);
 
@@ -229,29 +221,29 @@ describe("stripCssCommentsForScoped", () => {
 // isImportableUrl
 // ============================================================================
 
-describe("isImportableUrl", () => {
-  test("relative paths are importable", () => {
+void describe("isImportableUrl", () => {
+  void test("relative paths are importable", () => {
     assert.equal(isImportableUrl("./logo.png"), true);
     assert.equal(isImportableUrl("../assets/bg.jpg"), true);
   });
 
-  test("alias paths are importable", () => {
+  void test("alias paths are importable", () => {
     assert.equal(isImportableUrl("@/assets/logo.svg"), true);
     assert.equal(isImportableUrl("~/images/hero.webp"), true);
     assert.equal(isImportableUrl("~bootstrap/img/flag.png"), true);
   });
 
-  test("external URLs are not importable", () => {
+  void test("external URLs are not importable", () => {
     assert.equal(isImportableUrl("https://cdn.example.com/img.png"), false);
     assert.equal(isImportableUrl("http://example.com/img.png"), false);
     assert.equal(isImportableUrl("//cdn.example.com/img.png"), false);
   });
 
-  test("data URIs are not importable", () => {
+  void test("data URIs are not importable", () => {
     assert.equal(isImportableUrl("data:image/png;base64,abc123"), false);
   });
 
-  test("empty string is not importable", () => {
+  void test("empty string is not importable", () => {
     assert.equal(isImportableUrl(""), false);
   });
 });
@@ -260,8 +252,8 @@ describe("isImportableUrl", () => {
 // collectTemplateAssetUrls
 // ============================================================================
 
-describe("collectTemplateAssetUrls", () => {
-  test("collects src from img tag", () => {
+void describe("collectTemplateAssetUrls", () => {
+  void test("collects src from img tag", () => {
     const source = `
 <template>
   <div>
@@ -276,7 +268,7 @@ describe("collectTemplateAssetUrls", () => {
     assert.equal(result[0].varName, "_imports_0");
   });
 
-  test("collects src from img tag — alias path", () => {
+  void test("collects src from img tag — alias path", () => {
     const source = `
 <template>
   <img src="@/assets/logo.svg" />
@@ -287,7 +279,7 @@ describe("collectTemplateAssetUrls", () => {
     assert.equal(result[0].url, "@/assets/logo.svg");
   });
 
-  test("deduplicates repeated URLs", () => {
+  void test("deduplicates repeated URLs", () => {
     const source = `
 <template>
   <div>
@@ -303,7 +295,7 @@ describe("collectTemplateAssetUrls", () => {
     assert.equal(result[1].url, "./b.png");
   });
 
-  test("collects poster from video tag", () => {
+  void test("collects poster from video tag", () => {
     const source = `
 <template>
   <video src="./video.mp4" poster="./poster.jpg"></video>
@@ -315,7 +307,7 @@ describe("collectTemplateAssetUrls", () => {
     assert.ok(urls.includes("./poster.jpg"), "should include poster");
   });
 
-  test("ignores dynamic bindings (v-bind / :attr)", () => {
+  void test("ignores dynamic bindings (v-bind / :attr)", () => {
     const source = `
 <template>
   <img :src="dynamicSrc" />
@@ -326,7 +318,7 @@ describe("collectTemplateAssetUrls", () => {
     assert.equal(result.length, 0, "dynamic bindings must not be collected");
   });
 
-  test("ignores external URLs", () => {
+  void test("ignores external URLs", () => {
     const source = `
 <template>
   <img src="https://cdn.example.com/logo.png" />
@@ -336,7 +328,7 @@ describe("collectTemplateAssetUrls", () => {
     assert.equal(result.length, 0, "external URLs must not be collected");
   });
 
-  test("returns empty when transformAssetUrls is false", () => {
+  void test("returns empty when transformAssetUrls is false", () => {
     const source = `
 <template>
   <img src="./logo.png" />
@@ -346,7 +338,7 @@ describe("collectTemplateAssetUrls", () => {
     assert.equal(result.length, 0);
   });
 
-  test("supports custom tag/attribute map", () => {
+  void test("supports custom tag/attribute map", () => {
     const source = `
 <template>
   <my-image data-src="./hero.webp" />
@@ -360,13 +352,13 @@ describe("collectTemplateAssetUrls", () => {
     assert.equal(result[0].url, "./hero.webp");
   });
 
-  test("returns empty when SFC has no template block", () => {
+  void test("returns empty when SFC has no template block", () => {
     const source = `<script setup>const x = 1</script>`;
     const result = collectTemplateAssetUrls(source);
     assert.equal(result.length, 0);
   });
 
-  test("collects href from image/use SVG elements", () => {
+  void test("collects href from image/use SVG elements", () => {
     const source = `
 <template>
   <svg>
@@ -378,13 +370,10 @@ describe("collectTemplateAssetUrls", () => {
     const result = collectTemplateAssetUrls(source);
     const urls = result.map((r) => r.url);
     assert.ok(urls.includes("./sprite.svg"), "should include image href");
-    assert.ok(
-      urls.includes("./icon.svg#arrow"),
-      "should include use href with fragment",
-    );
+    assert.ok(urls.includes("./icon.svg#arrow"), "should include use href with fragment");
   });
 
-  test("URL with hash fragment is collected as-is (fragment split happens in generateOutput)", () => {
+  void test("URL with hash fragment is collected as-is (fragment split happens in generateOutput)", () => {
     const source = `
 <template>
   <svg>
@@ -399,7 +388,7 @@ describe("collectTemplateAssetUrls", () => {
     assert.equal(result[1].url, "./icons.svg#settings");
   });
 
-  test("tilde module path is rewritten (~ stripped in import)", () => {
+  void test("tilde module path is rewritten (~ stripped in import)", () => {
     const source = `
 <template>
   <img src="~bootstrap/dist/img/flag.png" />
